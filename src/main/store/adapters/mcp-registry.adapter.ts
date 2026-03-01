@@ -51,7 +51,10 @@ export class McpRegistryAdapter implements RegistryAdapter {
    * Cursor-based pagination mapping:
    * MCP API uses cursor pagination, but our StoreQueryParams uses page numbers.
    * We maintain a per-query cursor cache to support page > 1.
+   *
+   * Bounded to MAX_CURSOR_CACHE entries (oldest-first eviction via Map insertion order).
    */
+  private static readonly MAX_CURSOR_CACHE = 200
   private cursorCache = new Map<string, string>()
 
   async query(source: RegistrySource, params: StoreQueryParams): Promise<AdapterQueryResult> {
@@ -89,9 +92,13 @@ export class McpRegistryAdapter implements RegistryAdapter {
     const data = await response.json() as McpServersResponse
     const nextCursor = data.metadata?.nextCursor || undefined
 
-    // Cache cursor for next page
+    // Cache cursor for next page (evict oldest entry when limit is reached)
     if (nextCursor) {
       const nextCacheKey = `${source.id}:${params.search ?? ''}:${params.page + 1}`
+      if (this.cursorCache.size >= McpRegistryAdapter.MAX_CURSOR_CACHE) {
+        const firstKey = this.cursorCache.keys().next().value
+        if (firstKey !== undefined) this.cursorCache.delete(firstKey)
+      }
       this.cursorCache.set(nextCacheKey, nextCursor)
     }
 

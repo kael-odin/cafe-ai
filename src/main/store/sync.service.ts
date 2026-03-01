@@ -144,11 +144,17 @@ export class SyncService {
       const index = await adapter.fetchIndex(registry)
       const entries = index.apps.filter(e => e.format === 'bundle')
 
-      // Batch write into SQLite
+      // Remove old FTS entries BEFORE replacing registry_items rows.
+      // This is critical: removeFtsForRegistry reads current rowids while the old
+      // rows still exist. After batchInsert deletes them, those rowids are gone and
+      // SQLite may reuse them for the new batch — leaving stale FTS entries orphaned.
+      this.removeFtsForRegistry(registry.id)
+
+      // Batch write into SQLite (internally clears old rows, then inserts new ones)
       this.batchInsert(registry.id, entries)
 
-      // Rebuild FTS index for this registry
-      this.rebuildFts(registry.id)
+      // Add FTS entries for the freshly inserted rows
+      this.addFtsForRegistry(registry.id)
 
       const dt = performance.now() - t0
       console.log(`[SyncService] Synced "${registry.name}": ${entries.length} entries in ${dt.toFixed(0)}ms`)
@@ -185,6 +191,10 @@ export class SyncService {
    * Force refresh: clear cache for a registry and re-sync.
    */
   async forceSync(registry: RegistrySource): Promise<void> {
+    // Remove FTS entries first — rowids are still valid at this point.
+    // clearRegistryItems deletes the backing rows, after which the FTS rowids
+    // would be un-resolvable by removeFtsForRegistry.
+    this.removeFtsForRegistry(registry.id)
     this.clearRegistryItems(registry.id)
     await this.syncOne(registry, 0, true)
   }
@@ -286,28 +296,53 @@ export class SyncService {
     }
   }
 
-  private rebuildFts(registryId: string): void {
-    // Delete FTS entries for this registry, then re-insert
-    // FTS5 content-sync tables need manual management
+  /**
+   * Phase 1 of FTS rebuild: remove FTS entries for a registry.
+   *
+   * MUST be called BEFORE batchInsert/clearRegistryItems so that the current
+   * registry_items rowids are still valid and FTS can find the entries to delete.
+   * After batchInsert deletes the backing rows, those rowids vanish and SQLite
+   * may reissue them to new rows — leaving old FTS terms orphaned.
+   */
+  private removeFtsForRegistry(registryId: string): void {
+    const rows = this.db.prepare(
+      `SELECT rowid FROM registry_items WHERE registry_id = ?`
+    ).all(registryId) as Array<{ rowid: number }>
+
+    if (rows.length === 0) return
+
+    const deleteFts = this.db.prepare(
+      `DELETE FROM registry_items_fts WHERE rowid = ?`
+    )
+    const txn = this.db.transaction(() => {
+      for (const row of rows) {
+        try { deleteFts.run(row.rowid) } catch { /* ignore if entry absent */ }
+      }
+    })
+    txn()
+  }
+
+  /**
+   * Phase 2 of FTS rebuild: insert FTS entries for the freshly written rows.
+   *
+   * MUST be called AFTER batchInsert so that the new rowids are in place.
+   */
+  private addFtsForRegistry(registryId: string): void {
     const rows = this.db.prepare(
       `SELECT rowid, name, description, author, tags FROM registry_items WHERE registry_id = ?`
     ).all(registryId) as Array<{ rowid: number; name: string; description: string; author: string; tags: string }>
 
-    const deleteFts = this.db.prepare(
-      `DELETE FROM registry_items_fts WHERE rowid IN (SELECT rowid FROM registry_items WHERE registry_id = ?)`
-    )
+    if (rows.length === 0) return
+
     const insertFts = this.db.prepare(
       `INSERT INTO registry_items_fts (rowid, name, description, author, tags) VALUES (?, ?, ?, ?, ?)`
     )
-
-    const rebuild = this.db.transaction(() => {
-      // Try to delete existing FTS entries (may fail if none exist yet)
-      try { deleteFts.run(registryId) } catch { /* ignore */ }
+    const txn = this.db.transaction(() => {
       for (const row of rows) {
         insertFts.run(row.rowid, row.name, row.description, row.author, row.tags)
       }
     })
-    rebuild()
+    txn()
   }
 }
 

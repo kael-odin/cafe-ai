@@ -705,19 +705,21 @@ export function registerApiRoutes(app: Express, mainWindow: BrowserWindow | null
       const manager = getManagerOrFail(res)
       if (!manager) return
       const { spaceId, spec, userConfig } = req.body as {
-        spaceId?: string
+        spaceId?: string | null
         spec?: unknown
         userConfig?: Record<string, unknown>
       }
-      if (!spaceId || typeof spaceId !== 'string') {
-        res.status(400).json({ success: false, error: 'Missing required field: spaceId' })
+      // spaceId may be null for global installs (MCP/Skill available across all spaces)
+      if (spaceId !== null && spaceId !== undefined && typeof spaceId !== 'string') {
+        res.status(400).json({ success: false, error: 'spaceId must be a string or null' })
         return
       }
+      const resolvedSpaceId = spaceId || null
       if (!spec || typeof spec !== 'object') {
         res.status(400).json({ success: false, error: 'Missing required field: spec' })
         return
       }
-      const appId = await manager.install(spaceId, spec as import('../../apps/spec').AppSpec, userConfig)
+      const appId = await manager.install(resolvedSpaceId, spec as import('../../apps/spec').AppSpec, userConfig)
 
       // Auto-activate in runtime if available
       const runtime = getAppRuntime()
@@ -727,7 +729,7 @@ export function registerApiRoutes(app: Express, mainWindow: BrowserWindow | null
         })
       }
 
-      console.log('[HTTP] POST /api/apps/install: appId=%s, space=%s', appId, spaceId)
+      console.log('[HTTP] POST /api/apps/install: appId=%s, space=%s', appId, resolvedSpaceId ?? 'global')
       res.json({ success: true, data: { appId } })
     } catch (error) {
       res.json({ success: false, error: (error as Error).message })
@@ -807,6 +809,63 @@ export function registerApiRoutes(app: Express, mainWindow: BrowserWindow | null
       }
 
       console.log('[HTTP] POST /api/apps/%s/reinstall', appId)
+      res.json({ success: true, data: { activationWarning } })
+    } catch (error) {
+      res.json({ success: false, error: (error as Error).message })
+    }
+  })
+
+  // POST /api/apps/:appId/move-space — move an App to a different space (or global)
+  app.post('/api/apps/:appId/move-space', async (req: Request, res: Response) => {
+    try {
+      const { appId } = req.params
+      if (!appId) {
+        res.status(400).json({ success: false, error: 'Missing appId' })
+        return
+      }
+      const manager = getManagerOrFail(res)
+      if (!manager) return
+
+      const { newSpaceId } = req.body as { newSpaceId?: string | null }
+      if (newSpaceId !== null && (typeof newSpaceId !== 'string' || !newSpaceId)) {
+        res.status(400).json({ success: false, error: 'newSpaceId must be a non-empty string or null' })
+        return
+      }
+
+      const appData = manager.getApp(appId)
+      if (!appData) {
+        res.status(404).json({ success: false, error: `App not found: ${appId}` })
+        return
+      }
+
+      // For automation apps that are active: deactivate before moving so the
+      // scheduler and event-bus don't hold stale space references, then
+      // re-activate after the move completes.
+      const isAutomation = appData.spec.type === 'automation'
+      const wasActive = appData.status === 'active'
+      const runtime = getAppRuntime()
+
+      if (isAutomation && wasActive && runtime) {
+        await runtime.deactivate(appId).catch((err: Error) => {
+          console.warn(`[HTTP] POST /api/apps/:appId/move-space -- runtime deactivate failed (non-fatal): ${err.message}`)
+        })
+      }
+
+      await manager.moveToSpace(appId, newSpaceId ?? null)
+
+      // Re-activate automation apps that were running before the move
+      let activationWarning: string | undefined
+      if (isAutomation && wasActive && runtime) {
+        try {
+          await runtime.activate(appId)
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.warn(`[HTTP] POST /api/apps/:appId/move-space -- runtime activate failed: ${errMsg}`)
+          activationWarning = errMsg
+        }
+      }
+
+      console.log('[HTTP] POST /api/apps/%s/move-space: newSpaceId=%s', appId, newSpaceId ?? 'global')
       res.json({ success: true, data: { activationWarning } })
     } catch (error) {
       res.json({ success: false, error: (error as Error).message })
@@ -1303,18 +1362,16 @@ export function registerApiRoutes(app: Express, mainWindow: BrowserWindow | null
     try {
       const { slug, spaceId, userConfig } = req.body as {
         slug?: string
-        spaceId?: string
+        spaceId?: string | null
         userConfig?: Record<string, unknown>
       }
       if (!slug || typeof slug !== 'string') {
         res.status(400).json({ success: false, error: 'Missing required field: slug' })
         return
       }
-      if (!spaceId || typeof spaceId !== 'string') {
-        res.status(400).json({ success: false, error: 'Missing required field: spaceId' })
-        return
-      }
-      const result = await storeController.installStoreApp(slug, spaceId, userConfig)
+      // spaceId may be null for global installs (MCP/Skill available across all spaces)
+      const resolvedSpaceId = spaceId || null
+      const result = await storeController.installStoreApp(slug, resolvedSpaceId, userConfig)
       res.json(result)
     } catch (error) {
       res.json({ success: false, error: (error as Error).message })
@@ -1326,18 +1383,16 @@ export function registerApiRoutes(app: Express, mainWindow: BrowserWindow | null
     try {
       const slug = req.params.slug
       const { spaceId, userConfig } = req.body as {
-        spaceId?: string
+        spaceId?: string | null
         userConfig?: Record<string, unknown>
       }
       if (!slug || typeof slug !== 'string') {
         res.status(400).json({ success: false, error: 'Missing required param: slug' })
         return
       }
-      if (!spaceId || typeof spaceId !== 'string') {
-        res.status(400).json({ success: false, error: 'Missing required field: spaceId' })
-        return
-      }
-      const result = await storeController.installStoreApp(slug, spaceId, userConfig)
+      // spaceId may be null for global installs (MCP/Skill available across all spaces)
+      const resolvedSpaceId = spaceId || null
+      const result = await storeController.installStoreApp(slug, resolvedSpaceId, userConfig)
       res.json(result)
     } catch (error) {
       res.json({ success: false, error: (error as Error).message })

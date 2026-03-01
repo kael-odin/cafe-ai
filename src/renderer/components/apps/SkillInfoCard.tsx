@@ -28,6 +28,7 @@ import {
   X,
   Check,
   ChevronDown,
+  AlertCircle,
 } from 'lucide-react'
 import { useAppsStore } from '../../stores/apps.store'
 import { useSpaceStore } from '../../stores/space.store'
@@ -97,10 +98,13 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
   const app = apps.find(a => a.id === appId)
 
   const [toggling, setToggling]         = useState(false)
+  const [toggleError, setToggleError]   = useState<string | null>(null)
   const [isEditing, setIsEditing]       = useState(false)
   const [draftContent, setDraft]        = useState('')
   const [saving, setSaving]             = useState(false)
+  const [saveError, setSaveError]       = useState<string | null>(null)
   const [moving, setMoving]             = useState(false)
+  const [moveError, setMoveError]       = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef                     = useRef<HTMLDivElement>(null)
 
@@ -116,14 +120,15 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [dropdownOpen])
 
-  // Reset edit state when switching to a different skill
-  // (avoids stale draft leaking across selections)
-  const [editingAppId, setEditingAppId] = useState<string | null>(null)
-  if (isEditing && editingAppId !== appId) {
+  // When the selected skill changes, discard any in-progress edit.
+  // Using useEffect (not an inline setState in render) to avoid extra render cycles.
+  useEffect(() => {
     setIsEditing(false)
     setDraft('')
-    setEditingAppId(null)
-  }
+    setToggleError(null)
+    setSaveError(null)
+    setMoveError(null)
+  }, [appId])
 
   if (!app) return null
 
@@ -150,8 +155,11 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
   const handleToggle = async () => {
     if (!canToggle || toggling) return
     setToggling(true)
+    setToggleError(null)
     try {
       await (isEnabled ? pauseApp(appId) : resumeApp(appId))
+    } catch (e) {
+      setToggleError((e as Error).message)
     } finally {
       setToggling(false)
     }
@@ -159,33 +167,40 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
 
   const handleStartEdit = () => {
     setDraft(skillContent)
-    setEditingAppId(appId)
+    setSaveError(null)
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setIsEditing(false)
     setDraft('')
-    setEditingAppId(null)
+    setSaveError(null)
   }
 
   const handleSave = async () => {
     if (saving) return
     setSaving(true)
+    setSaveError(null)
     try {
       const ok = await updateAppSpec(appId, buildSkillContentPatch(spec, draftContent))
       if (ok) {
         setIsEditing(false)
         setDraft('')
-        setEditingAppId(null)
+      } else {
+        setSaveError(t('Save failed. Please try again.'))
       }
+    } catch (e) {
+      setSaveError((e as Error).message)
     } finally {
       setSaving(false)
     }
   }
 
   const handleOpenFolder = useCallback(async () => {
-    await api.appOpenSkillFolder(appId)
+    const res = await api.appOpenSkillFolder(appId)
+    if (!res.success) {
+      console.error('[SkillInfoCard] appOpenSkillFolder failed:', res.error)
+    }
   }, [appId])
 
   const handleMoveToSpace = async (newSpaceId: string | null) => {
@@ -194,9 +209,15 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
       return
     }
     setDropdownOpen(false)
+    setMoveError(null)
     setMoving(true)
     try {
-      await moveAppToSpace(appId, newSpaceId)
+      const ok = await moveAppToSpace(appId, newSpaceId)
+      if (!ok) {
+        setMoveError(t('Failed to move skill. Please try again.'))
+      }
+    } catch (e) {
+      setMoveError((e as Error).message)
     } finally {
       setMoving(false)
     }
@@ -296,35 +317,51 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
         </div>
 
         {/* Status indicator + inline toggle */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <AppStatusDot status={status} size="sm" />
-            <span>{statusLabel(status, t)}</span>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <AppStatusDot status={status} size="sm" />
+              <span>{statusLabel(status, t)}</span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-label={isEnabled ? t('Disable') : t('Enable')}
+              aria-checked={isEnabled}
+              disabled={!canToggle || toggling}
+              onClick={handleToggle}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${isEnabled ? 'bg-primary' : 'bg-muted'}`}
+            >
+              {toggling ? (
+                <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 animate-spin text-white/70" />
+              ) : (
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm
+                    transform transition-transform duration-200 mt-0.5
+                    ${isEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+                />
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-label={isEnabled ? t('Disable') : t('Enable')}
-            aria-checked={isEnabled}
-            disabled={!canToggle || toggling}
-            onClick={handleToggle}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${isEnabled ? 'bg-primary' : 'bg-muted'}`}
-          >
-            {toggling ? (
-              <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 animate-spin text-white/70" />
-            ) : (
-              <span
-                className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm
-                  transform transition-transform duration-200 mt-0.5
-                  ${isEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
-              />
-            )}
-          </button>
+          {toggleError && (
+            <div className="flex items-center gap-1 text-[11px] text-red-500">
+              <AlertCircle className="w-3 h-3 flex-shrink-0" />
+              <span>{toggleError}</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Move error ── */}
+      {moveError && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {moveError}
+        </div>
+      )}
 
       {/* ── How to use ── */}
       <div className="space-y-2">
@@ -401,6 +438,14 @@ export function SkillInfoCard({ appId, spaceName }: SkillInfoCardProps) {
               )}
             </div>
           </div>
+
+          {/* Save error — shown below the section header */}
+          {saveError && (
+            <div className="flex items-center gap-1.5 text-xs text-red-500">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
 
           {/* Content area: rendered markdown OR CodeMirror editor */}
           {isEditing ? (

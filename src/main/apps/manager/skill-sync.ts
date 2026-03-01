@@ -12,7 +12,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs'
-import { join, resolve, dirname, normalize } from 'path'
+import { join, resolve, dirname, normalize, sep } from 'path'
 import { app } from 'electron'
 import type { InstalledApp } from './types'
 import type { SkillSpec } from '../../apps/spec/schema'
@@ -116,7 +116,7 @@ export function syncSkillToFilesystem(
     // normalize() collapses ".." segments; the startsWith guard below
     // rejects any path that still escapes the skill directory.
     const target = resolve(skillDir, normalize(filename))
-    if (!target.startsWith(resolvedSkillDir + '/') && target !== resolvedSkillDir) {
+    if (!target.startsWith(resolvedSkillDir + sep) && target !== resolvedSkillDir) {
       console.warn(`[SkillSync] Skipping unsafe path "${filename}" for skill '${appRecord.specId}'`)
       continue
     }

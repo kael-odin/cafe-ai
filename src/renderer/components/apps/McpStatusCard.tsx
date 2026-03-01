@@ -20,6 +20,7 @@ import { AppStatusDot } from './AppStatusDot'
 import { useTranslation, getCurrentLanguage } from '../../i18n'
 import { resolveSpecI18n } from '../../utils/spec-i18n'
 import type { AppStatus } from '../../../shared/apps/app-types'
+import type { McpSpec, McpServerConfig } from '../../../shared/apps/spec-types'
 
 interface McpStatusCardProps {
   appId: string
@@ -49,7 +50,7 @@ function statusLabel(status: AppStatus, t: (s: string) => string, installed?: bo
   }
 }
 
-function mcpServerToEditable(mcpServer: Record<string, any>): EditableConfig {
+function mcpServerToEditable(mcpServer: McpServerConfig): EditableConfig {
   const transport: Transport = mcpServer.transport ?? 'stdio'
   const command = mcpServer.command ?? ''
   const args: string[] = mcpServer.args ?? []
@@ -58,7 +59,7 @@ function mcpServerToEditable(mcpServer: Record<string, any>): EditableConfig {
   return { transport, command, args, envText }
 }
 
-function editableToMcpServer(edit: EditableConfig): Record<string, any> {
+function editableToMcpServer(edit: EditableConfig): Record<string, unknown> {
   const env: Record<string, string> = {}
   for (const line of edit.envText.split('\n')) {
     const eq = line.indexOf('=')
@@ -66,7 +67,7 @@ function editableToMcpServer(edit: EditableConfig): Record<string, any> {
       env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
     }
   }
-  const result: Record<string, any> = {
+  const result: Record<string, unknown> = {
     transport: edit.transport,
     command: edit.command.trim(),
   }
@@ -79,7 +80,7 @@ function editableToMcpServer(edit: EditableConfig): Record<string, any> {
   return result
 }
 
-function validateMcpServer(cfg: Record<string, any>): string | null {
+function validateMcpServer(cfg: Record<string, unknown>): string | null {
   if (!cfg || typeof cfg !== 'object') return 'Invalid configuration'
   if (!cfg.command || typeof cfg.command !== 'string' || !cfg.command.trim()) {
     return 'command is required'
@@ -143,7 +144,8 @@ export function McpStatusCard({ appId }: McpStatusCardProps) {
   const app = apps.find(a => a.id === appId)
 
   // Toggle state
-  const [toggling, setToggling] = useState(false)
+  const [toggling, setToggling]       = useState(false)
+  const [toggleError, setToggleError] = useState<string | null>(null)
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false)
@@ -161,7 +163,9 @@ export function McpStatusCard({ appId }: McpStatusCardProps) {
   if (!app) return null
 
   const { name, description } = resolveSpecI18n(app.spec, getCurrentLanguage())
-  const mcpServer = app.spec.type === 'mcp' ? (app.spec as any).mcp_server as Record<string, any> | undefined : undefined
+  const mcpServer: McpServerConfig | undefined = app.spec.type === 'mcp'
+    ? (app.spec as McpSpec).mcp_server
+    : undefined
 
   // Connection status
   const status = app.status
@@ -247,7 +251,7 @@ export function McpStatusCard({ appId }: McpStatusCardProps) {
   }
 
   const handleSave = async () => {
-    let serverConfig: Record<string, any>
+    let serverConfig: Record<string, unknown>
     if (editMode === 'json') {
       try {
         serverConfig = JSON.parse(jsonText)
@@ -281,15 +285,18 @@ export function McpStatusCard({ appId }: McpStatusCardProps) {
   const handleToggle = async () => {
     if (!canToggle || toggling) return
     setToggling(true)
+    setToggleError(null)
     try {
       await (isEnabled ? pauseApp(appId) : resumeApp(appId))
+    } catch (e) {
+      setToggleError((e as Error).message)
     } finally {
       setToggling(false)
     }
   }
 
   // Env display (masked values for security)
-  const envEntries = mcpServer?.env ? Object.entries(mcpServer.env as Record<string, string>) : []
+  const envEntries = mcpServer?.env ? Object.entries(mcpServer.env) : []
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -302,32 +309,40 @@ export function McpStatusCard({ appId }: McpStatusCardProps) {
             <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <AppStatusDot status={displayStatus} size="sm" />
-            <span>{statusLabel(displayStatus, t, neverConnected)}</span>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <AppStatusDot status={displayStatus} size="sm" />
+              <span>{statusLabel(displayStatus, t, neverConnected)}</span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-label={isEnabled ? t('Disable') : t('Enable')}
+              aria-checked={isEnabled}
+              disabled={!canToggle || toggling}
+              onClick={handleToggle}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${isEnabled ? 'bg-primary' : 'bg-muted'}`}
+            >
+              {toggling ? (
+                <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 animate-spin text-white/70" />
+              ) : (
+                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm
+                  transform transition-transform duration-200 mt-0.5
+                  ${isEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+                />
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-label={isEnabled ? t('Disable') : t('Enable')}
-            aria-checked={isEnabled}
-            disabled={!canToggle || toggling}
-            onClick={handleToggle}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${isEnabled ? 'bg-primary' : 'bg-muted'}`}
-          >
-            {toggling ? (
-              <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 animate-spin text-white/70" />
-            ) : (
-              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm
-                transform transition-transform duration-200 mt-0.5
-                ${isEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
-              />
-            )}
-          </button>
+          {toggleError && (
+            <div className="flex items-center gap-1 text-[11px] text-red-500">
+              <AlertCircle className="w-3 h-3 flex-shrink-0" />
+              <span>{toggleError}</span>
+            </div>
+          )}
         </div>
       </div>
 

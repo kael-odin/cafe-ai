@@ -296,9 +296,10 @@ export async function executeRun(options: ExecuteRunOptions): Promise<AppRunResu
 
     // Resolve MCPs declared in requires.mcps from the installed apps database.
     // Only injects explicitly declared MCPs (least-privilege: automation gets only what it declares).
+    // Automation apps always have a spaceId (enforced earlier in this function).
     const requiredMcpServers = getMcpServersForRequires(
       (app.spec.requires?.mcps as Array<{ id: string }> | undefined),
-      app.spaceId ?? 'halo-temp'
+      app.spaceId!
     )
 
     const sdkOptions = buildBaseSdkOptions({

@@ -14,6 +14,7 @@ import { getSpace } from '../space.service'
 import { getAISourceManager } from '../ai-sources'
 import { broadcastToAll, broadcastToWebSocket } from '../../http/websocket'
 import { getAppManager } from '../../apps/manager'
+import type { McpSpec } from '../../apps/spec/schema'
 import type { ApiCredentials, MainWindowRef } from './types'
 
 // ============================================
@@ -342,21 +343,21 @@ export function getEnabledMcpServers(mcpServers: Record<string, any>): Record<st
  * Reads effective MCP apps for the given space (global + space-scoped, with override)
  * and converts them to the SDK mcpServers format.
  */
-export function getDbMcpServers(spaceId: string): Record<string, any> | null {
+export function getDbMcpServers(spaceId: string): Record<string, unknown> | null {
   const manager = getAppManager()
   if (!manager) return null
 
   const mcpApps = manager.listEffectiveMcpApps(spaceId)
   if (mcpApps.length === 0) return null
 
-  const servers: Record<string, any> = {}
+  const servers: Record<string, unknown> = {}
   for (const app of mcpApps) {
     if (app.status === 'paused') continue
-    const spec = app.spec as any
-    if (!spec.mcp_server) continue
+    if (app.spec.type !== 'mcp') continue
+    const mcpServer = (app.spec as McpSpec).mcp_server
+    if (!mcpServer) continue // defensive: required by schema but guard against old data
 
-    const serverConfig: Record<string, any> = {}
-    const mcpServer = spec.mcp_server
+    const serverConfig: Record<string, unknown> = {}
 
     // Map transport type
     if (mcpServer.transport === 'sse') {
@@ -405,7 +406,7 @@ export function getDbMcpServers(spaceId: string): Record<string, any> | null {
 export function getMcpServersForRequires(
   requiredMcps: Array<{ id: string; reason?: string; bundled?: boolean }> | undefined,
   spaceId: string
-): Record<string, any> {
+): Record<string, unknown> {
   if (!requiredMcps || requiredMcps.length === 0) return {}
 
   const manager = getAppManager()
@@ -414,7 +415,7 @@ export function getMcpServersForRequires(
   // Get all effective MCP apps for this space (global + space-scoped)
   const allMcpApps = manager.listEffectiveMcpApps(spaceId)
 
-  const result: Record<string, any> = {}
+  const result: Record<string, unknown> = {}
 
   for (const dep of requiredMcps) {
     const app = allMcpApps.find(
@@ -427,11 +428,11 @@ export function getMcpServersForRequires(
       continue
     }
 
-    const spec = app.spec as any
-    if (!spec.mcp_server) continue
+    if (app.spec.type !== 'mcp') continue
+    const mcpServer = (app.spec as McpSpec).mcp_server
+    if (!mcpServer) continue // defensive: required by schema but guard against old data
 
-    const mcpServer = spec.mcp_server
-    const serverConfig: Record<string, any> = {}
+    const serverConfig: Record<string, unknown> = {}
 
     // Map transport type — mirrors getDbMcpServers conversion logic
     if (mcpServer.transport === 'sse') {
