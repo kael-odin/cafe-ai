@@ -12,7 +12,7 @@
  * 5. Use Copilot token for API calls
  */
 
-import { shell } from 'electron'
+import open from 'open'
 import type {
   OAuthAISourceProvider,
   ProviderResult
@@ -313,7 +313,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
 
       // Open browser to verification URL
       const loginUrl = `${data.verification_uri}?user_code=${data.user_code}`
-      await shell.openExternal(loginUrl)
+      await open(loginUrl)
 
       console.log('[GitHubCopilot] Device code flow started, user code:', data.user_code)
 

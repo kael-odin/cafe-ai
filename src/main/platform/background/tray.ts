@@ -157,12 +157,11 @@ export class TrayManager {
   private createIcon(): Electron.NativeImage {
     const isMac = process.platform === 'darwin'
 
-    // Resolve the path to tray icon assets
-    // In development, resources are at the project root.
-    // In production (packaged), resources are at the app root.
-    const resourcesPath = app.isPackaged
-      ? join(process.resourcesPath, 'tray')
-      : join(app.getAppPath(), 'resources', 'tray')
+    // Resolve the path to tray icon assets.
+    // resources/tray/ is included in the files array (package.json) so it lives
+    // inside app.asar in production. app.getAppPath() returns the ASAR root in
+    // production and the project root in development — both resolve correctly.
+    const resourcesPath = join(app.getAppPath(), 'resources', 'tray')
 
     if (isMac) {
       // macOS: Use template images. Electron automatically picks @2x for Retina.

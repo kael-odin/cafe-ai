@@ -2,7 +2,8 @@
  * Git Bash IPC Handlers - Windows Git Bash detection and installation
  */
 
-import { ipcMain, shell } from 'electron'
+import { ipcMain } from 'electron'
+import open from 'open'
 import { detectGitBash, setGitBashPathEnv } from '../services/git-bash.service'
 import { downloadAndInstallGitBash } from '../services/git-bash-installer.service'
 import { createMockBash, cleanupMockBash } from '../services/mock-bash.service'
@@ -85,7 +86,7 @@ export function registerGitBashHandlers(): void {
 
   // Open external URL (for manual download link)
   ipcMain.handle('shell:open-external', async (_event, url: string) => {
-    await shell.openExternal(url)
+    await open(url)
   })
 }
 

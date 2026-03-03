@@ -45,7 +45,8 @@ Object.assign(console, log.functions)
 // Executed after page load to avoid blocking startup
 // Note: fix-path is ESM-only, loaded dynamically to support both CJS and ESM builds
 
-import { app, shell, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
+import open from 'open'
 
 // GPU compatibility: Disable hardware acceleration on Windows to prevent blank window issues
 // Some Windows GPU configurations cause the GPU process to crash, resulting in a white/blank screen
@@ -257,7 +258,7 @@ function createAppMenu(): void {
         {
           label: 'Learn More',
           click: async () => {
-            await shell.openExternal('https://github.com/openkursar/hello-halo')
+            await open('https://github.com/openkursar/hello-halo')
           }
         }
       ]
@@ -344,7 +345,7 @@ function createWindow(): void {
   setMainWindow(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    open(details.url)
     return { action: 'deny' }
   })
 
