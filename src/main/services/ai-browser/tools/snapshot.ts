@@ -1,187 +1,111 @@
 /**
- * Snapshot Tools - Accessibility tree, screenshot and script evaluation
+ * Snapshot Tools (3 tools)
  *
- * Tools for capturing page state and executing scripts.
- * Tool descriptions aligned with chrome-devtools-mcp for 100% compatibility.
- *
- * WARNING: This file is DEAD CODE. The actual tool handlers run from
- * sdk-mcp-server.ts via the SDK MCP server. These definitions are never
- * executed at runtime. See sdk-mcp-server.ts header for refactor plan.
+ * Page state capture: accessibility snapshot, screenshot, JS evaluation.
  */
 
-import type { AIBrowserTool, ToolResult } from '../types'
-import { writeFileSync } from 'fs'
+import { z } from 'zod'
+import { tool } from '@anthropic-ai/claude-agent-sdk'
+import type { BrowserContext } from '../context'
+import { textResult, imageResult, withTimeout, TOOL_TIMEOUT } from './helpers'
 
-/**
- * take_snapshot - Get the accessibility tree of the current page
- * Aligned with chrome-devtools-mcp: take_snapshot
- */
-export const takeSnapshotTool: AIBrowserTool = {
-  name: 'browser_snapshot',
-  description: `Take a text snapshot of the currently selected page based on the a11y tree. The snapshot lists page elements along with a unique
+export function buildSnapshotTools(ctx: BrowserContext) {
+
+const browser_snapshot = tool(
+  'browser_snapshot',
+  `Take a text snapshot of the currently selected page based on the a11y tree. The snapshot lists page elements along with a unique
 identifier (uid). Always use the latest snapshot. Prefer taking a snapshot over taking a screenshot. The snapshot indicates the element selected
 in the DevTools Elements panel (if any).`,
-  category: 'snapshot',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      verbose: {
-        type: 'boolean',
-        description: 'Whether to include all possible information available in the full a11y tree. Default is false.'
-      },
-      filePath: {
-        type: 'string',
-        description: 'The absolute path, or a path relative to the current working directory, to save the snapshot to instead of attaching it to the response.'
-      }
-    }
+  {
+    verbose: z.boolean().optional().describe('Whether to include all possible information available in the full a11y tree. Default is false.'),
+    filePath: z.string().optional().describe('The absolute path, or a path relative to the current working directory, to save the snapshot to instead of attaching it to the response.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const verbose = params.verbose as boolean || false
-    const filePath = params.filePath as string | undefined
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page. Use browser_new_page first.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page. Use browser_new_page first.', true)
     }
 
     try {
-      const snapshot = await context.createSnapshot(verbose)
-      const formatted = snapshot.format(verbose)
+      const snapshot = await withTimeout(
+        ctx.createSnapshot(args.verbose || false),
+        TOOL_TIMEOUT,
+        'browser_snapshot'
+      )
+      const formatted = snapshot.format(args.verbose || false)
 
-      if (filePath) {
-        writeFileSync(filePath, formatted, 'utf-8')
-        return {
-          content: `Snapshot saved to: ${filePath}\n\nPage: ${snapshot.title}\nURL: ${snapshot.url}\nElements: ${snapshot.idToNode.size}`
-        }
+      if (args.filePath) {
+        const { writeFileSync } = require('fs')
+        writeFileSync(args.filePath, formatted, 'utf-8')
+        return textResult(`Snapshot saved to: ${args.filePath}\n\nPage: ${snapshot.title}\nURL: ${snapshot.url}\nElements: ${snapshot.idToNode.size}`)
       }
 
-      return {
-        content: formatted
-      }
+      return textResult(formatted)
     } catch (error) {
-      return {
-        content: `Failed to take snapshot: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to take snapshot: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * take_screenshot - Capture a screenshot of the page
- * Aligned with chrome-devtools-mcp: take_screenshot
- */
-export const takeScreenshotTool: AIBrowserTool = {
-  name: 'browser_screenshot',
-  description: `Take a screenshot of the page or element.`,
-  category: 'snapshot',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      format: {
-        type: 'string',
-        description: 'Type of format to save the screenshot as. Default is "png"',
-        enum: ['png', 'jpeg', 'webp']
-      },
-      quality: {
-        type: 'number',
-        description: 'Compression quality for JPEG and WebP formats (0-100). Higher values mean better quality but larger file sizes. Ignored for PNG format.'
-      },
-      uid: {
-        type: 'string',
-        description: 'The uid of an element on the page from the page content snapshot. If omitted takes a pages screenshot.'
-      },
-      fullPage: {
-        type: 'boolean',
-        description: 'If set to true takes a screenshot of the full page instead of the currently visible viewport. Incompatible with uid.'
-      },
-      filePath: {
-        type: 'string',
-        description: 'The absolute path, or a path relative to the current working directory, to save the screenshot to instead of attaching it to the response.'
-      }
-    }
+const browser_screenshot = tool(
+  'browser_screenshot',
+  'Take a screenshot of the page or element.',
+  {
+    format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Type of format to save the screenshot as. Default is "png"'),
+    quality: z.number().optional().describe('Compression quality for JPEG and WebP formats (0-100). Ignored for PNG format.'),
+    uid: z.string().optional().describe('The uid of an element on the page from the page content snapshot. If omitted takes a pages screenshot.'),
+    fullPage: z.boolean().optional().describe('If set to true takes a screenshot of the full page instead of the currently visible viewport. Incompatible with uid.'),
+    filePath: z.string().optional().describe('The absolute path, or a path relative to the current working directory, to save the screenshot to instead of attaching it to the response.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const format = (params.format as 'png' | 'jpeg' | 'webp') || 'png'
-    const quality = params.quality as number | undefined
-    const uid = params.uid as string | undefined
-    const fullPage = params.fullPage as boolean || false
-    const filePath = params.filePath as string | undefined
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
-    // Validate incompatible options
-    if (uid && fullPage) {
-      return {
-        content: 'Providing both "uid" and "fullPage" is not allowed.',
-        isError: true
-      }
+    if (args.uid && args.fullPage) {
+      return textResult('Providing both "uid" and "fullPage" is not allowed.', true)
     }
 
     try {
-      const result = await context.captureScreenshot({
-        format,
-        quality: format === 'png' ? undefined : quality,
-        uid,
-        fullPage
-      })
+      const format = args.format || 'png'
+      const result = await withTimeout(
+        ctx.captureScreenshot({
+          format,
+          quality: format === 'png' ? undefined : args.quality,
+          uid: args.uid,
+          fullPage: args.fullPage || false
+        }),
+        TOOL_TIMEOUT,
+        'browser_screenshot'
+      )
 
-      // Build response message
       let message: string
-      if (uid) {
-        message = `Took a screenshot of node with uid "${uid}".`
-      } else if (fullPage) {
+      if (args.uid) {
+        message = `Took a screenshot of node with uid "${args.uid}".`
+      } else if (args.fullPage) {
         message = 'Took a screenshot of the full current page.'
       } else {
         message = "Took a screenshot of the current page's viewport."
       }
 
-      if (filePath) {
+      if (args.filePath) {
+        const { writeFileSync } = require('fs')
         const buffer = Buffer.from(result.data, 'base64')
-        writeFileSync(filePath, buffer)
-        return {
-          content: `${message}\nSaved screenshot to ${filePath}.`
-        }
+        writeFileSync(args.filePath, buffer)
+        return textResult(`${message}\nSaved screenshot to ${args.filePath}.`)
       }
 
-      // Return with image data for AI to see
-      return {
-        content: message,
-        images: [{
-          data: result.data,
-          mimeType: result.mimeType
-        }]
-      }
+      return imageResult(message, result.data, result.mimeType)
     } catch (error) {
-      return {
-        content: `Failed to take screenshot: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to take screenshot: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * evaluate_script - Execute JavaScript in the browser context
- * Aligned with chrome-devtools-mcp: evaluate_script
- */
-export const evaluateScriptTool: AIBrowserTool = {
-  name: 'browser_evaluate',
-  description: `Evaluate a JavaScript function inside the currently selected page. The function is always invoked automatically — pass an arrow function or async arrow function, and its return value will be returned as JSON. Returned values must be JSON-serializable (objects, arrays, strings, numbers, booleans). Functions, Promises (use async/await instead), and undefined are not serializable and will return {}.`,
-  category: 'snapshot',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      function: {
-        type: 'string',
-        description: `An arrow function expression to execute in the page. The tool calls it automatically — do NOT wrap in an IIFE.
+const browser_evaluate = tool(
+  'browser_evaluate',
+  `Evaluate a JavaScript function inside the currently selected page. The function is always invoked automatically — pass an arrow function or async arrow function, and its return value will be returned as JSON. Returned values must be JSON-serializable (objects, arrays, strings, numbers, booleans). Functions, Promises (use async/await instead), and undefined are not serializable and will return {}.`,
+  {
+    function: z.string().describe(`An arrow function expression to execute in the page. The tool calls it automatically — do NOT wrap in an IIFE.
 Example without arguments: \`() => document.title\` or \`() => {
   return document.body.innerText.slice(0, 100)
 }\` or \`async () => {
@@ -190,42 +114,21 @@ Example without arguments: \`() => document.title\` or \`() => {
 }\`.
 Example with arguments (pass element UIDs via the args parameter): \`(el) => el.innerText\`.
 For fire-and-forget side effects, store results on \`window\` and retrieve in a follow-up call.
-`
-      },
-      args: {
-        type: 'array',
-        description: 'An optional list of arguments to pass to the function.',
-        items: {
-          type: 'object',
-          properties: {
-            uid: {
-              type: 'string',
-              description: 'The uid of an element on the page from the page content snapshot'
-            }
-          },
-          required: ['uid']
-        }
-      }
-    },
-    required: ['function']
+`),
+    args: z.array(z.object({
+      uid: z.string().describe('The uid of an element on the page from the page content snapshot')
+    })).optional().describe('An optional list of arguments to pass to the function.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const fn = params.function as string
-    const args = params.args as Array<{ uid: string }> | undefined
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      // If args contain UIDs, resolve them to elements
       const elementArgs: unknown[] = []
-      if (args && args.length > 0) {
-        for (const arg of args) {
-          const element = context.getElementByUid(arg.uid)
+      if (args.args && args.args.length > 0) {
+        for (const arg of args.args) {
+          const element = ctx.getElementByUid(arg.uid)
           if (!element) {
             throw new Error(`Element not found: ${arg.uid}`)
           }
@@ -233,26 +136,26 @@ For fire-and-forget side effects, store results on \`window\` and retrieve in a 
         }
       }
 
-      const result = await context.evaluateScript(fn, elementArgs)
+      const result = await withTimeout(
+        ctx.evaluateScript(args.function, elementArgs),
+        TOOL_TIMEOUT,
+        'browser_evaluate'
+      )
       const resultStr = typeof result === 'object'
         ? JSON.stringify(result, null, 2)
         : String(result)
 
-      return {
-        content: `Script ran on page and returned:\n\`\`\`json\n${resultStr}\n\`\`\``
-      }
+      return textResult(`Script ran on page and returned:\n\`\`\`json\n${resultStr}\n\`\`\``)
     } catch (error) {
-      return {
-        content: `Script error: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Script error: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-// Export all snapshot tools
-export const snapshotTools: AIBrowserTool[] = [
-  takeSnapshotTool,
-  takeScreenshotTool,
-  evaluateScriptTool
+return [
+  browser_snapshot,
+  browser_screenshot,
+  browser_evaluate
 ]
+
+} // end buildSnapshotTools

@@ -1,404 +1,225 @@
 /**
- * Input Tools - User interaction simulation
+ * Input Tools (7 tools)
  *
- * Tools for clicking, filling forms, keyboard input, and drag operations.
- * Tool descriptions aligned with chrome-devtools-mcp for 100% compatibility.
- *
- * WARNING: This file is DEAD CODE. The actual tool handlers run from
- * sdk-mcp-server.ts via the SDK MCP server. These definitions are never
- * executed at runtime. See sdk-mcp-server.ts header for refactor plan.
+ * User interaction simulation: click, hover, fill, form fill, drag,
+ * key press, file upload.
  */
 
-import type { AIBrowserTool, ToolResult, BrowserContextInterface } from '../types'
+import { z } from 'zod'
+import { tool } from '@anthropic-ai/claude-agent-sdk'
+import type { BrowserContext } from '../context'
+import { textResult, withTimeout, fillFormElement, TOOL_TIMEOUT } from './helpers'
 
-/**
- * Determine how to fill a form element, handling combobox disambiguation.
- *
- * - combobox with option children → select-like (e.g. <select>), use selectOption.
- *   If no matching option is found, fall back to fillElement for editable comboboxes
- *   that happen to have autocomplete suggestions showing.
- * - combobox without option children → editable (e.g. search input), use fillElement.
- * - everything else → fillElement.
- */
-async function fillFormElement(
-  uid: string,
-  value: string,
-  context: BrowserContextInterface
-): Promise<void> {
-  const element = context.getElementByUid(uid)
+export function buildInputTools(ctx: BrowserContext) {
 
-  if (element && element.role === 'combobox') {
-    const hasOptions = element.children?.some(child => child.role === 'option')
-    if (hasOptions) {
-      try {
-        await context.selectOption(uid, value)
-        return
-      } catch (e) {
-        // Only fall back for "option not found" — rethrow infrastructure errors (CDP failures, etc.)
-        if (!(e instanceof Error) || !e.message.includes('Could not find option')) {
-          throw e
-        }
-        // No matching option — combobox may be editable, fall back to text input
-      }
-    }
-    // Editable combobox (no options, or no matching option) — fill as text
-    await context.fillElement(uid, value)
-    return
-  }
-
-  await context.fillElement(uid, value)
-}
-
-/**
- * click - Click on an element
- * Aligned with chrome-devtools-mcp: click
- */
-export const clickTool: AIBrowserTool = {
-  name: 'browser_click',
-  description: 'Clicks on the provided element',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      uid: {
-        type: 'string',
-        description: 'The uid of an element on the page from the page content snapshot'
-      },
-      dblClick: {
-        type: 'boolean',
-        description: 'Set to true for double clicks. Default is false.'
-      }
-    },
-    required: ['uid']
+const browser_click = tool(
+  'browser_click',
+  'Clicks on the provided element',
+  {
+    uid: z.string().describe('The uid of an element on the page from the page content snapshot'),
+    dblClick: z.boolean().optional().describe('Set to true for double clicks. Default is false.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const uid = params.uid as string
-    const dblClick = params.dblClick as boolean || false
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page. Use browser_new_page first.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page. Use browser_new_page first.', true)
     }
 
     try {
-      await context.clickElement(uid, { dblClick })
-      return {
-        content: dblClick
+      await withTimeout(
+        ctx.clickElement(args.uid, { dblClick: args.dblClick || false }),
+        TOOL_TIMEOUT,
+        'browser_click'
+      )
+      return textResult(
+        args.dblClick
           ? 'Successfully double clicked on the element'
           : 'Successfully clicked on the element'
-      }
+      )
     } catch (error) {
-      return {
-        content: `Failed to click element ${uid}: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to click element ${args.uid}: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * hover - Hover over an element
- * Aligned with chrome-devtools-mcp: hover
- */
-export const hoverTool: AIBrowserTool = {
-  name: 'browser_hover',
-  description: 'Hover over the provided element',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      uid: {
-        type: 'string',
-        description: 'The uid of an element on the page from the page content snapshot'
-      }
-    },
-    required: ['uid']
+const browser_hover = tool(
+  'browser_hover',
+  'Hover over the provided element',
+  {
+    uid: z.string().describe('The uid of an element on the page from the page content snapshot')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const uid = params.uid as string
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      await context.hoverElement(uid)
-      return {
-        content: 'Successfully hovered over the element'
-      }
+      await withTimeout(
+        ctx.hoverElement(args.uid),
+        TOOL_TIMEOUT,
+        'browser_hover'
+      )
+      return textResult('Successfully hovered over the element')
     } catch (error) {
-      return {
-        content: `Failed to hover element ${uid}: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to hover element ${args.uid}: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * fill - Fill an input field with text
- * Aligned with chrome-devtools-mcp: fill
- */
-export const fillTool: AIBrowserTool = {
-  name: 'browser_fill',
-  description: 'Type text into a input, text area or select an option from a <select> element.',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      uid: {
-        type: 'string',
-        description: 'The uid of an element on the page from the page content snapshot'
-      },
-      value: {
-        type: 'string',
-        description: 'The value to fill in'
-      }
-    },
-    required: ['uid', 'value']
+const browser_fill = tool(
+  'browser_fill',
+  'Type text into a input, text area or select an option from a <select> element.',
+  {
+    uid: z.string().describe('The uid of an element on the page from the page content snapshot'),
+    value: z.string().describe('The value to fill in')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const uid = params.uid as string
-    const value = params.value as string
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      await fillFormElement(uid, value, context)
-      return {
-        content: 'Successfully filled out the element'
-      }
+      await withTimeout(
+        fillFormElement(ctx, args.uid, args.value),
+        TOOL_TIMEOUT,
+        'browser_fill'
+      )
+      return textResult('Successfully filled out the element')
     } catch (error) {
-      return {
-        content: `Failed to fill element ${uid}: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to fill element ${args.uid}: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * fill_form - Fill multiple form fields at once
- * Aligned with chrome-devtools-mcp: fill_form
- */
-export const fillFormTool: AIBrowserTool = {
-  name: 'browser_fill_form',
-  description: 'Fill out multiple form elements at once',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      elements: {
-        type: 'array',
-        description: 'Elements from snapshot to fill out.',
-        items: {
-          type: 'object',
-          properties: {
-            uid: { type: 'string', description: 'The uid of the element to fill out' },
-            value: { type: 'string', description: 'Value for the element' }
-          },
-          required: ['uid', 'value']
-        }
-      }
-    },
-    required: ['elements']
+const browser_fill_form = tool(
+  'browser_fill_form',
+  'Fill out multiple form elements at once',
+  {
+    elements: z.array(z.object({
+      uid: z.string().describe('The uid of the element to fill out'),
+      value: z.string().describe('Value for the element')
+    })).describe('Elements from snapshot to fill out.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const elements = params.elements as Array<{ uid: string; value: string }>
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     const errors: string[] = []
 
-    for (const elem of elements) {
+    for (const elem of args.elements) {
       try {
-        await fillFormElement(elem.uid, elem.value, context)
+        await withTimeout(
+          fillFormElement(ctx, elem.uid, elem.value),
+          TOOL_TIMEOUT,
+          'browser_fill_form'
+        )
       } catch (error) {
         errors.push(`${elem.uid}: ${(error as Error).message}`)
       }
     }
 
     if (errors.length > 0) {
-      return {
-        content: `Partially filled out the form.\n\nErrors:\n${errors.join('\n')}`,
-        isError: errors.length === elements.length
-      }
+      return textResult(
+        `Partially filled out the form.\n\nErrors:\n${errors.join('\n')}`,
+        errors.length === args.elements.length
+      )
     }
 
-    return {
-      content: 'Successfully filled out the form'
-    }
+    return textResult('Successfully filled out the form')
   }
-}
+)
 
-/**
- * drag - Drag an element to another element
- * Aligned with chrome-devtools-mcp: drag
- */
-export const dragTool: AIBrowserTool = {
-  name: 'browser_drag',
-  description: 'Drag an element onto another element',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      from_uid: {
-        type: 'string',
-        description: 'The uid of the element to drag'
-      },
-      to_uid: {
-        type: 'string',
-        description: 'The uid of the element to drop into'
-      }
-    },
-    required: ['from_uid', 'to_uid']
+const browser_drag = tool(
+  'browser_drag',
+  'Drag an element onto another element',
+  {
+    from_uid: z.string().describe('The uid of the element to drag'),
+    to_uid: z.string().describe('The uid of the element to drop into')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const fromUid = params.from_uid as string
-    const toUid = params.to_uid as string
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      await context.dragElement(fromUid, toUid)
-      return {
-        content: 'Successfully dragged an element'
-      }
+      await withTimeout(
+        ctx.dragElement(args.from_uid, args.to_uid),
+        TOOL_TIMEOUT,
+        'browser_drag'
+      )
+      return textResult('Successfully dragged an element')
     } catch (error) {
-      return {
-        content: `Failed to drag: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to drag: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * press_key - Press a keyboard key
- * Aligned with chrome-devtools-mcp: press_key
- */
-export const pressKeyTool: AIBrowserTool = {
-  name: 'browser_press_key',
-  description: 'Press a key or key combination. Use this when other input methods like fill() cannot be used (e.g., keyboard shortcuts, navigation keys, or special key combinations).',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      key: {
-        type: 'string',
-        description: 'A key or a combination (e.g., "Enter", "Control+A", "Control++", "Control+Shift+R"). Modifiers: Control, Shift, Alt, Meta'
-      }
-    },
-    required: ['key']
+const browser_press_key = tool(
+  'browser_press_key',
+  'Press a key or key combination. Use this when other input methods like fill() cannot be used (e.g., keyboard shortcuts, navigation keys, or special key combinations).',
+  {
+    key: z.string().describe('A key or a combination (e.g., "Enter", "Control+A", "Control++", "Control+Shift+R"). Modifiers: Control, Shift, Alt, Meta')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const key = params.key as string
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      await context.pressKey(key)
-      return {
-        content: `Successfully pressed key: ${key}`
-      }
+      await withTimeout(
+        ctx.pressKey(args.key),
+        TOOL_TIMEOUT,
+        'browser_press_key'
+      )
+      return textResult(`Successfully pressed key: ${args.key}`)
     } catch (error) {
-      return {
-        content: `Failed to press key: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to press key: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * upload_file - Upload a file to a file input
- * Aligned with chrome-devtools-mcp: upload_file
- */
-export const uploadFileTool: AIBrowserTool = {
-  name: 'browser_upload_file',
-  description: 'Upload a file through a provided element.',
-  category: 'input',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      uid: {
-        type: 'string',
-        description: 'The uid of the file input element or an element that will open file chooser on the page from the page content snapshot'
-      },
-      filePath: {
-        type: 'string',
-        description: 'The local path of the file to upload'
-      }
-    },
-    required: ['uid', 'filePath']
+const browser_upload_file = tool(
+  'browser_upload_file',
+  'Upload a file through a provided element.',
+  {
+    uid: z.string().describe('The uid of the file input element or an element that will open file chooser on the page from the page content snapshot'),
+    filePath: z.string().describe('The local path of the file to upload')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const uid = params.uid as string
-    const filePath = params.filePath as string
-
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     try {
-      const element = context.getElementByUid(uid)
+      const element = ctx.getElementByUid(args.uid)
       if (!element) {
-        throw new Error(`Element not found: ${uid}`)
+        throw new Error(`Element not found: ${args.uid}`)
       }
 
-      // Use CDP to set files on the input
-      await context.sendCDPCommand('DOM.setFileInputFiles', {
-        backendNodeId: element.backendNodeId,
-        files: [filePath]
-      })
+      await withTimeout(
+        ctx.sendCDPCommand('DOM.setFileInputFiles', {
+          backendNodeId: element.backendNodeId,
+          files: [args.filePath]
+        }),
+        TOOL_TIMEOUT,
+        'browser_upload_file'
+      )
 
-      return {
-        content: `File uploaded from ${filePath}.`
-      }
+      return textResult(`File uploaded from ${args.filePath}.`)
     } catch (error) {
-      return {
-        content: `Failed to upload file: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Failed to upload file: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-// Export all input tools (handle_dialog moved to navigation.ts for better organization)
-export const inputTools: AIBrowserTool[] = [
-  clickTool,
-  hoverTool,
-  fillTool,
-  fillFormTool,
-  dragTool,
-  pressKeyTool,
-  uploadFileTool
+return [
+  browser_click,
+  browser_hover,
+  browser_fill,
+  browser_fill_form,
+  browser_drag,
+  browser_press_key,
+  browser_upload_file
 ]
+
+} // end buildInputTools

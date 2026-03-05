@@ -167,7 +167,7 @@ export async function sendAppChatMessage(
 
   const mcpServers: Record<string, any> = {
     'halo-memory': memoryMcpServer,
-    ...(usesAIBrowser ? { 'ai-browser': createAIBrowserMcpServer(scopedBrowserCtx) } : {}),
+    ...(usesAIBrowser ? { 'ai-browser': createAIBrowserMcpServer(scopedBrowserCtx, workDir) } : {}),
   }
   console.log(`[AppChat][${appId}] MCP servers: [${Object.keys(mcpServers).join(', ')}], aiBrowser=${usesAIBrowser}`)
 

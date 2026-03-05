@@ -57,6 +57,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label = 'Operation'): P
  * BrowserContext - Manages the browser state for AI operations
  */
 export class BrowserContext implements BrowserContextInterface {
+  /**
+   * Working directory for resolving relative paths (e.g. browser_run scripts).
+   * Set by createAIBrowserMcpServer() at server creation time.
+   */
+  workDir: string | undefined = undefined
+
   private mainWindow: BrowserWindow | null = null
   private activeViewId: string | null = null
   private lastSnapshot: AccessibilitySnapshot | null = null
@@ -372,6 +378,29 @@ export class BrowserContext implements BrowserContextInterface {
   getNetworkRequest(id: string): NetworkRequest | undefined {
     const requests = Array.from(this.networkRequests.values())
     return requests.find(r => r.id === id)
+  }
+
+  /**
+   * Get the response body of a network request by its display ID (e.g., "req_1").
+   * Uses CDP Network.getResponseBody with the original CDP requestId.
+   */
+  async getNetworkResponseBody(id: string): Promise<string | undefined> {
+    for (const [cdpRequestId, request] of this.networkRequests.entries()) {
+      if (request.id === id) {
+        try {
+          const result = await this.sendCDPCommand<{ body: string; base64Encoded: boolean }>(
+            'Network.getResponseBody',
+            { requestId: cdpRequestId }
+          )
+          return result.base64Encoded
+            ? Buffer.from(result.body, 'base64').toString()
+            : result.body
+        } catch {
+          return undefined
+        }
+      }
+    }
+    return undefined
   }
 
   /**
@@ -918,7 +947,7 @@ export class BrowserContext implements BrowserContextInterface {
   /**
    * Evaluate JavaScript in the browser context
    */
-  async evaluateScript<T = unknown>(script: string, args?: unknown[]): Promise<T> {
+  async evaluateScript<T = unknown>(script: string, args?: unknown[], timeout?: number): Promise<T> {
     // Always wrap script in a function call so arrow functions are invoked
     let expression: string
     if (args && args.length > 0) {
@@ -935,7 +964,7 @@ export class BrowserContext implements BrowserContextInterface {
       expression,
       returnByValue: true,
       awaitPromise: true
-    })
+    }, timeout ?? CDP_TIMEOUT)
 
     if (response.exceptionDetails) {
       throw new Error(
@@ -1329,6 +1358,7 @@ export class BrowserContext implements BrowserContextInterface {
     this.activeViewId = null
     this.lastSnapshot = null
     this.mainWindow = null
+    this.workDir = undefined
   }
 }
 

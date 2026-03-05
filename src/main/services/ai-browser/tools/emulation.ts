@@ -1,161 +1,103 @@
 /**
- * Emulation Tools - Device and network emulation
+ * Emulation Tools (1 tool)
  *
- * Tools for emulating different devices, network conditions, and geolocation.
- * Tool descriptions aligned with chrome-devtools-mcp for 100% compatibility.
- *
- * WARNING: This file is DEAD CODE. The actual tool handlers run from
- * sdk-mcp-server.ts via the SDK MCP server. These definitions are never
- * executed at runtime. See sdk-mcp-server.ts header for refactor plan.
+ * Device, network, and geolocation emulation.
  */
 
-import type { AIBrowserTool, ToolResult } from '../types'
+import { z } from 'zod'
+import { tool } from '@anthropic-ai/claude-agent-sdk'
+import type { BrowserContext } from '../context'
+import { textResult } from './helpers'
 
-// Predefined network conditions (aligned with chrome-devtools-mcp)
-const NETWORK_CONDITIONS = {
+const NETWORK_CONDITIONS: Record<string, { download: number; upload: number; latency: number }> = {
   'Slow 3G': { download: 500 * 1024 / 8, upload: 500 * 1024 / 8, latency: 400 },
   'Fast 3G': { download: 1.6 * 1024 * 1024 / 8, upload: 750 * 1024 / 8, latency: 150 },
   'Regular 4G': { download: 4 * 1024 * 1024 / 8, upload: 3 * 1024 * 1024 / 8, latency: 20 },
   'DSL': { download: 2 * 1024 * 1024 / 8, upload: 1 * 1024 * 1024 / 8, latency: 5 },
   'WiFi': { download: 30 * 1024 * 1024 / 8, upload: 15 * 1024 * 1024 / 8, latency: 2 }
-} as const
+}
 
-const THROTTLING_OPTIONS = [
-  'No emulation',
-  'Offline',
-  ...Object.keys(NETWORK_CONDITIONS)
-] as const
+export function buildEmulationTools(ctx: BrowserContext) {
 
-/**
- * emulate - Emulate various features on the selected page
- * Aligned with chrome-devtools-mcp: emulate
- */
-export const emulateTool: AIBrowserTool = {
-  name: 'browser_emulate',
-  description: `Emulates various features on the selected page.`,
-  category: 'emulation',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      networkConditions: {
-        type: 'string',
-        description: 'Throttle network. Set to "No emulation" to disable. If omitted, conditions remain unchanged.',
-        enum: THROTTLING_OPTIONS as unknown as string[]
-      },
-      cpuThrottlingRate: {
-        type: 'number',
-        description: 'Represents the CPU slowdown factor. Set the rate to 1 to disable throttling. If omitted, throttling remains unchanged.',
-        minimum: 1,
-        maximum: 20
-      },
-      geolocation: {
-        type: 'object',
-        description: 'Geolocation to emulate. Set to null to clear the geolocation override.',
-        properties: {
-          latitude: {
-            type: 'number',
-            description: 'Latitude between -90 and 90.',
-            minimum: -90,
-            maximum: 90
-          },
-          longitude: {
-            type: 'number',
-            description: 'Longitude between -180 and 180.',
-            minimum: -180,
-            maximum: 180
-          }
-        },
-        required: ['latitude', 'longitude'],
-        nullable: true
-      }
-    }
+const browser_emulate = tool(
+  'browser_emulate',
+  'Emulates various features on the selected page.',
+  {
+    networkConditions: z.enum([
+      'No emulation', 'Offline', 'Slow 3G', 'Fast 3G', 'Regular 4G', 'DSL', 'WiFi'
+    ]).optional().describe('Throttle network. Set to "No emulation" to disable. If omitted, conditions remain unchanged.'),
+    cpuThrottlingRate: z.number().min(1).max(20).optional().describe('Represents the CPU slowdown factor. Set the rate to 1 to disable throttling. If omitted, throttling remains unchanged.'),
+    geolocation: z.object({
+      latitude: z.number().min(-90).max(90).describe('Latitude between -90 and 90.'),
+      longitude: z.number().min(-180).max(180).describe('Longitude between -180 and 180.')
+    }).nullable().optional().describe('Geolocation to emulate. Set to null to clear the geolocation override.')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    if (!context.getActiveViewId()) {
-      return {
-        content: 'No active browser page.',
-        isError: true
-      }
+  async (args) => {
+    if (!ctx.getActiveViewId()) {
+      return textResult('No active browser page.', true)
     }
 
     const results: string[] = []
 
     try {
       // Network conditions
-      const networkConditions = params.networkConditions as string | undefined
-      if (networkConditions !== undefined) {
-        if (networkConditions === 'No emulation') {
-          await context.sendCDPCommand('Network.emulateNetworkConditions', {
-            offline: false,
-            latency: 0,
-            downloadThroughput: -1,
-            uploadThroughput: -1
+      if (args.networkConditions !== undefined) {
+        if (args.networkConditions === 'No emulation') {
+          await ctx.sendCDPCommand('Network.emulateNetworkConditions', {
+            offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1
           })
           results.push('Network: No emulation')
-        } else if (networkConditions === 'Offline') {
-          await context.sendCDPCommand('Network.emulateNetworkConditions', {
-            offline: true,
-            latency: 0,
-            downloadThroughput: 0,
-            uploadThroughput: 0
+        } else if (args.networkConditions === 'Offline') {
+          await ctx.sendCDPCommand('Network.emulateNetworkConditions', {
+            offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0
           })
           results.push('Network: Offline')
-        } else if (networkConditions in NETWORK_CONDITIONS) {
-          const condition = NETWORK_CONDITIONS[networkConditions as keyof typeof NETWORK_CONDITIONS]
-          await context.sendCDPCommand('Network.emulateNetworkConditions', {
-            offline: false,
-            latency: condition.latency,
-            downloadThroughput: condition.download,
-            uploadThroughput: condition.upload
+        } else if (args.networkConditions in NETWORK_CONDITIONS) {
+          const cond = NETWORK_CONDITIONS[args.networkConditions]
+          await ctx.sendCDPCommand('Network.emulateNetworkConditions', {
+            offline: false, latency: cond.latency,
+            downloadThroughput: cond.download, uploadThroughput: cond.upload
           })
-          results.push(`Network: ${networkConditions}`)
+          results.push(`Network: ${args.networkConditions}`)
         }
       }
 
       // CPU throttling
-      if (params.cpuThrottlingRate !== undefined) {
-        const rate = params.cpuThrottlingRate as number
-        await context.sendCDPCommand('Emulation.setCPUThrottlingRate', { rate })
-        results.push(`CPU throttling: ${rate}x`)
+      if (args.cpuThrottlingRate !== undefined) {
+        await ctx.sendCDPCommand('Emulation.setCPUThrottlingRate', {
+          rate: args.cpuThrottlingRate
+        })
+        results.push(`CPU throttling: ${args.cpuThrottlingRate}x`)
       }
 
       // Geolocation
-      if (params.geolocation !== undefined) {
-        const geo = params.geolocation as { latitude: number; longitude: number } | null
-        if (geo === null) {
-          await context.sendCDPCommand('Emulation.clearGeolocationOverride')
+      if (args.geolocation !== undefined) {
+        if (args.geolocation === null) {
+          await ctx.sendCDPCommand('Emulation.clearGeolocationOverride')
           results.push('Geolocation: cleared')
         } else {
-          await context.sendCDPCommand('Emulation.setGeolocationOverride', {
-            latitude: geo.latitude,
-            longitude: geo.longitude,
+          await ctx.sendCDPCommand('Emulation.setGeolocationOverride', {
+            latitude: args.geolocation.latitude,
+            longitude: args.geolocation.longitude,
             accuracy: 100
           })
-          results.push(`Geolocation: ${geo.latitude}, ${geo.longitude}`)
+          results.push(`Geolocation: ${args.geolocation.latitude}, ${args.geolocation.longitude}`)
         }
       }
 
       if (results.length === 0) {
-        return {
-          content: 'No emulation settings changed.'
-        }
+        return textResult('No emulation settings changed.')
       }
 
-      return {
-        content: results.join('\n')
-      }
+      return textResult(results.join('\n'))
     } catch (error) {
-      return {
-        content: `Emulation failed: ${(error as Error).message}`,
-        isError: true
-      }
+      return textResult(`Emulation failed: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-// Export all emulation tools
-// Note: browser_resize is defined in navigation.ts alongside other page-management tools.
-// The authoritative implementation lives in sdk-mcp-server.ts.
-export const emulationTools: AIBrowserTool[] = [
-  emulateTool
+return [
+  browser_emulate
 ]
+
+} // end buildEmulationTools

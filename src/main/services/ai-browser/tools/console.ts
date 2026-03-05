@@ -1,216 +1,147 @@
 /**
- * Console Tools - Browser console monitoring
+ * Console Tools (2 tools)
  *
- * Tools for viewing console logs, warnings, and errors.
- * Tool descriptions aligned with chrome-devtools-mcp for 100% compatibility.
- *
- * WARNING: This file is DEAD CODE. The actual tool handlers run from
- * sdk-mcp-server.ts via the SDK MCP server. These definitions are never
- * executed at runtime. See sdk-mcp-server.ts header for refactor plan.
+ * Browser console message monitoring and inspection.
  */
 
-import type { AIBrowserTool, ToolResult, ConsoleMessage } from '../types'
+import { z } from 'zod'
+import { tool } from '@anthropic-ai/claude-agent-sdk'
+import type { BrowserContext } from '../context'
+import { textResult } from './helpers'
 
-// Filterable console message types
-const FILTERABLE_MESSAGE_TYPES = [
-  'log',
-  'debug',
-  'info',
-  'error',
-  'warn',
-  'dir',
-  'dirxml',
-  'table',
-  'trace',
-  'clear',
-  'startGroup',
-  'startGroupCollapsed',
-  'endGroup',
-  'assert',
-  'profile',
-  'profileEnd',
-  'count',
-  'timeEnd',
-  'verbose',
-  'issue'
-] as const
+export function buildConsoleTools(ctx: BrowserContext) {
 
-/**
- * list_console_messages - List captured console messages
- * Aligned with chrome-devtools-mcp: list_console_messages
- */
-export const listConsoleMessagesTool: AIBrowserTool = {
-  name: 'browser_console',
-  description: 'List all console messages for the currently selected page since the last navigation.',
-  category: 'console',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      pageSize: {
-        type: 'number',
-        description: 'Maximum number of messages to return. When omitted, returns all requests.'
-      },
-      pageIdx: {
-        type: 'number',
-        description: 'Page number to return (0-based). When omitted, returns the first page.'
-      },
-      types: {
-        type: 'array',
-        description: 'Filter messages to only return messages of the specified resource types. When omitted or empty, returns all messages.',
-        items: {
-          type: 'string',
-          enum: FILTERABLE_MESSAGE_TYPES as unknown as string[]
+const browser_console = tool(
+  'browser_console',
+  'List all console messages for the currently selected page since the last navigation.',
+  {
+    pageSize: z.number().int().positive().optional().describe('Maximum number of messages to return. When omitted, returns all messages.'),
+    pageIdx: z.number().int().min(0).optional().describe('Page number to return (0-based). When omitted, returns the first page.'),
+    types: z.array(z.string()).optional().describe('Filter messages to only return messages of the specified types. When omitted or empty, returns all messages.'),
+    includePreservedMessages: z.boolean().optional().describe('Set to true to return the preserved messages over the last 3 navigations.')
+  },
+  async (args) => {
+    try {
+      let messages = ctx.getConsoleMessages(args.includePreservedMessages || false)
+
+      // Filter by type
+      if (args.types && args.types.length > 0) {
+        const typeSet = new Set(args.types)
+        messages = messages.filter(m => typeSet.has(m.type))
+      }
+
+      const total = messages.length
+
+      // Pagination
+      const pageIdx = args.pageIdx || 0
+      let pageMessages: typeof messages
+      if (args.pageSize !== undefined) {
+        const startIdx = pageIdx * args.pageSize
+        const endIdx = Math.min(startIdx + args.pageSize, total)
+        pageMessages = messages.slice(startIdx, endIdx)
+      } else {
+        pageMessages = messages
+      }
+
+      if (pageMessages.length === 0) {
+        return textResult('No console messages captured.')
+      }
+
+      const lines: string[] = []
+      if (args.pageSize !== undefined) {
+        const startIdx = pageIdx * args.pageSize
+        const endIdx = Math.min(startIdx + args.pageSize, total)
+        lines.push(`Console Messages (${startIdx + 1}-${endIdx} of ${total}):`)
+      } else {
+        lines.push(`Console Messages (${total} total):`)
+      }
+      lines.push('')
+
+      for (const msg of pageMessages) {
+        const time = new Date(msg.timestamp).toLocaleTimeString()
+        lines.push(`[msgid=${msg.id}] ${msg.type.toUpperCase()} (${time})`)
+        lines.push(`    ${msg.text.substring(0, 200)}${msg.text.length > 200 ? '...' : ''}`)
+        if (msg.url) {
+          lines.push(`    at ${msg.url}${msg.lineNumber !== undefined ? `:${msg.lineNumber}` : ''}`)
         }
-      },
-      includePreservedMessages: {
-        type: 'boolean',
-        description: 'Set to true to return the preserved messages over the last 3 navigations.'
-      }
-    }
-  },
-  handler: async (params, context): Promise<ToolResult> => {
-    const types = params.types as string[] | undefined
-    const pageIdx = (params.pageIdx as number) || 0
-    const pageSize = params.pageSize as number | undefined
-    const includePreserved = params.includePreservedMessages as boolean || false
-
-    let messages = context.getConsoleMessages(includePreserved)
-
-    // Filter by type if specified
-    if (types && types.length > 0) {
-      const typeSet = new Set(types)
-      messages = messages.filter(m => typeSet.has(m.type))
-    }
-
-    const total = messages.length
-
-    // Apply pagination if pageSize is specified
-    let pageMessages: ConsoleMessage[]
-    if (pageSize !== undefined) {
-      const startIdx = pageIdx * pageSize
-      const endIdx = Math.min(startIdx + pageSize, total)
-      pageMessages = messages.slice(startIdx, endIdx)
-    } else {
-      pageMessages = messages
-    }
-
-    if (pageMessages.length === 0) {
-      return {
-        content: 'No console messages captured.'
-      }
-    }
-
-    const lines: string[] = []
-
-    if (pageSize !== undefined) {
-      const startIdx = pageIdx * pageSize
-      const endIdx = Math.min(startIdx + pageSize, total)
-      lines.push(`Console Messages (${startIdx + 1}-${endIdx} of ${total}):`)
-    } else {
-      lines.push(`Console Messages (${total} total):`)
-    }
-    lines.push('')
-
-    for (const msg of pageMessages) {
-      const time = new Date(msg.timestamp).toLocaleTimeString()
-
-      lines.push(`[msgid=${msg.id}] ${msg.type.toUpperCase()} (${time})`)
-      lines.push(`    ${msg.text.substring(0, 200)}${msg.text.length > 200 ? '...' : ''}`)
-
-      if (msg.url) {
-        lines.push(`    at ${msg.url}${msg.lineNumber !== undefined ? `:${msg.lineNumber}` : ''}`)
+        lines.push('')
       }
 
-      lines.push('')
-    }
+      if (args.pageSize !== undefined && pageIdx * args.pageSize + pageMessages.length < total) {
+        lines.push(`Use pageIdx=${pageIdx + 1} to see more messages.`)
+      }
 
-    if (pageSize !== undefined && pageIdx * pageSize + pageMessages.length < total) {
-      lines.push(`Use pageIdx=${pageIdx + 1} to see more messages.`)
-    }
-
-    return {
-      content: lines.join('\n')
+      return textResult(lines.join('\n'))
+    } catch (error) {
+      return textResult(`Failed to get console messages: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-/**
- * get_console_message - Get details of a specific console message
- * Aligned with chrome-devtools-mcp: get_console_message
- */
-export const getConsoleMessageTool: AIBrowserTool = {
-  name: 'browser_console_message',
-  description: `Gets a console message by its ID. You can get all messages by calling browser_console.`,
-  category: 'console',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      msgid: {
-        type: 'number',
-        description: 'The msgid of a console message on the page from the listed console messages'
-      }
-    },
-    required: ['msgid']
+const browser_console_message = tool(
+  'browser_console_message',
+  'Gets a console message by its ID. You can get all messages by calling browser_console.',
+  {
+    msgid: z.number().describe('The msgid of a console message on the page from the listed console messages')
   },
-  handler: async (params, context): Promise<ToolResult> => {
-    const msgId = params.msgid as number
-    const message = context.getConsoleMessage(String(msgId))
+  async (args) => {
+    try {
+      const message = ctx.getConsoleMessage(String(args.msgid))
 
-    if (!message) {
-      return {
-        content: `Message not found: ${msgId}`,
-        isError: true
+      if (!message) {
+        return textResult(`Message not found: ${args.msgid}`, true)
       }
-    }
 
-    const time = new Date(message.timestamp).toLocaleString()
+      const time = new Date(message.timestamp).toLocaleString()
 
-    const lines = [
-      `# Console Message: msgid=${message.id}`,
-      '',
-      `## Type: ${message.type.toUpperCase()}`,
-      `Timestamp: ${time}`,
-      ''
-    ]
+      const lines = [
+        `# Console Message: msgid=${message.id}`,
+        '',
+        `## Type: ${message.type.toUpperCase()}`,
+        `Timestamp: ${time}`,
+        ''
+      ]
 
-    if (message.url) {
-      lines.push(`## Source`)
-      lines.push(`File: ${message.url}`)
-      if (message.lineNumber !== undefined) {
-        lines.push(`Line: ${message.lineNumber}`)
+      if (message.url) {
+        lines.push(`## Source`)
+        lines.push(`File: ${message.url}`)
+        if (message.lineNumber !== undefined) {
+          lines.push(`Line: ${message.lineNumber}`)
+        }
+        lines.push('')
       }
-      lines.push('')
-    }
 
-    lines.push(`## Message`)
-    lines.push('```')
-    lines.push(message.text)
-    lines.push('```')
-
-    if (message.stackTrace) {
-      lines.push('')
-      lines.push(`## Stack Trace`)
+      lines.push(`## Message`)
       lines.push('```')
-      lines.push(message.stackTrace)
+      lines.push(message.text)
       lines.push('```')
-    }
 
-    if (message.args && message.args.length > 0) {
-      lines.push('')
-      lines.push(`## Arguments`)
-      lines.push('```json')
-      lines.push(JSON.stringify(message.args, null, 2))
-      lines.push('```')
-    }
+      if (message.stackTrace) {
+        lines.push('')
+        lines.push(`## Stack Trace`)
+        lines.push('```')
+        lines.push(message.stackTrace)
+        lines.push('```')
+      }
 
-    return {
-      content: lines.join('\n')
+      if (message.args && message.args.length > 0) {
+        lines.push('')
+        lines.push(`## Arguments`)
+        lines.push('```json')
+        lines.push(JSON.stringify(message.args, null, 2))
+        lines.push('```')
+      }
+
+      return textResult(lines.join('\n'))
+    } catch (error) {
+      return textResult(`Failed to get message details: ${(error as Error).message}`, true)
     }
   }
-}
+)
 
-// Export all console tools
-export const consoleTools: AIBrowserTool[] = [
-  listConsoleMessagesTool,
-  getConsoleMessageTool
+return [
+  browser_console,
+  browser_console_message
 ]
+
+} // end buildConsoleTools

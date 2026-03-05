@@ -1,4 +1,4 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+/**
  * AI Browser Module - Main Entry Point
  *
  * This module provides AI-controlled browser capabilities for Halo.
@@ -6,7 +6,7 @@
  * and extract information - all without requiring external tools.
  *
  * Key Features:
- * - 26 browser control tools compatible with Claude Agent SDK
+ * - 27 browser control tools compatible with Claude Agent SDK
  * - Accessibility tree-based element identification
  * - Network and console monitoring
  * - Screenshot capture
@@ -21,13 +21,6 @@
 import { BrowserWindow } from 'electron'
 import { browserContext, BrowserContext, createScopedBrowserContext } from './context'
 import { browserViewManager } from '../browser-view.service'
-import {
-  allTools,
-  getToolNames,
-  getToolDefinitions,
-  findTool
-} from './tools'
-import type { AIBrowserTool, ToolResult } from './types'
 
 // Import SDK MCP server creator
 import { createAIBrowserMcpServer, getAIBrowserSdkToolNames } from './sdk-mcp-server'
@@ -87,62 +80,10 @@ function extendBrowserViewManager(): void {
 // ============================================
 
 /**
- * Get all AI Browser tool names for SDK allowedTools
- */
-export function getAIBrowserToolNames(): string[] {
-  return getToolNames()
-}
-
-/**
- * Get tool definitions for SDK registration
- */
-export function getAIBrowserToolDefinitions() {
-  return getToolDefinitions()
-}
-
-/**
  * Check if a tool name is an AI Browser tool
  */
 export function isAIBrowserTool(toolName: string): boolean {
   return toolName.startsWith('browser_')
-}
-
-// ============================================
-// Tool Execution
-// ============================================
-
-/**
- * Execute an AI Browser tool
- *
- * @param toolName - Name of the tool to execute
- * @param params - Tool parameters
- * @returns Tool result
- */
-export async function executeAIBrowserTool(
-  toolName: string,
-  params: Record<string, unknown>
-): Promise<ToolResult> {
-  const tool = findTool(toolName)
-
-  if (!tool) {
-    return {
-      content: `Unknown AI Browser tool: ${toolName}`,
-      isError: true
-    }
-  }
-
-  try {
-    console.log(`[AI Browser] Executing tool: ${toolName}`)
-    const result = await tool.handler(params, browserContext)
-    console.log(`[AI Browser] Tool completed: ${toolName}`)
-    return result
-  } catch (error) {
-    console.error(`[AI Browser] Tool error: ${toolName}`, error)
-    return {
-      content: `Tool execution failed: ${(error as Error).message}`,
-      isError: true
-    }
-  }
 }
 
 // ============================================
@@ -233,6 +174,3 @@ export function cleanupAIBrowser(): void {
   browserContext.destroy()
   console.log('[AI Browser] Module cleaned up')
 }
-
-// Re-export types
-export type { AIBrowserTool, ToolResult } from './types'

@@ -129,7 +129,7 @@ export async function sendMessage(
     // Build MCP servers config (DB apps + built-in MCPs)
     const mcpServers: Record<string, any> = dbMcpServers ? { ...dbMcpServers } : {}
     if (aiBrowserEnabled) {
-      mcpServers['ai-browser'] = createAIBrowserMcpServer()
+      mcpServers['ai-browser'] = createAIBrowserMcpServer(undefined, workDir)
       console.log(`[Agent][${conversationId}] AI Browser MCP server added`)
     }
 

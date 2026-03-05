@@ -8,69 +8,6 @@
  */
 
 // ============================================
-// Tool System Types
-// ============================================
-
-/**
- * JSON Schema for tool parameter definitions
- */
-export interface JSONSchema {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object'
-  description?: string
-  enum?: string[]
-  items?: JSONSchema
-  properties?: Record<string, JSONSchema>
-  required?: string[]
-  default?: unknown
-  minimum?: number
-  maximum?: number
-  nullable?: boolean
-}
-
-/**
- * Tool result returned by tool handlers
- */
-export interface ToolResult {
-  content: string           // Text result
-  images?: {                // Optional images (e.g., screenshots)
-    data: string            // base64 encoded
-    mimeType: string
-  }[]
-  isError?: boolean
-}
-
-/**
- * Tool categories for organization and UI display
- */
-export type ToolCategory =
-  | 'navigation'    // Navigation tools
-  | 'input'         // Input tools
-  | 'snapshot'      // Snapshot/debugging tools
-  | 'network'       // Network monitoring
-  | 'console'       // Console monitoring
-  | 'emulation'     // Device/network emulation
-  | 'performance'   // Performance tracing
-
-/**
- * AI Browser Tool definition
- * Compatible with Claude Agent SDK tool format
- */
-export interface AIBrowserTool {
-  name: string
-  description: string
-  category: ToolCategory
-  inputSchema: {
-    type: 'object'
-    properties: Record<string, JSONSchema>
-    required?: string[]
-  }
-  handler: (
-    params: Record<string, unknown>,
-    context: BrowserContextInterface
-  ) => Promise<ToolResult>
-}
-
-// ============================================
 // Accessibility Tree Types
 // ============================================
 
@@ -197,6 +134,10 @@ export interface DialogInfo {
  * Provides access to the BrowserView and CDP commands
  */
 export interface BrowserContextInterface {
+  // Working directory for resolving relative paths (e.g. browser_run scripts).
+  // Set once at MCP server creation; read by tools that need path resolution.
+  workDir: string | undefined
+
   // View management
   getActiveViewId(): string | null
   setActiveViewId(viewId: string): void
@@ -215,6 +156,7 @@ export interface BrowserContextInterface {
   // Network monitoring (aligned with chrome-devtools-mcp: includePreserved param)
   getNetworkRequests(includePreserved?: boolean): NetworkRequest[]
   getNetworkRequest(id: string): NetworkRequest | undefined
+  getNetworkResponseBody(id: string): Promise<string | undefined>
   getSelectedNetworkRequest?(): NetworkRequest | undefined
   clearNetworkRequests(): void
 

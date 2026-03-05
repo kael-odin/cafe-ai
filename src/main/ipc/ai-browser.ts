@@ -3,22 +3,16 @@
  *
  * Handles IPC communication for the AI Browser functionality.
  * Provides endpoints for:
- * - Executing AI Browser tools
- * - Getting tool definitions
  * - Managing AI Browser state
+ * - Getting system prompt
  *
  * LAZY INITIALIZATION:
  * This module uses lazy initialization to improve startup performance.
- * The heavy AI Browser module (3000+ lines) is only loaded when:
- * - A tool is first executed
- * - Tool definitions are first requested
- * - Active view is first set
- *
- * This avoids blocking app startup with module loading.
+ * The heavy AI Browser module is only loaded when first used.
  */
 
 import { ipcMain, BrowserWindow } from 'electron'
-import { getMainWindow, onMainWindowChange } from '../services/window.service'
+import { onMainWindowChange } from '../services/window.service'
 
 // Lazy-loaded module references
 let aiBrowserModule: typeof import('../services/ai-browser') | null = null
@@ -70,34 +64,6 @@ export function registerAIBrowserHandlers(): void {
   // ============================================
 
   /**
-   * Get all AI Browser tool names
-   */
-  ipcMain.handle('ai-browser:get-tool-names', async () => {
-    try {
-      const module = await ensureInitialized()
-      const toolNames = module.getAIBrowserToolNames()
-      return { success: true, data: toolNames }
-    } catch (error) {
-      console.error('[AI Browser IPC] Get tool names failed:', error)
-      return { success: false, error: (error as Error).message }
-    }
-  })
-
-  /**
-   * Get all AI Browser tool definitions
-   */
-  ipcMain.handle('ai-browser:get-tool-definitions', async () => {
-    try {
-      const module = await ensureInitialized()
-      const definitions = module.getAIBrowserToolDefinitions()
-      return { success: true, data: definitions }
-    } catch (error) {
-      console.error('[AI Browser IPC] Get tool definitions failed:', error)
-      return { success: false, error: (error as Error).message }
-    }
-  })
-
-  /**
    * Get AI Browser system prompt addition
    */
   ipcMain.handle('ai-browser:get-system-prompt', async () => {
@@ -109,38 +75,6 @@ export function registerAIBrowserHandlers(): void {
       return { success: false, error: (error as Error).message }
     }
   })
-
-  // ============================================
-  // Tool Execution
-  // ============================================
-
-  /**
-   * Execute an AI Browser tool
-   */
-  ipcMain.handle(
-    'ai-browser:execute-tool',
-    async (_event, { toolName, params }: { toolName: string; params: Record<string, unknown> }) => {
-      console.log(`[AI Browser IPC] >>> execute-tool: ${toolName}`)
-
-      try {
-        const module = await ensureInitialized()
-        const result = await module.executeAIBrowserTool(toolName, params)
-
-        console.log(`[AI Browser IPC] <<< execute-tool success: ${toolName}`)
-        return {
-          success: true,
-          data: {
-            content: result.content,
-            images: result.images,
-            isError: result.isError
-          }
-        }
-      } catch (error) {
-        console.error('[AI Browser IPC] Execute tool failed:', error)
-        return { success: false, error: (error as Error).message }
-      }
-    }
-  )
 
   /**
    * Check if a tool is an AI Browser tool
