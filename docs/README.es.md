@@ -20,7 +20,7 @@ Escribe código, crea presentaciones, investiga, redacta informes, despliega ser
 
 [Descargar](#instalación) · [Documentación](#documentación) · [Contribuir](#contribuir)
 
-**[简体中文](../README.md)** | **[English](./README.en.md)** | **[繁體中文](./README.zh-TW.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
+**[简体中文](./README.zh-CN.md)** | **[English](../README.md)** | **[繁體中文](./README.zh-TW.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
 
 </div>
 

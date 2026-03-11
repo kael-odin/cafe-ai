@@ -20,7 +20,7 @@ Code schreiben, Präsentationen erstellen, recherchieren, Berichte verfassen, Se
 
 [Download](#installation) · [Dokumentation](#dokumentation) · [Mitwirken](#mitwirken)
 
-**[简体中文](../README.md)** | **[English](./README.en.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
+**[简体中文](./README.zh-CN.md)** | **[English](../README.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
 
 </div>
 

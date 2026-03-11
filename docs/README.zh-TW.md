@@ -20,7 +20,7 @@
 
 [下載](#安裝) · [文件](#文件) · [參與貢獻](#參與貢獻)
 
-**[简体中文](../README.md)** | **[English](./README.en.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
+**[简体中文](./README.zh-CN.md)** | **[English](../README.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)** | **[日本語](./README.ja.md)**
 
 </div>
 

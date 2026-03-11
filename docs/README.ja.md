@@ -20,7 +20,7 @@
 
 [ダウンロード](#インストール) · [ドキュメント](#ドキュメント) · [コントリビュート](#コントリビュート)
 
-**[简体中文](../README.md)** | **[English](./README.en.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)**
+**[简体中文](./README.zh-CN.md)** | **[English](../README.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[Français](./README.fr.md)**
 
 </div>
 

@@ -20,7 +20,7 @@ Commandez votre ordinateur 24h/24, pilotez un navigateur IA pour accomplir des t
 
 [Télécharger](#installation) · [Documentation](#documentation) · [Contribuer](#contribuer)
 
-**[简体中文](../README.md)** | **[English](./README.en.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[日本語](./README.ja.md)**
+**[简体中文](./README.zh-CN.md)** | **[English](../README.md)** | **[繁體中文](./README.zh-TW.md)** | **[Español](./README.es.md)** | **[Deutsch](./README.de.md)** | **[日本語](./README.ja.md)**
 
 </div>
 
