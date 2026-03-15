@@ -135,7 +135,11 @@ export class SSEWriter {
       content_block: {
         type: 'web_search_tool_result',
         tool_use_id: toolUseId,
-        content: results
+        content: results.map(r => ({
+          type: 'web_search_result' as const,
+          url: r.url,
+          title: r.title
+        }))
       }
     }
     return this.writeEvent('content_block_start', event)

@@ -501,8 +501,8 @@ async function handleOpenAIConversion(
         console.log(`[RequestHandler] Response body:\n${JSON.stringify(openaiResponse, null, 2)}`)
       }
       const anthropicResponse = apiType === 'responses'
-        ? convertOpenAIResponsesToAnthropic(openaiResponse)
-        : convertOpenAIChatToAnthropic(openaiResponse, anthropicRequest.model)
+        ? convertOpenAIResponsesToAnthropic(openaiResponse as any)
+        : convertOpenAIChatToAnthropic(openaiResponse as any, anthropicRequest.model)
 
       res.json(anthropicResponse)
     } catch (error: any) {

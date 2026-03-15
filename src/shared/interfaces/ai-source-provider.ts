@@ -40,6 +40,7 @@ import type {
   AISourceType,
   BackendRequestConfig,
   AISourcesConfig,
+  LegacyAISourcesConfig,
   OAuthSourceConfig,
   CustomSourceConfig,
   OAuthStartResult,
@@ -91,6 +92,12 @@ export interface OAuthProvider {
 }
 
 /**
+ * Config type that accepts both v1 (legacy) and v2 formats
+ * This allows backward compatibility during migration
+ */
+export type ProviderConfig = AISourcesConfig | LegacyAISourcesConfig
+
+/**
  * AI Source Provider Interface
  *
  * All AI source providers must implement this interface.
@@ -120,7 +127,7 @@ export interface AISourceProvider {
    *               For OAuth providers, manager passes converted v1 format.
    *               For API Key providers, this method is NOT called at runtime.
    */
-  isConfigured(config: AISourcesConfig): boolean
+  isConfigured(config: ProviderConfig): boolean
 
   /**
    * Get backend request configuration for making API calls
@@ -133,14 +140,14 @@ export interface AISourceProvider {
    *               For API Key providers, this method is NOT called at runtime.
    * @returns Backend request config or null if not configured
    */
-  getBackendConfig(config: AISourcesConfig): BackendRequestConfig | null
+  getBackendConfig(config: ProviderConfig): BackendRequestConfig | null
 
   /**
    * Get the current model ID for this provider
    *
    * @param config Legacy format (see above)
    */
-  getCurrentModel(config: AISourcesConfig): string | null
+  getCurrentModel(config: ProviderConfig): string | null
 
   /**
    * Get available models for this provider
@@ -148,7 +155,7 @@ export interface AISourceProvider {
    *
    * @param config Legacy format (see above)
    */
-  getAvailableModels(config: AISourcesConfig): Promise<string[]>
+  getAvailableModels(config: ProviderConfig): Promise<string[]>
 
   /**
    * Refresh provider-specific configuration from remote API
@@ -157,7 +164,7 @@ export interface AISourceProvider {
    * @param config Legacy format (see above)
    * @returns Updated configuration for this provider
    */
-  refreshConfig?(config: AISourcesConfig): Promise<ProviderResult<Partial<AISourcesConfig>>>
+  refreshConfig?(config: ProviderConfig): Promise<ProviderResult<Partial<ProviderConfig>>>
 }
 
 /**

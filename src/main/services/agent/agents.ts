@@ -15,7 +15,7 @@
  * This module is the single source of truth for all predefined agents.
  */
 
-import type { AgentDefinition } from '../../../halo-local/claude-code-core/src/types/sdk-types'
+import type { AgentDefinition } from '@anthropic-ai/claude-agent-sdk'
 
 // ============================================
 // Web Searcher Agent

@@ -15,7 +15,8 @@
 import open from 'open'
 import type {
   OAuthAISourceProvider,
-  ProviderResult
+  ProviderResult,
+  ProviderConfig
 } from '../../../../shared/interfaces'
 import type {
   AISourceType,
@@ -24,7 +25,8 @@ import type {
   OAuthSourceConfig,
   OAuthStartResult,
   OAuthCompleteResult,
-  AISourceUserInfo
+  AISourceUserInfo,
+  AISource
 } from '../../../../shared/types'
 
 // ============================================================================
@@ -154,23 +156,60 @@ let cachedCopilotToken: CachedCopilotToken | null = null
 // GitHub Copilot Provider Implementation
 // ============================================================================
 
+/**
+ * Helper to check if config is legacy v1 format
+ */
+function isLegacyConfig(config: ProviderConfig): config is { current: string; 'github-copilot'?: OAuthSourceConfig } {
+  return 'current' in config && typeof (config as any).current === 'string'
+}
+
+/**
+ * Helper to get current source from v2 config
+ */
+function getCurrentSourceFromConfig(config: AISourcesConfig): AISource | null {
+  if (!config.currentId) return null
+  return config.sources.find(s => s.id === config.currentId) || null
+}
+
 class GitHubCopilotProvider implements OAuthAISourceProvider {
   readonly type: AISourceType = 'github-copilot'
   readonly displayName = 'GitHub Copilot'
 
   /**
+   * Helper to get OAuth config from either v1 or v2 format
+   */
+  private getOAuthConfig(config: ProviderConfig): OAuthSourceConfig | null {
+    if (isLegacyConfig(config)) {
+      return config['github-copilot'] || null
+    }
+    const source = getCurrentSourceFromConfig(config as AISourcesConfig)
+    if (!source || source.authType !== 'oauth') {
+      return null
+    }
+    return {
+      loggedIn: !!source.accessToken,
+      user: source.user,
+      model: source.model,
+      availableModels: source.availableModels.map((m: { id: string }) => m.id),
+      accessToken: source.accessToken,
+      refreshToken: source.refreshToken,
+      tokenExpires: source.tokenExpires
+    }
+  }
+
+  /**
    * Check if GitHub Copilot is configured
    */
-  isConfigured(config: AISourcesConfig): boolean {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  isConfigured(config: ProviderConfig): boolean {
+    const copilotConfig = this.getOAuthConfig(config)
     return !!(copilotConfig?.loggedIn && copilotConfig?.accessToken)
   }
 
   /**
    * Get backend configuration for API calls
    */
-  getBackendConfig(config: AISourcesConfig): BackendRequestConfig | null {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  getBackendConfig(config: ProviderConfig): BackendRequestConfig | null {
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.loggedIn || !copilotConfig?.accessToken) {
       return null
     }
@@ -207,16 +246,16 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
   /**
    * Get current model
    */
-  getCurrentModel(config: AISourcesConfig): string | null {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  getCurrentModel(config: ProviderConfig): string | null {
+    const copilotConfig = this.getOAuthConfig(config)
     return copilotConfig?.model || null
   }
 
   /**
    * Get available models from Copilot API
    */
-  async getAvailableModels(config: AISourcesConfig): Promise<string[]> {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  async getAvailableModels(config: ProviderConfig): Promise<string[]> {
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.accessToken) {
       return this.getDefaultModels()
     }
@@ -242,7 +281,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
         return copilotConfig.availableModels || this.getDefaultModels()
       }
 
-      const data = await response.json()
+      const data = await response.json() as { models?: any[]; data?: any[] }
       // Handle both { models: [...] } and { data: [...] } response formats
       const models = data.models || data.data || []
       if (!Array.isArray(models) || models.length === 0) {
@@ -269,8 +308,8 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
   /**
    * Get user info from config
    */
-  getUserInfo(config: AISourcesConfig): AISourceUserInfo | null {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  getUserInfo(config: ProviderConfig): AISourceUserInfo | null {
+    const copilotConfig = this.getOAuthConfig(config)
     return copilotConfig?.user || null
   }
 
@@ -300,7 +339,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
         throw new Error(`Failed to request device code: ${response.status}`)
       }
 
-      const data: DeviceCodeResponse = await response.json()
+      const data = await response.json() as DeviceCodeResponse
 
       // Store pending auth state
       pendingAuth = {
@@ -375,7 +414,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
           })
         })
 
-        const data: GitHubTokenResponse = await response.json()
+        const data = await response.json() as GitHubTokenResponse
 
         if (data.access_token) {
           // Success! Clear pending state
@@ -512,8 +551,8 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
    * Ensure Copilot token is cached (call this before getBackendConfig)
    * This is async and should be called from ensureValidToken
    */
-  async ensureCopilotTokenCached(config: AISourcesConfig): Promise<boolean> {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  async ensureCopilotTokenCached(config: ProviderConfig): Promise<boolean> {
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.accessToken) {
       return false
     }
@@ -531,8 +570,8 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
   /**
    * Check token validity with config (called by manager)
    */
-  checkTokenWithConfig(config: AISourcesConfig): { valid: boolean; expiresIn?: number; needsRefresh: boolean } {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  checkTokenWithConfig(config: ProviderConfig): { valid: boolean; expiresIn?: number; needsRefresh: boolean } {
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.accessToken) {
       return { valid: false, needsRefresh: false }
     }
@@ -548,12 +587,12 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
    * Refresh token with config (if needed)
    * This is called by the manager when checkTokenWithConfig returns needsRefresh: true
    */
-  async refreshTokenWithConfig(config: AISourcesConfig): Promise<ProviderResult<{
+  async refreshTokenWithConfig(config: ProviderConfig): Promise<ProviderResult<{
     accessToken: string
     refreshToken: string
     expiresAt: number
   }>> {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.accessToken) {
       return { success: false, error: 'No token to refresh' }
     }
@@ -579,14 +618,15 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
   /**
    * Refresh config (fetch updated models)
    */
-  async refreshConfig(config: AISourcesConfig): Promise<ProviderResult<Partial<AISourcesConfig>>> {
-    const copilotConfig = config['github-copilot'] as OAuthSourceConfig | undefined
+  async refreshConfig(config: ProviderConfig): Promise<ProviderResult<Partial<ProviderConfig>>> {
+    const copilotConfig = this.getOAuthConfig(config)
     if (!copilotConfig?.accessToken) {
       return { success: false, error: 'Not logged in' }
     }
 
     try {
       const models = await this.getAvailableModels(config)
+      // Return in legacy format for backward compatibility
       return {
         success: true,
         data: {
@@ -595,7 +635,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
             availableModels: models,
             modelNames: this.getModelDisplayNames(models)
           }
-        }
+        } as any
       }
     } catch (error) {
       return { success: false, error: String(error) }
@@ -621,7 +661,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
         return null
       }
 
-      return await response.json()
+      return await response.json() as GitHubUser | null
     } catch (error) {
       console.error('[GitHubCopilot] Error fetching user:', error)
       return null
@@ -653,7 +693,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
         return null
       }
 
-      const data: CopilotTokenResponse = await response.json()
+      const data = await response.json() as CopilotTokenResponse
 
       if (data.error_details) {
         console.warn('[GitHubCopilot] Copilot token error:', data.error_details.message)
@@ -697,7 +737,7 @@ class GitHubCopilotProvider implements OAuthAISourceProvider {
         return this.getDefaultModels()
       }
 
-      const data = await response.json()
+      const data = await response.json() as { models?: any[]; data?: any[] }
       console.log('[GitHubCopilot] Models API response keys:', Object.keys(data))
 
       // Handle both { models: [...] } and { data: [...] } response formats

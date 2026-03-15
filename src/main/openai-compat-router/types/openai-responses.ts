@@ -264,6 +264,9 @@ export interface OpenAIResponsesRequest {
 
   // Optional - User
   user?: string
+
+  // Index signature for Record<string, unknown> compatibility
+  [key: string]: unknown
 }
 
 // ============================================================================

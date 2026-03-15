@@ -30,6 +30,9 @@ type ResponsesEventType =
   | 'response.reasoning_summary_text.done'
   | 'response.reasoning_summary_part.added'
   | 'response.reasoning_summary_part.done'
+  | 'response.error'
+  | 'response.done'
+  | 'done'
   | 'error'
 
 export class OpenAIResponsesStreamHandler extends BaseStreamHandler {

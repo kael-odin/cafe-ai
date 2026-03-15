@@ -21,14 +21,22 @@ import { ipcMain } from 'electron'
 import * as storeController from '../controllers/store.controller'
 import { onSyncStatusChanged } from '../store'
 import { sendToRenderer } from '../services/window.service'
-import type { StoreInstallProgress } from '../../shared/store/store-types'
+import type { StoreInstallProgress, StoreQueryParams } from '../../shared/store/store-types'
 
 export function registerStoreHandlers(): void {
   // ── store:query (new primary entry point) ─────────────────────────────
   ipcMain.handle(
     'store:query',
     async (_event, params: { search?: string; type?: string; category?: string; page?: number; pageSize?: number; locale?: string }) => {
-      return storeController.queryStoreApps(params)
+      const queryParams: StoreQueryParams = {
+        search: params.search,
+        type: params.type as StoreQueryParams['type'],
+        category: params.category,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        locale: params.locale,
+      }
+      return storeController.queryStoreApps(queryParams)
     }
   )
 

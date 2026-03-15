@@ -30,7 +30,7 @@ export function registerRemoteHandlers(): void {
     console.log('[Settings] remote:enable - Enabling remote access', port ? `on port ${port}` : '')
     try {
       const status = await enableRemoteAccess(port)
-      console.log('[Settings] remote:enable - Enabled, port:', status.port)
+      console.log('[Settings] remote:enable - Enabled, port:', status.server.port)
       return { success: true, data: status }
     } catch (error: unknown) {
       const err = error as Error

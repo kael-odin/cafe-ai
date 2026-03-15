@@ -21,9 +21,37 @@ import type {
 // ============================================================================
 
 /**
+ * Convert Anthropic JSON schema property to OpenAI format
+ */
+function convertSchemaProperty(
+  prop: import('../types').AnthropicJSONSchemaProperty
+): import('../types').OpenAIChatJSONSchemaProperty {
+  const validTypes = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'] as const
+  const type = validTypes.includes(prop.type as typeof validTypes[number])
+    ? prop.type as typeof validTypes[number]
+    : 'string'
+
+  return {
+    ...prop,
+    type,
+    items: prop.items ? convertSchemaProperty(prop.items) : undefined,
+    properties: prop.properties
+      ? Object.fromEntries(
+          Object.entries(prop.properties).map(([k, v]) => [k, convertSchemaProperty(v)])
+        )
+      : undefined,
+  } as import('../types').OpenAIChatJSONSchemaProperty
+}
+
+/**
  * Convert Anthropic tool to OpenAI Chat tool
  */
 export function anthropicToolToOpenAIChatTool(tool: AnthropicTool): OpenAIChatTool {
+  const properties = tool.input_schema?.properties || {}
+  const convertedProperties = Object.fromEntries(
+    Object.entries(properties).map(([k, v]) => [k, convertSchemaProperty(v)])
+  )
+  
   return {
     type: 'function',
     function: {
@@ -31,7 +59,7 @@ export function anthropicToolToOpenAIChatTool(tool: AnthropicTool): OpenAIChatTo
       description: tool.description || '',
       parameters: {
         type: 'object',
-        properties: tool.input_schema?.properties || {},
+        properties: convertedProperties,
         required: tool.input_schema?.required
       },
       strict: tool.strict
@@ -44,13 +72,18 @@ export function anthropicToolToOpenAIChatTool(tool: AnthropicTool): OpenAIChatTo
  * Uses the flat format (top-level name, description, parameters)
  */
 export function anthropicToolToResponsesTool(tool: AnthropicTool): OpenAIResponsesFunctionTool {
+  const properties = tool.input_schema?.properties || {}
+  const convertedProperties = Object.fromEntries(
+    Object.entries(properties).map(([k, v]) => [k, convertSchemaProperty(v)])
+  )
+  
   return {
     type: 'function',
     name: tool.name,
     description: tool.description || '',
     parameters: {
       type: 'object',
-      properties: tool.input_schema?.properties || {},
+      properties: convertedProperties,
       required: tool.input_schema?.required
     },
     strict: tool.strict

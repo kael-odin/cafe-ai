@@ -239,7 +239,14 @@ export async function sendAppChatMessage(
     }
 
     // ── 8. Process stream ──────────────────────────────
-    const messageContent = buildMessageContent(message, images)
+    // Convert images to ImageAttachment format
+    const imageAttachments = images?.map((img, index) => ({
+      id: `app-chat-img-${index}`,
+      type: 'image' as const,
+      mediaType: img.media_type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+      data: img.data,
+    }))
+    const messageContent = buildMessageContent(message, imageAttachments)
 
     await processStream({
       v2Session,

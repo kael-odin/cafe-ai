@@ -206,14 +206,14 @@ function loadSpaceIndex(): Map<string, SpaceIndexEntry> {
 }
 
 /**
- * Register halo-temp into the registry (in-memory only, never persisted to index).
+ * Register cafe-temp into the registry (in-memory only, never persisted to index).
  */
 function registerHaloTemp(map: Map<string, SpaceIndexEntry>): void {
   const tempPath = getTempSpacePath()
   const now = new Date().toISOString()
-  map.set('halo-temp', {
+  map.set('cafe-temp', {
     path: tempPath,
-    name: 'Halo',
+    name: 'Cafe',
     icon: 'sparkles',
     createdAt: now,
     updatedAt: now,
@@ -301,10 +301,10 @@ function entryToSpaceWithPreferences(id: string, entry: SpaceIndexEntry): Space 
 }
 
 /**
- * Get Halo temp space. Delegates to unified getSpace().
+ * Get Cafe temp space. Delegates to unified getSpace().
  */
 export function getHaloSpace(): Space {
-  return getSpace('halo-temp')!
+  return getSpace('cafe-temp')!
 }
 
 /**
@@ -654,7 +654,7 @@ export function saveOnboardingConversation(
 
     const conversation = {
       id: conversationId,
-      title: 'Welcome to Halo',
+      title: 'Welcome to Cafe',
       createdAt: now,
       updatedAt: now,
       messages: [

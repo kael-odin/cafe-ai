@@ -1,13 +1,13 @@
 {
-  "name": "halo",
+  "name": "cafe",
   "version": "2.0.8",
   "description": "AI that gets things done",
   "type": "module",
   "main": "./out/main/index.mjs",
-  "author": "Halo Team",
+  "author": "Cafe Team",
   "license": "MIT",
   "scripts": {
-    "dev": "cross-env HALO_DATA_DIR=~/.halo-dev electron-vite dev",
+    "dev": "cross-env CAFE_DATA_DIR=~/.cafe-dev electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "patch-package && electron-builder install-app-deps && electron-rebuild -f -w better-sqlite3",
@@ -143,8 +143,8 @@
     "@parcel/watcher-win32-x64": "^2.5.6"
   },
   "build": {
-    "appId": "com.halo.app",
-    "productName": "Halo",
+    "appId": "com.cafe.app",
+    "productName": "Cafe",
     "npmRebuild": false,
     "beforePack": "./scripts/beforePack.cjs",
     "afterPack": "./scripts/afterPack.cjs",
@@ -155,7 +155,7 @@
       "out/**/*",
       "resources/**/*",
       "product.json",
-      "halo-local/dist/**/*",
+      "cafe-local/dist/**/*",
       "!node_modules/better-sqlite3/prebuilds"
     ],
     "asarUnpack": [
@@ -163,12 +163,7 @@
       "node_modules/@parcel/watcher-*/**/*",
       "node_modules/better-sqlite3/build/Release/*.node"
     ],
-    "publish": {
-      "provider": "github",
-      "owner": "openkursar",
-      "repo": "hello-halo",
-      "releaseType": "release"
-    },
+    "publish": null,
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "resources/icon.icns",

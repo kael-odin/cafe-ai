@@ -30,13 +30,15 @@
 
 import type {
   AISourceProvider,
-  ProviderResult
+  ProviderResult,
+  ProviderConfig
 } from '../../../../shared/interfaces'
 import type {
   AISourceType,
   BackendRequestConfig,
-  LegacyAISourcesConfig,
-  CustomSourceConfig
+  CustomSourceConfig,
+  AISourcesConfig,
+  AISource
 } from '../../../../shared/types'
 import { AVAILABLE_MODELS } from '../../../../shared/types'
 
@@ -44,6 +46,21 @@ import { AVAILABLE_MODELS } from '../../../../shared/types'
  * Anthropic API base URL
  */
 const ANTHROPIC_API_URL = 'https://api.anthropic.com'
+
+/**
+ * Helper to check if config is legacy v1 format
+ */
+function isLegacyConfig(config: ProviderConfig): config is { current: string; custom?: CustomSourceConfig } {
+  return 'current' in config && typeof (config as any).current === 'string'
+}
+
+/**
+ * Helper to get current source from v2 config
+ */
+function getCurrentSourceFromConfig(config: AISourcesConfig): AISource | null {
+  if (!config.currentId) return null
+  return config.sources.find(s => s.id === config.currentId) || null
+}
 
 /**
  * Custom AI Source Provider Implementation
@@ -57,22 +74,33 @@ export class CustomAISourceProvider implements AISourceProvider {
   readonly type: AISourceType = 'custom'
   readonly displayName = 'Custom API'
 
-  /**
-   * Check if custom API is configured
-   *
-   * @param config - Legacy format config (v1), not called for API Key providers
-   */
-  isConfigured(config: LegacyAISourcesConfig): boolean {
-    return !!(config.custom?.apiKey)
+  private getCustomConfig(config: ProviderConfig): CustomSourceConfig | null {
+    if (isLegacyConfig(config)) {
+      return config.custom || null
+    }
+    const source = getCurrentSourceFromConfig(config as AISourcesConfig)
+    if (!source || source.authType !== 'api-key') {
+      return null
+    }
+    return {
+      provider: source.provider as 'anthropic' | 'openai',
+      apiKey: source.apiKey || '',
+      apiUrl: source.apiUrl,
+      model: source.model,
+      id: source.id,
+      name: source.name,
+      type: 'custom',
+      availableModels: source.availableModels.map((m: { id: string }) => m.id)
+    }
   }
 
-  /**
-   * Get backend request configuration
-   *
-   * @param config - Legacy format config (v1), not called for API Key providers
-   */
-  getBackendConfig(config: LegacyAISourcesConfig): BackendRequestConfig | null {
-    const customConfig = config.custom
+  isConfigured(config: ProviderConfig): boolean {
+    const customConfig = this.getCustomConfig(config)
+    return !!(customConfig?.apiKey)
+  }
+
+  getBackendConfig(config: ProviderConfig): BackendRequestConfig | null {
+    const customConfig = this.getCustomConfig(config)
     if (!customConfig?.apiKey) {
       return null
     }
@@ -80,77 +108,46 @@ export class CustomAISourceProvider implements AISourceProvider {
     const isAnthropic = customConfig.provider === 'anthropic'
     const baseUrl = customConfig.apiUrl || ANTHROPIC_API_URL
 
-    // Remove trailing slash from base URL if present
     const cleanBaseUrl = baseUrl.replace(/\/$/, '')
 
-    // Return URL as-is - user provides the complete endpoint URL
-    // For Anthropic: base URL only (SDK will add /v1/messages)
-    // For OpenAI compatible: user should provide full endpoint like https://api.example.com/v1/chat/completions
     return {
       url: cleanBaseUrl,
       key: customConfig.apiKey,
       model: customConfig.model,
-      // For OpenAI compatible, infer API type from URL
       apiType: isAnthropic ? undefined : this.inferApiTypeFromUrl(cleanBaseUrl)
     }
   }
 
-  /**
-   * Infer API type from URL
-   */
   private inferApiTypeFromUrl(url: string): 'chat_completions' | 'responses' {
     if (url.includes('/responses')) return 'responses'
-    // Default to chat_completions (most common for third-party providers)
     return 'chat_completions'
   }
 
-  /**
-   * Get current model ID
-   *
-   * @param config - Legacy format config (v1), not called for API Key providers
-   */
-  getCurrentModel(config: LegacyAISourcesConfig): string | null {
-    return config.custom?.model || null
+  getCurrentModel(config: ProviderConfig): string | null {
+    const customConfig = this.getCustomConfig(config)
+    return customConfig?.model || null
   }
 
-  /**
-   * Get available models - returns static list for custom API
-   *
-   * @param config - Legacy format config (v1), not called for API Key providers
-   */
-  async getAvailableModels(config: LegacyAISourcesConfig): Promise<string[]> {
-    const customConfig = config.custom
+  async getAvailableModels(config: ProviderConfig): Promise<string[]> {
+    const customConfig = this.getCustomConfig(config)
     if (!customConfig) {
       return []
     }
 
-    // For Anthropic provider, return known Claude models
     if (customConfig.provider === 'anthropic') {
       return AVAILABLE_MODELS.map(m => m.id)
     }
 
-    // For OpenAI compatible, we don't know the models
-    // User needs to specify manually
     return []
   }
 
-  /**
-   * No refresh needed for custom API
-   */
-  async refreshConfig(_config: LegacyAISourcesConfig): Promise<ProviderResult<Partial<LegacyAISourcesConfig>>> {
-    // Custom API doesn't need refresh - configuration is static
+  async refreshConfig(_config: ProviderConfig): Promise<ProviderResult<Partial<ProviderConfig>>> {
     return { success: true, data: {} }
   }
 }
 
-/**
- * Singleton instance
- */
 let instance: CustomAISourceProvider | null = null
 
-/**
- * Get the CustomAISourceProvider instance
- */
 export function getCustomProvider(): CustomAISourceProvider {
   if (!instance) {
     instance = new CustomAISourceProvider()

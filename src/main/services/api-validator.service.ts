@@ -77,7 +77,7 @@ export async function fetchModelsFromApi(params: FetchModelsParams): Promise<Fet
     throw new Error(`Failed to fetch models (${response.status})`)
   }
 
-  const data = await response.json()
+  const data = await response.json() as { data?: { id: string }[] }
 
   if (!data.data || !Array.isArray(data.data)) {
     throw new Error('Invalid API response format')

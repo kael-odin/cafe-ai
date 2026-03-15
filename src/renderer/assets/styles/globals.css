@@ -49,11 +49,16 @@
   --ring: 217 91% 60%;
   --radius: 0.75rem;
 
-  /* Halo brand colors */
-  --halo-glow: 217 91% 60%;
-  --halo-success: 142 71% 45%;
-  --halo-warning: 38 92% 50%;
-  --halo-error: 0 62% 50%;
+  /* Cafe brand colors */
+  --cafe-glow: 217 91% 60%;
+  --cafe-success: 142 71% 45%;
+  --cafe-warning: 38 92% 50%;
+  --cafe-error: 0 62% 50%;
+  /* Legacy aliases */
+  --halo-glow: var(--cafe-glow);
+  --halo-success: var(--cafe-success);
+  --halo-warning: var(--cafe-warning);
+  --halo-error: var(--cafe-error);
 }
 
 /* Light theme */
@@ -78,11 +83,16 @@
   --input: 0 0% 94%;
   --ring: 217 91% 55%;
 
-  /* Halo brand colors (adjusted for light) */
-  --halo-glow: 217 91% 55%;
-  --halo-success: 142 71% 40%;
-  --halo-warning: 38 92% 45%;
-  --halo-error: 0 72% 51%;
+  /* Cafe brand colors (adjusted for light) */
+  --cafe-glow: 217 91% 55%;
+  --cafe-success: 142 71% 40%;
+  --cafe-warning: 38 92% 45%;
+  --cafe-error: 0 72% 51%;
+  /* Legacy aliases */
+  --halo-glow: var(--cafe-glow);
+  --halo-success: var(--cafe-success);
+  --halo-warning: var(--cafe-warning);
+  --halo-error: var(--cafe-error);
 }
 
 * {
@@ -280,13 +290,55 @@ body {
    Shared Keyframes & Animations
    ============================================ */
 
-/* Halo glow animation */
-@keyframes halo-pulse {
+/* Cafe glow animation */
+@keyframes cafe-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px hsl(var(--halo-glow) / 0.3);
+    box-shadow: 0 0 20px hsl(var(--cafe-glow) / 0.3);
   }
   50% {
-    box-shadow: 0 0 40px hsl(var(--halo-glow) / 0.5);
+    box-shadow: 0 0 40px hsl(var(--cafe-glow) / 0.5);
+  }
+}
+
+@keyframes cafe-breathe {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes cafe-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cafe-glow {
+  animation: cafe-pulse 3s ease-in-out infinite;
+}
+
+.cafe-breathe {
+  animation: cafe-breathe 3s ease-in-out infinite;
+}
+
+.cafe-spin {
+  animation: cafe-spin 2s linear infinite;
+}
+
+/* Legacy aliases for backward compatibility */
+@keyframes halo-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--cafe-glow) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--cafe-glow) / 0.5);
   }
 }
 
@@ -311,15 +363,15 @@ body {
 }
 
 .halo-glow {
-  animation: halo-pulse 3s ease-in-out infinite;
+  animation: cafe-pulse 3s ease-in-out infinite;
 }
 
 .halo-breathe {
-  animation: halo-breathe 3s ease-in-out infinite;
+  animation: cafe-breathe 3s ease-in-out infinite;
 }
 
 .halo-spin {
-  animation: halo-spin 2s linear infinite;
+  animation: cafe-spin 2s linear infinite;
 }
 
 /* Fade in animation */

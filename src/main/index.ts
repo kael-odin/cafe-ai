@@ -1,5 +1,6 @@
 /**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
- * Halo - Electron Main Process
+/**
+ * Cafe - Electron Main Process
  * The main entry point for the Electron application
  */
 
@@ -8,7 +9,7 @@
 // ========================================
 // Initialize electron-log before any other code to capture all logs
 // This replaces console.log/warn/error globally with electron-log
-// Logs are written to: ~/Library/Logs/Halo/ (macOS), %USERPROFILE%\AppData\Roaming\Halo\logs (Windows)
+// Logs are written to: ~/Library/Logs/Cafe/ (macOS), %USERPROFILE%\AppData\Roaming\Cafe\logs (Windows)
 import log from 'electron-log/main.js'
 
 // Initialize for renderer process support (IPC transport)
@@ -64,7 +65,7 @@ app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
 // Must be called before app.whenReady()
 // Skip in development mode and E2E tests to allow multiple instances
 const gotTheLock =
-  !app.isPackaged || process.env.HALO_E2E_TEST ? true : app.requestSingleInstanceLock()
+  !app.isPackaged || process.env.CAFE_E2E_TEST ? true : app.requestSingleInstanceLock()
 
 if (!gotTheLock) {
   // Another instance is already running, exit immediately

@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "outDir": "out/types-node",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -10,6 +12,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "downlevelIteration": true,
     "types": ["electron-vite/node"],
     "baseUrl": ".",
     "paths": {

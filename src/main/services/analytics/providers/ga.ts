@@ -230,7 +230,7 @@ export class GAProvider extends BaseProvider {
         body: JSON.stringify(payload)
       })
 
-      const result = await response.json()
+      const result = await response.json() as { validationMessages?: { description: string }[] }
 
       // Debug endpoint returns validation results
       const validationMessages = result.validationMessages || []

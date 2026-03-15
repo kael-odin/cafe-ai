@@ -1,11 +1,11 @@
 /**
- * Halo Adapter
+ * Cafe Adapter
  *
- * Implements the original Halo registry protocol:
+ * Implements the original Cafe registry protocol:
  *   GET {url}/index.json  → RegistryIndex (already in canonical format)
  *   GET {url}/{path}/spec.yaml → AppSpec YAML
  *
- * This is the default adapter used when sourceType is absent or 'halo'.
+ * This is the default adapter used when sourceType is absent or 'cafe'.
  */
 
 import { parse as parseYaml } from 'yaml'
@@ -65,7 +65,7 @@ export class HaloAdapter implements RegistryAdapter {
     const url = `${source.url.replace(/\/+$/, '')}/index.json`
     const t0 = performance.now()
     const response = await fetchWithTimeout(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Halo-Store/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Cafe-Store/1.0' },
     })
 
     if (!response.ok) {
@@ -83,7 +83,7 @@ export class HaloAdapter implements RegistryAdapter {
     const index = parsed.data as RegistryIndex
 
     const dt = performance.now() - t0
-    console.log(`[HaloAdapter] Completed: ${index.apps.length} apps (${dt.toFixed(0)}ms)`)
+    console.log(`[CafeAdapter] Completed: ${index.apps.length} apps (${dt.toFixed(0)}ms)`)
 
     const duplicates = findDuplicateSlugs(index.apps)
     if (duplicates.length > 0) {
@@ -98,7 +98,7 @@ export class HaloAdapter implements RegistryAdapter {
     const specUrl = entry.download_url || `${source.url.replace(/\/+$/, '')}/${specPath}`
 
     const response = await fetchWithTimeout(specUrl, {
-      headers: { 'User-Agent': 'Halo-Store/1.0' },
+      headers: { 'User-Agent': 'Cafe-Store/1.0' },
     })
 
     if (!response.ok) {
@@ -142,7 +142,7 @@ export class HaloAdapter implements RegistryAdapter {
 
     for (const skill of skills) {
       if (!skill.files || skill.files.length === 0) {
-        console.warn(`[HaloAdapter] Bundled skill "${skill.id}" has no files declared — skipping`)
+        console.warn(`[CafeAdapter] Bundled skill "${skill.id}" has no files declared — skipping`)
         continue
       }
 
@@ -154,11 +154,11 @@ export class HaloAdapter implements RegistryAdapter {
         await Promise.all(skill.files.map(async (filePath) => {
           const url = `${skillBaseUrl}/${filePath}`
           const res = await fetchWithTimeout(url, {
-            headers: { 'User-Agent': 'Halo-Store/1.0' },
+            headers: { 'User-Agent': 'Cafe-Store/1.0' },
           })
           if (!res.ok) {
             console.warn(
-              `[HaloAdapter] Failed to fetch "${filePath}" for bundled skill "${skill.id}": HTTP ${res.status}`
+              `[CafeAdapter] Failed to fetch "${filePath}" for bundled skill "${skill.id}": HTTP ${res.status}`
             )
             return
           }
@@ -166,7 +166,7 @@ export class HaloAdapter implements RegistryAdapter {
         }))
 
         if (Object.keys(skill_files).length === 0) {
-          console.warn(`[HaloAdapter] No files downloaded for bundled skill "${skill.id}"`)
+          console.warn(`[CafeAdapter] No files downloaded for bundled skill "${skill.id}"`)
           continue
         }
 
@@ -180,12 +180,12 @@ export class HaloAdapter implements RegistryAdapter {
         }
         result.set(skill.id, spec)
         console.log(
-          `[HaloAdapter] Fetched bundled skill "${skill.id}" ` +
+          `[CafeAdapter] Fetched bundled skill "${skill.id}" ` +
           `(${Object.keys(skill_files).length} files: ${Object.keys(skill_files).join(', ')})`
         )
       } catch (err) {
         console.warn(
-          `[HaloAdapter] Failed to fetch bundled skill "${skill.id}": ${(err as Error).message}`
+          `[CafeAdapter] Failed to fetch bundled skill "${skill.id}": ${(err as Error).message}`
         )
       }
     }

@@ -13,6 +13,38 @@ export function extractBaseUrl(endpointUrl: string): string {
 }
 
 /**
+ * Normalize OpenAI Chat Completions URL
+ */
+export function normalizeOpenAIChatCompletionsUrl(apiUrl: string): string {
+  return normalizeApiUrl(apiUrl, 'openai')
+}
+
+/**
+ * Normalize OpenAI Responses API URL
+ */
+export function normalizeOpenAIResponsesUrl(apiUrl: string): string {
+  const trimSlash = (s: string) => s.replace(/\/+$/, '')
+  let normalized = trimSlash(apiUrl)
+  
+  if (normalized.endsWith('/responses')) {
+    return normalized
+  }
+  
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+$/.test(normalized)) {
+    normalized = `${normalized}/v1`
+  }
+  
+  return `${normalized}/responses`
+}
+
+/**
+ * Normalize Anthropic Messages API URL
+ */
+export function normalizeAnthropicMessagesUrl(apiUrl: string): string {
+  return normalizeApiUrl(apiUrl, 'anthropic')
+}
+
+/**
  * Normalize API URL based on provider type
  *
  * Ensures URLs are in the correct format expected by the router:

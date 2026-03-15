@@ -395,11 +395,11 @@ interface McpSseServerConfig {
 // Paths
 // Use os.homedir() instead of app.getPath('home') to respect HOME environment variable
 // This is essential for E2E tests to run in isolated test directories
-export function getHaloDir(): string {
+export function getCafeDir(): string {
   // 1. Support custom data directory via environment variable
   //    Useful for development to avoid conflicts with production data
-  if (process.env.HALO_DATA_DIR) {
-    let dir = process.env.HALO_DATA_DIR
+  if (process.env.CAFE_DATA_DIR) {
+    let dir = process.env.CAFE_DATA_DIR
     // Expand ~ to home directory (shell doesn't expand in env vars)
     if (dir.startsWith('~')) {
       dir = join(homedir(), dir.slice(1))
@@ -410,23 +410,27 @@ export function getHaloDir(): string {
   // 2. Auto-detect development mode: use separate directory
   //    app.isPackaged is false when running via electron-vite dev
   if (!app.isPackaged) {
-    return join(homedir(), '.halo-dev')
+    return join(homedir(), '.cafe-dev')
   }
 
   // 3. Production: use default directory
-  return join(homedir(), '.halo')
+  return join(homedir(), '.cafe')
+}
+
+export function getHaloDir(): string {
+  return getCafeDir()
 }
 
 export function getConfigPath(): string {
-  return join(getHaloDir(), 'config.json')
+  return join(getCafeDir(), 'config.json')
 }
 
 export function getTempSpacePath(): string {
-  return join(getHaloDir(), 'temp')
+  return join(getCafeDir(), 'temp')
 }
 
 export function getSpacesDir(): string {
-  return join(getHaloDir(), 'spaces')
+  return join(getCafeDir(), 'spaces')
 }
 
 // Default model (Opus 4.5)

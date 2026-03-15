@@ -10,25 +10,25 @@
 // Request converters
 export {
   convertAnthropicToOpenAIChat,
-  convertRequestToChat
+  convertAnthropicToOpenAIChat as convertRequestToChat
 } from './request/anthropic-to-openai-chat'
 
 export {
   convertAnthropicToOpenAIResponses,
-  convertRequestToResponses
+  convertAnthropicToOpenAIResponses as convertRequestToResponses
 } from './request/anthropic-to-openai-responses'
 
 // Response converters
 export {
   convertOpenAIChatToAnthropic,
-  convertChatResponseToAnthropic,
+  convertOpenAIChatToAnthropic as convertChatResponseToAnthropic,
   createAnthropicErrorResponse,
   mapFinishReasonToStopReason
 } from './response/openai-chat-to-anthropic'
 
 export {
   convertOpenAIResponsesToAnthropic,
-  convertResponsesResponseToAnthropic,
+  convertOpenAIResponsesToAnthropic as convertResponsesResponseToAnthropic,
   mapStatusToStopReason
 } from './response/openai-responses-to-anthropic'
 
