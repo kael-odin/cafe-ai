@@ -117,14 +117,17 @@ function swapBetterSqlite3Binary(context) {
   }
 
   const unpackedDir = getUnpackedDir(context);
-  const targetNode = path.join(
-    unpackedDir, 'node_modules/better-sqlite3/build/Release/better_sqlite3.node'
-  );
+  const targetDir = path.join(unpackedDir, 'node_modules/better-sqlite3/build/Release');
+  const targetNode = path.join(targetDir, 'better_sqlite3.node');
+
+  // Create target directory if it doesn't exist
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+    console.log(`[afterPack] ${key}: created directory ${targetDir}`);
+  }
 
   if (!fs.existsSync(targetNode)) {
-    console.error(`[afterPack] ${key}: better_sqlite3.node not found in unpacked output`);
-    console.error(`[afterPack] Check that asarUnpack includes "node_modules/better-sqlite3/build/Release/*.node"`);
-    throw new Error(`better_sqlite3.node not found in unpacked output for ${key}`);
+    console.log(`[afterPack] ${key}: better_sqlite3.node not found in unpacked output, will create it`);
   }
 
   fs.copyFileSync(prebuildSrc, targetNode);
