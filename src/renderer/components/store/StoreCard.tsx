@@ -26,7 +26,12 @@ export function StoreCard({ entry, onClick }: StoreCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-4 rounded-xl border border-border hover:border-primary/40 hover:bg-secondary/50 transition-colors cursor-pointer"
+      className="w-full text-left p-4 rounded-xl border border-border 
+        hover:border-primary/40 hover:bg-secondary/50 
+        transition-all duration-300 cursor-pointer
+        hover:shadow-lg hover:shadow-primary/5
+        hover:-translate-y-0.5
+        active:translate-y-0"
     >
       {/* First line: icon + name + type badge + version */}
       <div className="flex items-center justify-between gap-2">

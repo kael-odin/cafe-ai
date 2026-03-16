@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Agent Service - Integrates with Claude Agent SDK
  * Handles AI agent interactions with tool calling support
  */
@@ -155,7 +155,7 @@ let headlessElectronPath: string | null = null
  * - Copying just the binary breaks the framework loading
  * - Symlinks preserve the framework resolution because the real binary is still in .app
  *
- * This is a novel solution discovered while building Halo - most Electron apps
+ * This is a novel solution discovered while building Cafe - most Electron apps
  * that spawn child processes suffer from this Dock icon flashing issue.
  */
 function getHeadlessElectronPath(): string {
@@ -334,7 +334,7 @@ type V2SDKSession = {
 
 function inferOpenAIWireApi(apiUrl: string): 'responses' | 'chat_completions' {
   // 1. Check environment variable override
-  const envApiType = process.env.HALO_OPENAI_API_TYPE || process.env.HALO_OPENAI_WIRE_API
+  const envApiType = process.env.Cafe_OPENAI_API_TYPE || process.env.Cafe_OPENAI_WIRE_API
   if (envApiType) {
     const v = envApiType.toLowerCase()
     if (v.includes('response')) return 'responses'
@@ -409,15 +409,15 @@ function formatCanvasContext(canvasContext?: CanvasContext): string {
     .map(t => `${t.isActive ? '▶ ' : '  '}${t.title} (${t.type})${t.path ? ` - ${t.path}` : ''}${t.url ? ` - ${t.url}` : ''}`)
     .join('\n')
 
-  return `<halo_canvas>
-Content canvas currently open in Halo:
+  return `<Cafe_canvas>
+Content canvas currently open in Cafe:
 - Total ${canvasContext.tabCount} tabs
 - Active: ${activeTab ? `${activeTab.title} (${activeTab.type})` : 'None'}
 ${activeTab?.url ? `- URL: ${activeTab.url}` : ''}${activeTab?.path ? `- File path: ${activeTab.path}` : ''}
 
 All tabs:
 ${tabsSummary}
-</halo_canvas>
+</Cafe_canvas>
 
 `
 }
@@ -709,7 +709,7 @@ let currentMainWindow: BrowserWindow | null = null
 function getWorkingDir(spaceId: string): string {
   console.log(`[Agent] getWorkingDir called with spaceId: ${spaceId}`)
   
-  if (spaceId === 'halo-temp') {
+  if (spaceId === 'Cafe-temp') {
     const artifactsDir = join(getTempSpacePath(), 'artifacts')
     if (!existsSync(artifactsDir)) {
       mkdirSync(artifactsDir, { recursive: true })
@@ -1903,7 +1903,7 @@ function parseSDKMessage(message: any, displayModel?: string): Thought | null {
 function buildSystemPromptAppend(workDir: string, modelInfo?: string): string {
   const modelLine = modelInfo ? `You are powered by ${modelInfo}.` : ''
   return `
-You are Halo, an AI assistant that helps users accomplish real work.
+You are Cafe, an AI assistant that helps users accomplish real work.
 ${modelLine}
 All created files will be saved in the user's workspace. Current workspace: ${workDir}.
 `
@@ -1918,7 +1918,7 @@ function getEnabledMcpServers(mcpServers: Record<string, any>): Record<string, a
   const enabled: Record<string, any> = {}
   for (const [name, config] of Object.entries(mcpServers)) {
     if (!config.disabled) {
-      // Remove the 'disabled' field before passing to SDK (it's a Halo extension)
+      // Remove the 'disabled' field before passing to SDK (it's a Cafe extension)
       const { disabled, ...sdkConfig } = config as any
       enabled[name] = sdkConfig
     }

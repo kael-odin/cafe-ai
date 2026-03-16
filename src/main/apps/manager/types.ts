@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/manager -- Type Definitions
  *
  * Public types for the App lifecycle management layer.
@@ -137,7 +137,7 @@ export interface AppManagerService {
    *
    * Creates the App record in SQLite, generates a UUID, creates the work directory
    * at `{space.path}/.cafe/apps/{appId}/` (for space-scoped apps) or
-   * `{haloDir}/apps/{appId}/` (for global apps).
+   * `{CafeDir}/apps/{appId}/` (for global apps).
    *
    * @param spaceId - Target space ID, or null for global install
    * @param spec - Validated AppSpec

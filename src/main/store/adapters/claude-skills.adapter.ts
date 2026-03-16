@@ -18,7 +18,7 @@
  * (repos > 100k entries — extremely rare for skill repos).
  */
 
-import { fetchWithTimeout } from './halo.adapter'
+import { fetchWithTimeout } from './cafe.adapter'
 import { sanitizeSlug } from './mcp-registry.adapter'
 import type { AppSpec, SkillSpec } from '../../apps/spec/schema'
 import type { RegistrySource, RegistryIndex, RegistryEntry } from '../../../shared/store/store-types'
@@ -76,7 +76,7 @@ export type SkillDownloadProgress = (filesComplete: number, filesTotal: number, 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const GITHUB_HEADERS = {
-  'User-Agent': 'Halo-Store/1.0',
+  'User-Agent': 'Cafe-Store/1.0',
   'Accept': 'application/vnd.github.v3+json',
 }
 
@@ -159,7 +159,7 @@ async function collectSkillFilesViaTree(
     const relativePath = entry.path.slice(prefix.length)
     const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${entry.path}`
 
-    const res = await fetchWithTimeout(rawUrl, { headers: { 'User-Agent': 'Halo-Store/1.0' } })
+    const res = await fetchWithTimeout(rawUrl, { headers: { 'User-Agent': 'Cafe-Store/1.0' } })
     if (!res.ok) {
       console.warn(
         `[ClaudeSkillsAdapter] Failed to download "${relativePath}" for "${skillSlug}": HTTP ${res.status}`
@@ -210,7 +210,7 @@ async function collectSkillFilesLegacy(
         console.warn(`[ClaudeSkillsAdapter] No download_url for "${relativePath}" in "${skillSlug}", skipping`)
         return
       }
-      const res = await fetchWithTimeout(entry.download_url, { headers: { 'User-Agent': 'Halo-Store/1.0' } })
+      const res = await fetchWithTimeout(entry.download_url, { headers: { 'User-Agent': 'Cafe-Store/1.0' } })
       if (!res.ok) {
         console.warn(`[ClaudeSkillsAdapter] Failed to download "${relativePath}" for "${skillSlug}": HTTP ${res.status}`)
         return
@@ -237,7 +237,7 @@ export class ClaudeSkillsAdapter implements RegistryAdapter {
     const t0 = performance.now()
 
     const response = await fetchWithTimeout(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Halo-Store/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Cafe-Store/1.0' },
     })
 
     if (!response.ok) {

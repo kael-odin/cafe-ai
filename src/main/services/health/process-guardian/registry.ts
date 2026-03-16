@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Process Registry - Persistent process tracking
  *
- * Manages a disk-based registry of Halo-managed processes.
+ * Manages a disk-based registry of Cafe-managed processes.
  * Uses Instance ID mechanism for safe orphan detection.
  *
  * Location: ~/.cafe/.health-registry.json
@@ -11,7 +11,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { randomUUID } from 'crypto'
 import type { HealthRegistry, ProcessEntry, ProcessType } from '../types'
-import { getHaloDir } from '../../config.service'
+import { getCafeDir } from '../../config.service'
 
 // ============================================
 // Registry State
@@ -28,7 +28,7 @@ let registryCache: HealthRegistry | null = null
 
 /** Registry file path */
 function getRegistryPath(): string {
-  return join(getHaloDir(), '.health-registry.json')
+  return join(getCafeDir(), '.health-registry.json')
 }
 
 // ============================================

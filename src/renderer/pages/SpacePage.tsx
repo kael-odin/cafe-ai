@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Space Page - Chat interface with artifact rail and content canvas
  * Supports multi-conversation with isolated session states per space
  *
@@ -198,9 +198,9 @@ export function SpacePage() {
       await useChatStore.getState().loadConversations(currentSpace.id)
 
       // Preload other spaces' conversations in background for PULSE global visibility
-      const { haloSpace, spaces } = useSpaceStore.getState()
+      const { CafeSpace, spaces } = useSpaceStore.getState()
       const allSpaceIds = [
-        ...(haloSpace ? [haloSpace.id] : []),
+        ...(CafeSpace ? [CafeSpace.id] : []),
         ...spaces.map(s => s.id)
       ].filter(id => id !== currentSpace.id)
       useChatStore.getState().preloadAllSpaceConversations(allSpaceIds)

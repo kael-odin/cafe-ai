@@ -1,5 +1,5 @@
-/**
- * Halo API - Unified interface for both IPC and HTTP modes
+﻿/**
+ * Cafe API - Unified interface for both IPC and HTTP modes
  * Automatically selects the appropriate transport
  */
 
@@ -32,7 +32,7 @@ interface ApiResponse<T = unknown> {
 }
 
 /**
- * API object - drop-in replacement for window.halo
+ * API object - drop-in replacement for window.Cafe
  * Works in both Electron and remote web mode
  */
 export const api = {
@@ -61,42 +61,42 @@ export const api = {
   // ===== Generic Auth (provider-agnostic) =====
   authGetProviders: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authGetProviders()
+      return window.Cafe.authGetProviders()
     }
     return httpRequest('GET', '/api/auth/providers')
   },
 
   authStartLogin: async (providerType: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authStartLogin(providerType)
+      return window.Cafe.authStartLogin(providerType)
     }
     return httpRequest('POST', '/api/auth/start-login', { providerType })
   },
 
   authCompleteLogin: async (providerType: string, state: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authCompleteLogin(providerType, state)
+      return window.Cafe.authCompleteLogin(providerType, state)
     }
     return httpRequest('POST', '/api/auth/complete-login', { providerType, state })
   },
 
   authRefreshToken: async (providerType: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authRefreshToken(providerType)
+      return window.Cafe.authRefreshToken(providerType)
     }
     return httpRequest('POST', '/api/auth/refresh-token', { providerType })
   },
 
   authCheckToken: async (providerType: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authCheckToken(providerType)
+      return window.Cafe.authCheckToken(providerType)
     }
     return httpRequest('GET', `/api/auth/check-token?providerType=${providerType}`)
   },
 
   authLogout: async (providerType: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.authLogout(providerType)
+      return window.Cafe.authLogout(providerType)
     }
     return httpRequest('POST', '/api/auth/logout', { providerType })
   },
@@ -107,14 +107,14 @@ export const api = {
   // ===== Config =====
   getConfig: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getConfig()
+      return window.Cafe.getConfig()
     }
     return httpRequest('GET', '/api/config')
   },
 
   setConfig: async (updates: Record<string, unknown>): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.setConfig(updates)
+      return window.Cafe.setConfig(updates)
     }
     return httpRequest('POST', '/api/config', updates)
   },
@@ -126,7 +126,7 @@ export const api = {
     model?: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.validateApi(apiKey, apiUrl, provider, model)
+      return window.Cafe.validateApi(apiKey, apiUrl, provider, model)
     }
     return httpRequest('POST', '/api/config/validate', { apiKey, apiUrl, provider, model })
   },
@@ -136,14 +136,14 @@ export const api = {
     apiUrl: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.fetchModels(apiKey, apiUrl)
+      return window.Cafe.fetchModels(apiKey, apiUrl)
     }
     return httpRequest('POST', '/api/config/fetch-models', { apiKey, apiUrl })
   },
 
   refreshAISourcesConfig: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.refreshAISourcesConfig()
+      return window.Cafe.refreshAISourcesConfig()
     }
     return httpRequest('POST', '/api/config/refresh-ai-sources')
   },
@@ -151,50 +151,50 @@ export const api = {
   // ===== AI Sources CRUD (atomic - backend reads from disk, never overwrites rotating tokens) =====
   aiSourcesSwitchSource: async (sourceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.aiSourcesSwitchSource(sourceId)
+      return window.Cafe.aiSourcesSwitchSource(sourceId)
     }
     return httpRequest('POST', '/api/ai-sources/switch-source', { sourceId })
   },
 
   aiSourcesSetModel: async (modelId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.aiSourcesSetModel(modelId)
+      return window.Cafe.aiSourcesSetModel(modelId)
     }
     return httpRequest('POST', '/api/ai-sources/set-model', { modelId })
   },
 
   aiSourcesAddSource: async (source: unknown): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.aiSourcesAddSource(source)
+      return window.Cafe.aiSourcesAddSource(source)
     }
     return httpRequest('POST', '/api/ai-sources/sources', source as Record<string, unknown>)
   },
 
   aiSourcesUpdateSource: async (sourceId: string, updates: unknown): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.aiSourcesUpdateSource(sourceId, updates)
+      return window.Cafe.aiSourcesUpdateSource(sourceId, updates)
     }
     return httpRequest('PUT', `/api/ai-sources/sources/${sourceId}`, updates as Record<string, unknown>)
   },
 
   aiSourcesDeleteSource: async (sourceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.aiSourcesDeleteSource(sourceId)
+      return window.Cafe.aiSourcesDeleteSource(sourceId)
     }
     return httpRequest('DELETE', `/api/ai-sources/sources/${sourceId}`)
   },
 
   // ===== Space =====
-  getHaloSpace: async (): Promise<ApiResponse> => {
+  getCafeSpace: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getHaloSpace()
+      return window.Cafe.getCafeSpace()
     }
-    return httpRequest('GET', '/api/spaces/halo')
+    return httpRequest('GET', '/api/spaces/Cafe')
   },
 
   listSpaces: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.listSpaces()
+      return window.Cafe.listSpaces()
     }
     return httpRequest('GET', '/api/spaces')
   },
@@ -205,28 +205,28 @@ export const api = {
     customPath?: string
   }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.createSpace(input)
+      return window.Cafe.createSpace(input)
     }
     return httpRequest('POST', '/api/spaces', input)
   },
 
   deleteSpace: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.deleteSpace(spaceId)
+      return window.Cafe.deleteSpace(spaceId)
     }
     return httpRequest('DELETE', `/api/spaces/${spaceId}`)
   },
 
   getSpace: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getSpace(spaceId)
+      return window.Cafe.getSpace(spaceId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}`)
   },
 
   openSpaceFolder: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.openSpaceFolder(spaceId)
+      return window.Cafe.openSpaceFolder(spaceId)
     }
     // In remote mode, just return the path (can't open folder remotely)
     return httpRequest('POST', `/api/spaces/${spaceId}/open`)
@@ -234,7 +234,7 @@ export const api = {
 
   getDefaultSpacePath: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getDefaultSpacePath()
+      return window.Cafe.getDefaultSpacePath()
     }
     // In remote mode, get default path from server
     return httpRequest('GET', '/api/spaces/default-path')
@@ -242,7 +242,7 @@ export const api = {
 
   selectFolder: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.selectFolder()
+      return window.Cafe.selectFolder()
     }
     // Cannot select folder in remote mode
     return { success: false, error: 'Cannot select folder in remote mode' }
@@ -253,7 +253,7 @@ export const api = {
     updates: { name?: string; icon?: string }
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.updateSpace(spaceId, updates)
+      return window.Cafe.updateSpace(spaceId, updates)
     }
     return httpRequest('PUT', `/api/spaces/${spaceId}`, updates)
   },
@@ -269,7 +269,7 @@ export const api = {
     }
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.updateSpacePreferences(spaceId, preferences)
+      return window.Cafe.updateSpacePreferences(spaceId, preferences)
     }
     return httpRequest('PUT', `/api/spaces/${spaceId}/preferences`, preferences)
   },
@@ -277,7 +277,7 @@ export const api = {
   // Get space preferences
   getSpacePreferences: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getSpacePreferences(spaceId)
+      return window.Cafe.getSpacePreferences(spaceId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}/preferences`)
   },
@@ -285,14 +285,14 @@ export const api = {
   // ===== Conversation =====
   listConversations: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.listConversations(spaceId)
+      return window.Cafe.listConversations(spaceId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}/conversations`)
   },
 
   createConversation: async (spaceId: string, title?: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.createConversation(spaceId, title)
+      return window.Cafe.createConversation(spaceId, title)
     }
     return httpRequest('POST', `/api/spaces/${spaceId}/conversations`, { title })
   },
@@ -302,7 +302,7 @@ export const api = {
     conversationId: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getConversation(spaceId, conversationId)
+      return window.Cafe.getConversation(spaceId, conversationId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}/conversations/${conversationId}`)
   },
@@ -313,7 +313,7 @@ export const api = {
     updates: Record<string, unknown>
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.updateConversation(spaceId, conversationId, updates)
+      return window.Cafe.updateConversation(spaceId, conversationId, updates)
     }
     return httpRequest(
       'PUT',
@@ -327,7 +327,7 @@ export const api = {
     conversationId: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.deleteConversation(spaceId, conversationId)
+      return window.Cafe.deleteConversation(spaceId, conversationId)
     }
     return httpRequest(
       'DELETE',
@@ -341,7 +341,7 @@ export const api = {
     message: { role: string; content: string }
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.addMessage(spaceId, conversationId, message)
+      return window.Cafe.addMessage(spaceId, conversationId, message)
     }
     return httpRequest(
       'POST',
@@ -356,7 +356,7 @@ export const api = {
     updates: Record<string, unknown>
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.updateLastMessage(spaceId, conversationId, updates)
+      return window.Cafe.updateLastMessage(spaceId, conversationId, updates)
     }
     return httpRequest(
       'PUT',
@@ -371,7 +371,7 @@ export const api = {
     messageId: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getMessageThoughts(spaceId, conversationId, messageId)
+      return window.Cafe.getMessageThoughts(spaceId, conversationId, messageId)
     }
     return httpRequest(
       'GET',
@@ -385,7 +385,7 @@ export const api = {
     starred: boolean
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.toggleStarConversation(spaceId, conversationId, starred)
+      return window.Cafe.toggleStarConversation(spaceId, conversationId, starred)
     }
     return httpRequest(
       'POST',
@@ -434,28 +434,28 @@ export const api = {
     }
 
     if (isElectron()) {
-      return window.halo.sendMessage(request)
+      return window.Cafe.sendMessage(request)
     }
     return httpRequest('POST', '/api/agent/message', request)
   },
 
   stopGeneration: async (conversationId?: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.stopGeneration(conversationId)
+      return window.Cafe.stopGeneration(conversationId)
     }
     return httpRequest('POST', '/api/agent/stop', { conversationId })
   },
 
   approveTool: async (conversationId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.approveTool(conversationId)
+      return window.Cafe.approveTool(conversationId)
     }
     return httpRequest('POST', '/api/agent/approve', { conversationId })
   },
 
   rejectTool: async (conversationId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.rejectTool(conversationId)
+      return window.Cafe.rejectTool(conversationId)
     }
     return httpRequest('POST', '/api/agent/reject', { conversationId })
   },
@@ -463,7 +463,7 @@ export const api = {
   // Get current session state for recovery after refresh
   getSessionState: async (conversationId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getSessionState(conversationId)
+      return window.Cafe.getSessionState(conversationId)
     }
     return httpRequest('GET', `/api/agent/session/${conversationId}`)
   },
@@ -472,7 +472,7 @@ export const api = {
   ensureSessionWarm: async (spaceId: string, conversationId: string): Promise<ApiResponse> => {
     if (isElectron()) {
       // No need to wait, initialize in background
-      window.halo.ensureSessionWarm(spaceId, conversationId).catch((error: unknown) => {
+      window.Cafe.ensureSessionWarm(spaceId, conversationId).catch((error: unknown) => {
         console.error('[API] ensureSessionWarm error:', error)
       })
       return { success: true }
@@ -490,7 +490,7 @@ export const api = {
     answers: Record<string, string>
   }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.answerQuestion(data)
+      return window.Cafe.answerQuestion(data)
     }
     return httpRequest('POST', '/api/agent/answer-question', data)
   },
@@ -498,7 +498,7 @@ export const api = {
   // Test MCP server connections
   testMcpConnections: async (): Promise<{ success: boolean; servers: unknown[]; error?: string }> => {
     if (isElectron()) {
-      return window.halo.testMcpConnections()
+      return window.Cafe.testMcpConnections()
     }
     // HTTP mode: call backend endpoint
     const result = await httpRequest('POST', '/api/agent/test-mcp')
@@ -508,14 +508,14 @@ export const api = {
   // ===== Artifact =====
   listArtifacts: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.listArtifacts(spaceId)
+      return window.Cafe.listArtifacts(spaceId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}/artifacts`)
   },
 
   listArtifactsTree: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.listArtifactsTree(spaceId)
+      return window.Cafe.listArtifactsTree(spaceId)
     }
     return httpRequest('GET', `/api/spaces/${spaceId}/artifacts/tree`)
   },
@@ -523,7 +523,7 @@ export const api = {
   // Load children for lazy tree expansion
   loadArtifactChildren: async (spaceId: string, dirPath: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.loadArtifactChildren(spaceId, dirPath)
+      return window.Cafe.loadArtifactChildren(spaceId, dirPath)
     }
     return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/children`, { dirPath })
   },
@@ -531,7 +531,7 @@ export const api = {
   // Initialize file watcher for a space
   initArtifactWatcher: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.initArtifactWatcher(spaceId)
+      return window.Cafe.initArtifactWatcher(spaceId)
     }
     // In remote mode, watcher is managed by server
     return { success: true }
@@ -546,7 +546,7 @@ export const api = {
     item?: unknown
   }) => void) => {
     if (isElectron()) {
-      return window.halo.onArtifactChanged(callback)
+      return window.Cafe.onArtifactChanged(callback)
     }
     // In remote mode, use WebSocket events
     return onEvent('artifact:changed', callback)
@@ -565,7 +565,7 @@ export const api = {
     }>
   }) => void) => {
     if (isElectron()) {
-      return window.halo.onArtifactTreeUpdate(callback)
+      return window.Cafe.onArtifactTreeUpdate(callback)
     }
     // In remote mode, use WebSocket events
     return onEvent('artifact:tree-update', callback)
@@ -573,7 +573,7 @@ export const api = {
 
   openArtifact: async (filePath: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.openArtifact(filePath)
+      return window.Cafe.openArtifact(filePath)
     }
     // Can't open files remotely
     return { success: false, error: 'Cannot open files in remote mode' }
@@ -581,7 +581,7 @@ export const api = {
 
   showArtifactInFolder: async (filePath: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.showArtifactInFolder(filePath)
+      return window.Cafe.showArtifactInFolder(filePath)
     }
     // Can't open folder remotely
     return { success: false, error: 'Cannot open folder in remote mode' }
@@ -591,7 +591,7 @@ export const api = {
   downloadArtifact: (filePath: string): void => {
     if (isElectron()) {
       // In Electron, just open the file
-      window.halo.openArtifact(filePath)
+      window.Cafe.openArtifact(filePath)
       return
     }
     // In remote mode, trigger download via browser with token in URL
@@ -614,7 +614,7 @@ export const api = {
   // Read artifact content for Content Canvas
   readArtifactContent: async (filePath: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.readArtifactContent(filePath)
+      return window.Cafe.readArtifactContent(filePath)
     }
     // In remote mode, fetch content via API
     return httpRequest('GET', `/api/artifacts/content?path=${encodeURIComponent(filePath)}`)
@@ -623,7 +623,7 @@ export const api = {
   // Save artifact content (CodeViewer edit mode)
   saveArtifactContent: async (filePath: string, content: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.saveArtifactContent(filePath, content)
+      return window.Cafe.saveArtifactContent(filePath, content)
     }
     // In remote mode, save content via API
     return httpRequest('POST', '/api/artifacts/save', { path: filePath, content })
@@ -637,7 +637,7 @@ export const api = {
     mimeType: string
   }>> => {
     if (isElectron()) {
-      return window.halo.detectFileType(filePath)
+      return window.Cafe.detectFileType(filePath)
     }
     // In remote mode, detect file type via API
     return httpRequest('GET', `/api/artifacts/detect-type?path=${encodeURIComponent(filePath)}`)
@@ -650,7 +650,7 @@ export const api = {
     content: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.writeOnboardingArtifact(spaceId, fileName, content)
+      return window.Cafe.writeOnboardingArtifact(spaceId, fileName, content)
     }
     return httpRequest('POST', `/api/spaces/${spaceId}/onboarding/artifact`, { fileName, content })
   },
@@ -661,7 +661,7 @@ export const api = {
     aiResponse: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.saveOnboardingConversation(spaceId, userMessage, aiResponse)
+      return window.Cafe.saveOnboardingConversation(spaceId, userMessage, aiResponse)
     }
     return httpRequest('POST', `/api/spaces/${spaceId}/onboarding/conversation`, { userMessage, aiResponse })
   },
@@ -671,56 +671,56 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.enableRemoteAccess(port)
+    return window.Cafe.enableRemoteAccess(port)
   },
 
   disableRemoteAccess: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.disableRemoteAccess()
+    return window.Cafe.disableRemoteAccess()
   },
 
   enableTunnel: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.enableTunnel()
+    return window.Cafe.enableTunnel()
   },
 
   disableTunnel: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.disableTunnel()
+    return window.Cafe.disableTunnel()
   },
 
   getRemoteStatus: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.getRemoteStatus()
+    return window.Cafe.getRemoteStatus()
   },
 
   getRemoteQRCode: async (includeToken?: boolean): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.getRemoteQRCode(includeToken)
+    return window.Cafe.getRemoteQRCode(includeToken)
   },
 
   setRemotePassword: async (password: string): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.setRemotePassword(password)
+    return window.Cafe.setRemotePassword(password)
   },
 
   regenerateRemotePassword: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.regenerateRemotePassword()
+    return window.Cafe.regenerateRemotePassword()
   },
 
   // ===== System Settings (Electron only) =====
@@ -728,21 +728,21 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.getAutoLaunch()
+    return window.Cafe.getAutoLaunch()
   },
 
   setAutoLaunch: async (enabled: boolean): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.setAutoLaunch(enabled)
+    return window.Cafe.setAutoLaunch(enabled)
   },
 
   openLogFolder: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.openLogFolder()
+    return window.Cafe.openLogFolder()
   },
 
   // ===== Window (Electron only) =====
@@ -753,55 +753,55 @@ export const api = {
     if (!isElectron()) {
       return { success: true } // No-op in remote mode
     }
-    return window.halo.setTitleBarOverlay(options)
+    return window.Cafe.setTitleBarOverlay(options)
   },
 
   maximizeWindow: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.maximizeWindow()
+    return window.Cafe.maximizeWindow()
   },
 
   unmaximizeWindow: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.unmaximizeWindow()
+    return window.Cafe.unmaximizeWindow()
   },
 
   isWindowMaximized: async (): Promise<ApiResponse<boolean>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.isWindowMaximized()
+    return window.Cafe.isWindowMaximized()
   },
 
   toggleMaximizeWindow: async (): Promise<ApiResponse<boolean>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.toggleMaximizeWindow()
+    return window.Cafe.toggleMaximizeWindow()
   },
 
   onWindowMaximizeChange: (callback: (isMaximized: boolean) => void) => {
     if (!isElectron()) {
       return () => { } // No-op in remote mode
     }
-    return window.halo.onWindowMaximizeChange(callback)
+    return window.Cafe.onWindowMaximizeChange(callback)
   },
 
   // ===== Notification Channels =====
   testNotificationChannel: async (channelType: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.testNotificationChannel(channelType)
+      return window.Cafe.testNotificationChannel(channelType)
     }
     return httpRequest('POST', '/api/notify-channels/test', { channelType })
   },
 
   clearNotificationChannelCache: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.clearNotificationChannelCache()
+      return window.Cafe.clearNotificationChannelCache()
     }
     return httpRequest('POST', '/api/notify-channels/clear-cache')
   },
@@ -843,14 +843,14 @@ export const api = {
 
   createBrowserView: async (viewId: string, url?: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.createBrowserView(viewId, url)
+      return window.Cafe.createBrowserView(viewId, url)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   destroyBrowserView: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.destroyBrowserView(viewId)
+      return window.Cafe.destroyBrowserView(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
@@ -860,14 +860,14 @@ export const api = {
     bounds: { x: number; y: number; width: number; height: number }
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.showBrowserView(viewId, bounds)
+      return window.Cafe.showBrowserView(viewId, bounds)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   hideBrowserView: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.hideBrowserView(viewId)
+      return window.Cafe.hideBrowserView(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
@@ -877,84 +877,84 @@ export const api = {
     bounds: { x: number; y: number; width: number; height: number }
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.resizeBrowserView(viewId, bounds)
+      return window.Cafe.resizeBrowserView(viewId, bounds)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   navigateBrowserView: async (viewId: string, url: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.navigateBrowserView(viewId, url)
+      return window.Cafe.navigateBrowserView(viewId, url)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   browserGoBack: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.browserGoBack(viewId)
+      return window.Cafe.browserGoBack(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   browserGoForward: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.browserGoForward(viewId)
+      return window.Cafe.browserGoForward(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   browserReload: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.browserReload(viewId)
+      return window.Cafe.browserReload(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   browserStop: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.browserStop(viewId)
+      return window.Cafe.browserStop(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   getBrowserState: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.getBrowserState(viewId)
+      return window.Cafe.getBrowserState(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   captureBrowserView: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.captureBrowserView(viewId)
+      return window.Cafe.captureBrowserView(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   executeBrowserJS: async (viewId: string, code: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.executeBrowserJS(viewId, code)
+      return window.Cafe.executeBrowserJS(viewId, code)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   setBrowserZoom: async (viewId: string, level: number): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.setBrowserZoom(viewId, level)
+      return window.Cafe.setBrowserZoom(viewId, level)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   toggleBrowserDevTools: async (viewId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.toggleBrowserDevTools(viewId)
+      return window.Cafe.toggleBrowserDevTools(viewId)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
 
   showBrowserContextMenu: async (options: { viewId: string; url?: string; zoomLevel: number }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.showBrowserContextMenu(options)
+      return window.Cafe.showBrowserContextMenu(options)
     }
     return { success: false, error: 'Browser views only available in desktop app' }
   },
@@ -975,7 +975,7 @@ export const api = {
     hasTabsToRight: boolean
   }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.showCanvasTabContextMenu(options)
+      return window.Cafe.showCanvasTabContextMenu(options)
     }
     return { success: false, error: 'Native menu only available in desktop app' }
   },
@@ -1001,7 +1001,7 @@ export const api = {
     spaceId?: string
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.search(query, scope, conversationId, spaceId)
+      return window.Cafe.search(query, scope, conversationId, spaceId)
     }
     return httpRequest('POST', '/api/search', {
       query,
@@ -1013,7 +1013,7 @@ export const api = {
 
   cancelSearch: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.cancelSearch()
+      return window.Cafe.cancelSearch()
     }
     return httpRequest('POST', '/api/search/cancel')
   },
@@ -1029,19 +1029,19 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.checkForUpdates()
+    return window.Cafe.checkForUpdates()
   },
 
   installUpdate: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.installUpdate()
+    return window.Cafe.installUpdate()
   },
 
   getVersion: async (): Promise<ApiResponse<string>> => {
     if (isElectron()) {
-      const version = await window.halo.getVersion()
+      const version = await window.Cafe.getVersion()
       return { success: true, data: version }
     }
     // Remote mode: get version from server
@@ -1058,7 +1058,7 @@ export const api = {
     if (!isElectron()) {
       return () => { } // No-op in remote mode
     }
-    return window.halo.onUpdaterStatus(callback)
+    return window.Cafe.onUpdaterStatus(callback)
   },
 
   // ===== Notification (in-app toast) =====
@@ -1072,7 +1072,7 @@ export const api = {
     if (!isElectron()) {
       return () => { } // No-op in remote mode
     }
-    return window.halo.onNotificationToast(callback)
+    return window.Cafe.onNotificationToast(callback)
   },
 
   // ===== Overlay (Electron only) =====
@@ -1081,21 +1081,21 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.showChatCapsuleOverlay()
+    return window.Cafe.showChatCapsuleOverlay()
   },
 
   hideChatCapsuleOverlay: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.hideChatCapsuleOverlay()
+    return window.Cafe.hideChatCapsuleOverlay()
   },
 
   onCanvasExitMaximized: (callback: () => void) => {
     if (!isElectron()) {
       return () => { } // No-op in remote mode
     }
-    return window.halo.onCanvasExitMaximized(callback)
+    return window.Cafe.onCanvasExitMaximized(callback)
   },
 
   // ===== Performance Monitoring (Electron only, Developer Tools) =====
@@ -1103,49 +1103,49 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfStart(config)
+    return window.Cafe.perfStart(config)
   },
 
   perfStop: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfStop()
+    return window.Cafe.perfStop()
   },
 
   perfGetState: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfGetState()
+    return window.Cafe.perfGetState()
   },
 
   perfGetHistory: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfGetHistory()
+    return window.Cafe.perfGetHistory()
   },
 
   perfClearHistory: async (): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfClearHistory()
+    return window.Cafe.perfClearHistory()
   },
 
   perfSetConfig: async (config: { enabled?: boolean; sampleInterval?: number; warnOnThreshold?: boolean }): Promise<ApiResponse> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfSetConfig(config)
+    return window.Cafe.perfSetConfig(config)
   },
 
   perfExport: async (): Promise<ApiResponse<string>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.perfExport()
+    return window.Cafe.perfExport()
   },
 
   onPerfSnapshot: (callback: (data: unknown) => void) =>
@@ -1166,7 +1166,7 @@ export const api = {
     longTasks: number
   }): void => {
     if (isElectron()) {
-      window.halo.perfReportRendererMetrics(metrics)
+      window.Cafe.perfReportRendererMetrics(metrics)
     }
   },
 
@@ -1180,7 +1180,7 @@ export const api = {
       // In remote mode, assume Git Bash is available (server handles it)
       return { success: true, data: { found: true, path: null, source: null } }
     }
-    return window.halo.getGitBashStatus()
+    return window.Cafe.getGitBashStatus()
   },
 
   installGitBash: async (onProgress: (progress: {
@@ -1192,7 +1192,7 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.installGitBash(onProgress)
+    return window.Cafe.installGitBash(onProgress)
   },
 
   openLoginWindow: async (url: string, title?: string): Promise<ApiResponse> => {
@@ -1201,7 +1201,7 @@ export const api = {
       window.open(url, '_blank')
       return { success: true }
     }
-    return window.halo.openLoginWindow(url, title)
+    return window.Cafe.openLoginWindow(url, title)
   },
 
   openExternal: async (url: string): Promise<void> => {
@@ -1210,7 +1210,7 @@ export const api = {
       window.open(url, '_blank')
       return
     }
-    return window.halo.openExternal(url)
+    return window.Cafe.openExternal(url)
   },
 
   // ===== Bootstrap Lifecycle (Electron only) =====
@@ -1227,7 +1227,7 @@ export const api = {
       // In remote mode, services are always ready (server handles it)
       return { extendedReady: true, extendedReadyAt: Date.now() }
     }
-    const result = await window.halo.getBootstrapStatus()
+    const result = await window.Cafe.getBootstrapStatus()
     return result.data ?? { extendedReady: false, extendedReadyAt: 0 }
   },
 
@@ -1238,7 +1238,7 @@ export const api = {
       setTimeout(() => callback({ timestamp: Date.now(), duration: 0 }), 0)
       return () => {}
     }
-    return window.halo.onBootstrapExtendedReady(callback)
+    return window.Cafe.onBootstrapExtendedReady(callback)
   },
 
   // ===== Health System (Electron only) =====
@@ -1246,55 +1246,55 @@ export const api = {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.getHealthStatus()
+    return window.Cafe.getHealthStatus()
   },
 
   getHealthState: async (): Promise<ApiResponse<HealthStateResponse>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.getHealthState()
+    return window.Cafe.getHealthState()
   },
 
   triggerHealthRecovery: async (strategyId: string, userConsented: boolean): Promise<ApiResponse<HealthRecoveryResponse>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.triggerHealthRecovery(strategyId, userConsented)
+    return window.Cafe.triggerHealthRecovery(strategyId, userConsented)
   },
 
   generateHealthReport: async (): Promise<ApiResponse<HealthReportResponse>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.generateHealthReport()
+    return window.Cafe.generateHealthReport()
   },
 
   generateHealthReportText: async (): Promise<ApiResponse<string>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.generateHealthReportText()
+    return window.Cafe.generateHealthReportText()
   },
 
   exportHealthReport: async (filePath?: string): Promise<ApiResponse<HealthExportResponse>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.exportHealthReport(filePath)
+    return window.Cafe.exportHealthReport(filePath)
   },
 
   runHealthCheck: async (): Promise<ApiResponse<HealthCheckResponse>> => {
     if (!isElectron()) {
       return { success: false, error: 'Only available in desktop app' }
     }
-    return window.halo.runHealthCheck()
+    return window.Cafe.runHealthCheck()
   },
 
   // ===== Apps =====
   appList: async (filter?: { spaceId?: string; status?: string; type?: string }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appList(filter)
+      return window.Cafe.appList(filter)
     }
     const params = new URLSearchParams()
     if (filter?.spaceId) params.set('spaceId', filter.spaceId)
@@ -1306,21 +1306,21 @@ export const api = {
 
   appGet: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appGet(appId)
+      return window.Cafe.appGet(appId)
     }
     return httpRequest('GET', `/api/apps/${appId}`)
   },
 
   appInstall: async (input: { spaceId: string | null; spec: unknown; userConfig?: Record<string, unknown> }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appInstall(input)
+      return window.Cafe.appInstall(input)
     }
     return httpRequest('POST', '/api/apps/install', input as Record<string, unknown>)
   },
 
   appUninstall: async (appId: string, options?: { purge?: boolean }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appUninstall({ appId, options })
+      return window.Cafe.appUninstall({ appId, options })
     }
     const qs = options?.purge ? '?purge=true' : ''
     return httpRequest('DELETE', `/api/apps/${appId}${qs}`)
@@ -1328,49 +1328,49 @@ export const api = {
 
   appReinstall: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appReinstall({ appId })
+      return window.Cafe.appReinstall({ appId })
     }
     return httpRequest('POST', `/api/apps/${appId}/reinstall`)
   },
 
   appDelete: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appDelete({ appId })
+      return window.Cafe.appDelete({ appId })
     }
     return httpRequest('DELETE', `/api/apps/${appId}/permanent`)
   },
 
   appPause: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appPause(appId)
+      return window.Cafe.appPause(appId)
     }
     return httpRequest('POST', `/api/apps/${appId}/pause`)
   },
 
   appResume: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appResume(appId)
+      return window.Cafe.appResume(appId)
     }
     return httpRequest('POST', `/api/apps/${appId}/resume`)
   },
 
   appTrigger: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appTrigger(appId)
+      return window.Cafe.appTrigger(appId)
     }
     return httpRequest('POST', `/api/apps/${appId}/trigger`)
   },
 
   appGetState: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appGetState(appId)
+      return window.Cafe.appGetState(appId)
     }
     return httpRequest('GET', `/api/apps/${appId}/state`)
   },
 
   appGetActivity: async (appId: string, options?: { limit?: number; offset?: number; type?: string; since?: number }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appGetActivity({ appId, options })
+      return window.Cafe.appGetActivity({ appId, options })
     }
     const params = new URLSearchParams()
     if (options?.limit) params.set('limit', String(options.limit))
@@ -1382,14 +1382,14 @@ export const api = {
 
   appGetSession: async (appId: string, runId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appGetSession({ appId, runId })
+      return window.Cafe.appGetSession({ appId, runId })
     }
     return httpRequest('GET', `/api/apps/${appId}/runs/${runId}/session`)
   },
 
   appRespondEscalation: async (appId: string, escalationId: string, response: { choice?: string; text?: string }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appRespondEscalation({
+      return window.Cafe.appRespondEscalation({
         appId,
         escalationId,
         response: { ts: Date.now(), ...response },
@@ -1400,42 +1400,42 @@ export const api = {
 
   appUpdateConfig: async (appId: string, config: Record<string, unknown>): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appUpdateConfig({ appId, config })
+      return window.Cafe.appUpdateConfig({ appId, config })
     }
     return httpRequest('POST', `/api/apps/${appId}/config`, config)
   },
 
   appUpdateFrequency: async (appId: string, subscriptionId: string, frequency: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appUpdateFrequency({ appId, subscriptionId, frequency })
+      return window.Cafe.appUpdateFrequency({ appId, subscriptionId, frequency })
     }
     return httpRequest('POST', `/api/apps/${appId}/frequency`, { subscriptionId, frequency })
   },
 
   appUpdateOverrides: async (appId: string, overrides: Record<string, unknown>): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appUpdateOverrides({ appId, overrides })
+      return window.Cafe.appUpdateOverrides({ appId, overrides })
     }
     return httpRequest('PATCH', `/api/apps/${appId}/overrides`, overrides)
   },
 
   appUpdateSpec: async (appId: string, specPatch: Record<string, unknown>): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appUpdateSpec({ appId, specPatch })
+      return window.Cafe.appUpdateSpec({ appId, specPatch })
     }
     return httpRequest('PATCH', `/api/apps/${appId}/spec`, specPatch)
   },
 
   appGrantPermission: async (appId: string, permission: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appGrantPermission({ appId, permission })
+      return window.Cafe.appGrantPermission({ appId, permission })
     }
     return httpRequest('POST', `/api/apps/${appId}/permissions/grant`, { permission })
   },
 
   appRevokePermission: async (appId: string, permission: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appRevokePermission({ appId, permission })
+      return window.Cafe.appRevokePermission({ appId, permission })
     }
     return httpRequest('POST', `/api/apps/${appId}/permissions/revoke`, { permission })
   },
@@ -1443,21 +1443,21 @@ export const api = {
   // App Import / Export
   appExportSpec: async (appId: string): Promise<ApiResponse<{ yaml: string; filename: string }>> => {
     if (isElectron()) {
-      return window.halo.appExportSpec(appId)
+      return window.Cafe.appExportSpec(appId)
     }
     return httpRequest('GET', `/api/apps/${appId}/export-spec`)
   },
 
   appImportSpec: async (input: { spaceId: string; yamlContent: string; userConfig?: Record<string, unknown> }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appImportSpec(input)
+      return window.Cafe.appImportSpec(input)
     }
     return httpRequest('POST', '/api/apps/import-spec', input as Record<string, unknown>)
   },
 
   appOpenSkillFolder: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appOpenSkillFolder(appId)
+      return window.Cafe.appOpenSkillFolder(appId)
     }
     // No filesystem access in web mode
     return { success: false, error: 'Not supported outside Electron' }
@@ -1465,7 +1465,7 @@ export const api = {
 
   appGetDataPath: async (appId: string): Promise<ApiResponse<{ path: string }>> => {
     if (isElectron()) {
-      return window.halo.appGetDataPath(appId)
+      return window.Cafe.appGetDataPath(appId)
     }
     // No filesystem access in web mode
     return { success: false, error: 'Not supported outside Electron' }
@@ -1473,7 +1473,7 @@ export const api = {
 
   appOpenDataFolder: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appOpenDataFolder(appId)
+      return window.Cafe.appOpenDataFolder(appId)
     }
     // No filesystem access in web mode
     return { success: false, error: 'Not supported outside Electron' }
@@ -1481,7 +1481,7 @@ export const api = {
 
   appMoveSpace: async (appId: string, newSpaceId: string | null): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appMoveSpace({ appId, newSpaceId })
+      return window.Cafe.appMoveSpace({ appId, newSpaceId })
     }
     return httpRequest('POST', `/api/apps/${appId}/move-space`, { newSpaceId })
   },
@@ -1489,42 +1489,42 @@ export const api = {
   // App Chat
   appChatSend: async (request: { appId: string; spaceId: string; message: string; images?: Array<{ type: string; media_type: string; data: string }>; thinkingEnabled?: boolean }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatSend(request)
+      return window.Cafe.appChatSend(request)
     }
     return httpRequest('POST', `/api/apps/${request.appId}/chat/send`, request as unknown as Record<string, unknown>)
   },
 
   appChatStop: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatStop(appId)
+      return window.Cafe.appChatStop(appId)
     }
     return httpRequest('POST', `/api/apps/${appId}/chat/stop`)
   },
 
   appChatStatus: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatStatus(appId)
+      return window.Cafe.appChatStatus(appId)
     }
     return httpRequest('GET', `/api/apps/${appId}/chat/status`)
   },
 
   appChatMessages: async (appId: string, spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatMessages({ appId, spaceId })
+      return window.Cafe.appChatMessages({ appId, spaceId })
     }
     return httpRequest('GET', `/api/apps/${appId}/chat/messages?spaceId=${spaceId}`)
   },
 
   appChatSessionState: async (appId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatSessionState(appId)
+      return window.Cafe.appChatSessionState(appId)
     }
     return httpRequest('GET', `/api/apps/${appId}/chat/session-state`)
   },
 
   appChatClear: async (appId: string, spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.appChatClear({ appId, spaceId })
+      return window.Cafe.appChatClear({ appId, spaceId })
     }
     return httpRequest('POST', `/api/apps/${appId}/chat/clear`, { spaceId })
   },
@@ -1545,14 +1545,14 @@ export const api = {
   // ===== Store (App Registry) =====
   storeQuery: async (params: { search?: string; type?: string; category?: string; page?: number; pageSize?: number; locale?: string }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeQuery(params)
+      return window.Cafe.storeQuery(params)
     }
     return httpRequest('POST', '/api/store/query', params)
   },
 
   storeListApps: async (query: { search?: string; locale?: string; category?: string; type?: string; tags?: string[] }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeListApps(query)
+      return window.Cafe.storeListApps(query)
     }
     const params = new URLSearchParams()
     if (query.search) params.set('search', query.search)
@@ -1568,7 +1568,7 @@ export const api = {
 
   storeGetAppDetail: async (slug: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeGetAppDetail(slug)
+      return window.Cafe.storeGetAppDetail(slug)
     }
     return httpRequest('GET', `/api/store/apps/${slug}`)
   },
@@ -1577,70 +1577,70 @@ export const api = {
     slug: string,
     spaceId: string | null,
     userConfig?: Record<string, unknown>,
-    onProgress?: Parameters<typeof window.halo.storeInstall>[1],
+    onProgress?: Parameters<typeof window.Cafe.storeInstall>[1],
   ): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeInstall({ slug, spaceId, userConfig }, onProgress)
+      return window.Cafe.storeInstall({ slug, spaceId, userConfig }, onProgress)
     }
     return httpRequest('POST', `/api/store/apps/${slug}/install`, { spaceId, userConfig })
   },
 
   storeRefresh: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeRefresh()
+      return window.Cafe.storeRefresh()
     }
     return httpRequest('POST', '/api/store/refresh')
   },
 
   storeCheckUpdates: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeCheckUpdates()
+      return window.Cafe.storeCheckUpdates()
     }
     return httpRequest('GET', '/api/store/updates')
   },
 
   storeGetRegistries: async (): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeGetRegistries()
+      return window.Cafe.storeGetRegistries()
     }
     return httpRequest('GET', '/api/store/registries')
   },
 
   storeAddRegistry: async (input: { name: string; url: string; sourceType?: string; adapterConfig?: Record<string, unknown> }): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeAddRegistry(input)
+      return window.Cafe.storeAddRegistry(input)
     }
     return httpRequest('POST', '/api/store/registries', input)
   },
 
   storeRemoveRegistry: async (registryId: string): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeRemoveRegistry(registryId)
+      return window.Cafe.storeRemoveRegistry(registryId)
     }
     return httpRequest('DELETE', `/api/store/registries/${registryId}`)
   },
 
   storeToggleRegistry: async (registryId: string, enabled: boolean): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeToggleRegistry({ registryId, enabled })
+      return window.Cafe.storeToggleRegistry({ registryId, enabled })
     }
     return httpRequest('POST', `/api/store/registries/${registryId}/toggle`, { enabled })
   },
 
   storeUpdateRegistryAdapterConfig: async (registryId: string, adapterConfig: Record<string, unknown>): Promise<ApiResponse> => {
     if (isElectron()) {
-      return window.halo.storeUpdateRegistryAdapterConfig({ registryId, adapterConfig })
+      return window.Cafe.storeUpdateRegistryAdapterConfig({ registryId, adapterConfig })
     }
     return httpRequest('PATCH', `/api/store/registries/${registryId}/adapter-config`, adapterConfig)
   },
 
   onStoreSyncStatusChanged: (callback: (data: { registryId: string; status: string; appCount: number; error?: string }) => void) => {
     if (isElectron()) {
-      return window.halo.onStoreSyncStatusChanged(callback)
+      return window.Cafe.onStoreSyncStatusChanged(callback)
     }
     return onEvent('store:sync-status-changed', callback)
   },
 }
 
 // Export type for the API
-export type HaloApi = typeof api
+export type CafeApi = typeof api

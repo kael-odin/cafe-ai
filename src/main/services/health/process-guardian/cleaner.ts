@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Process Cleaner - Orphan process cleanup
  *
  * Implements dual-mechanism cleanup:
  * 1. PID-based cleanup (from registry)
- * 2. Args-based cleanup (scan for --halo-managed flag)
+ * 2. Args-based cleanup (scan for --Cafe-managed flag)
  *
  * Defense in depth - ensures no orphan processes survive.
  */
@@ -17,9 +17,9 @@ import {
 } from './registry'
 import { getPlatformOps } from './platform'
 
-// Command-line argument patterns for Halo-managed processes
-const HALO_MANAGED_FLAG = 'halo-managed'
-const HALO_INSTANCE_PREFIX = 'halo-instance='
+// Command-line argument patterns for Cafe-managed processes
+const Cafe_MANAGED_FLAG = 'Cafe-managed'
+const Cafe_INSTANCE_PREFIX = 'Cafe-instance='
 
 /**
  * Clean up orphan processes from previous app instances
@@ -80,13 +80,13 @@ export async function cleanupOrphans(): Promise<CleanupResult> {
   // ====================================
 
   try {
-    // Find all processes with --halo-managed flag
-    const haloProcesses = await platformOps.findByArgs(HALO_MANAGED_FLAG)
-    console.log(`[Health][Cleaner] Found ${haloProcesses.length} Halo-managed processes by args scan`)
+    // Find all processes with --Cafe-managed flag
+    const CafeProcesses = await platformOps.findByArgs(Cafe_MANAGED_FLAG)
+    console.log(`[Health][Cleaner] Found ${CafeProcesses.length} Cafe-managed processes by args scan`)
 
-    for (const proc of haloProcesses) {
+    for (const proc of CafeProcesses) {
       // Only kill if NOT current instance
-      if (proc.commandLine.includes(`${HALO_INSTANCE_PREFIX}${currentInstanceId}`)) {
+      if (proc.commandLine.includes(`${Cafe_INSTANCE_PREFIX}${currentInstanceId}`)) {
         // This is a current instance process - skip
         continue
       }
@@ -152,13 +152,13 @@ export async function forceKillProcess(pid: number): Promise<boolean> {
 }
 
 /**
- * Check if a specific process is a Halo-managed process
+ * Check if a specific process is a Cafe-managed process
  */
-export async function isHaloManagedProcess(pid: number): Promise<boolean> {
+export async function isCafeManagedProcess(pid: number): Promise<boolean> {
   const platformOps = getPlatformOps()
 
   try {
-    const processes = await platformOps.findByArgs(HALO_MANAGED_FLAG)
+    const processes = await platformOps.findByArgs(Cafe_MANAGED_FLAG)
     return processes.some(p => p.pid === pid)
   } catch {
     return false
@@ -166,9 +166,9 @@ export async function isHaloManagedProcess(pid: number): Promise<boolean> {
 }
 
 /**
- * Get all running Halo-managed processes
+ * Get all running Cafe-managed processes
  */
-export async function getRunningHaloProcesses(): Promise<Array<{
+export async function getRunningCafeProcesses(): Promise<Array<{
   pid: number
   instanceId: string | null
   commandLine: string
@@ -176,11 +176,11 @@ export async function getRunningHaloProcesses(): Promise<Array<{
   const platformOps = getPlatformOps()
 
   try {
-    const processes = await platformOps.findByArgs(HALO_MANAGED_FLAG)
+    const processes = await platformOps.findByArgs(Cafe_MANAGED_FLAG)
 
     return processes.map(proc => {
       // Extract instance ID from command line
-      const instanceMatch = proc.commandLine.match(new RegExp(`${HALO_INSTANCE_PREFIX}([a-f0-9-]+)`))
+      const instanceMatch = proc.commandLine.match(new RegExp(`${Cafe_INSTANCE_PREFIX}([a-f0-9-]+)`))
 
       return {
         pid: proc.pid,
@@ -216,7 +216,7 @@ function inferProcessType(commandLine: string): ProcessType {
  */
 export async function verifyCleanup(): Promise<boolean> {
   const currentInstanceId = getCurrentInstanceId()
-  const runningProcesses = await getRunningHaloProcesses()
+  const runningProcesses = await getRunningCafeProcesses()
 
   // Check if any non-current instance processes are still running
   const orphansRemaining = runningProcesses.filter(p =>

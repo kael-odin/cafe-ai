@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Platform Event System - Public API
  *
- * Core event primitives for Halo's service-to-service communication.
+ * Core event primitives for Cafe's service-to-service communication.
  *
  * Design principles:
  * - Decentralized: each service owns its events via Emitter<T>

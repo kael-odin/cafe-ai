@@ -1,7 +1,7 @@
-/**
+﻿/**
  * platform/store -- Public API
  *
- * SQLite persistence foundation for the Halo platform layer.
+ * SQLite persistence foundation for the Cafe platform layer.
  * This is the lowest module in the dependency chain: scheduler,
  * apps/manager, and apps/runtime all depend on this module for database access.
  *
@@ -35,7 +35,7 @@
  */
 
 import { join } from 'path'
-import { getHaloDir } from '../../services/config.service'
+import { getCafeDir } from '../../services/config.service'
 import { createDatabaseManager } from './database-manager'
 import type { DatabaseManager, Migration } from './types'
 
@@ -62,8 +62,8 @@ const APP_DB_FILENAME = 'cafe.db'
 export async function initStore(): Promise<DatabaseManager> {
   const start = performance.now()
 
-  const haloDir = getHaloDir()
-  const appDbPath = join(haloDir, APP_DB_FILENAME)
+  const CafeDir = getCafeDir()
+  const appDbPath = join(CafeDir, APP_DB_FILENAME)
 
   console.log(`[Store] Initializing store at: ${appDbPath}`)
 

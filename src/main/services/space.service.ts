@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Space Service - Manages workspaces/spaces
  *
  * Architecture:
  * - spaces-index.json (v3) stores space registration info (name/icon/path/timestamps)
  * - Preferences are NOT stored in the index — they live in per-space meta.json
  * - Module-level registry Map is the in-memory working copy of the index
- * - Halo temp space is unified into the registry (no special branches)
+ * - Cafe temp space is unified into the registry (no special branches)
  * - Lazy-loaded on first access; auto-migrates from v1/v2 formats if needed
  * - Mutations (create/update/delete) update both memory and disk atomically
  * - listSpaces() is pure memory read — zero disk I/O after startup
@@ -17,7 +17,7 @@
 import { shell } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync, renameSync } from 'fs'
-import { getHaloDir, getTempSpacePath, getSpacesDir } from './config.service'
+import { getCafeDir, getTempSpacePath, getSpacesDir } from './config.service'
 import { v4 as uuidv4 } from 'uuid'
 import { getAppManager } from '../apps/manager'
 
@@ -70,7 +70,7 @@ interface SpaceIndexEntry {
   createdAt: string
   updatedAt: string
   workingDir?: string
-  isTemp?: boolean  // true only for halo-temp (not persisted to disk)
+  isTemp?: boolean  // true only for Cafe-temp (not persisted to disk)
 }
 
 interface SpaceIndexV3 {
@@ -87,7 +87,7 @@ export function _resetSpaceRegistry(): void {
 }
 
 function getSpaceIndexPath(): string {
-  return join(getHaloDir(), 'spaces-index.json')
+  return join(getCafeDir(), 'spaces-index.json')
 }
 
 /**
@@ -117,7 +117,7 @@ function metaToEntry(meta: SpaceMeta, spacePath: string): SpaceIndexEntry {
 
 /**
  * Load space index from disk. Handles v3 (direct), v2 (migration), v1/missing (full scan).
- * Always registers halo-temp into the returned map.
+ * Always registers Cafe-temp into the returned map.
  */
 function loadSpaceIndex(): Map<string, SpaceIndexEntry> {
   const indexPath = getSpaceIndexPath()
@@ -142,7 +142,7 @@ function loadSpaceIndex(): Map<string, SpaceIndexEntry> {
       }
     }
     console.log(`[Space] Index v3 loaded: ${map.size} spaces`)
-    registerHaloTemp(map)
+    registerCafeTemp(map)
     return map
   }
 
@@ -159,7 +159,7 @@ function loadSpaceIndex(): Map<string, SpaceIndexEntry> {
     }
     persistIndex(map)
     console.log(`[Space] Index v3 migration complete: ${map.size} spaces`)
-    registerHaloTemp(map)
+    registerCafeTemp(map)
     return map
   }
 
@@ -201,14 +201,14 @@ function loadSpaceIndex(): Map<string, SpaceIndexEntry> {
   // Persist v3 format
   persistIndex(map)
   console.log(`[Space] Index v3 migration complete: ${map.size} spaces`)
-  registerHaloTemp(map)
+  registerCafeTemp(map)
   return map
 }
 
 /**
  * Register cafe-temp into the registry (in-memory only, never persisted to index).
  */
-function registerHaloTemp(map: Map<string, SpaceIndexEntry>): void {
+function registerCafeTemp(map: Map<string, SpaceIndexEntry>): void {
   const tempPath = getTempSpacePath()
   const now = new Date().toISOString()
   map.set('cafe-temp', {
@@ -236,10 +236,10 @@ function tryReadMeta(spacePath: string): SpaceMeta | null {
 
 /**
  * Persist the registry Map to disk as v3 (atomic write via tmp + rename).
- * Excludes halo-temp (isTemp entries are memory-only).
+ * Excludes Cafe-temp (isTemp entries are memory-only).
  */
 function persistIndex(map: Map<string, SpaceIndexEntry>): void {
-  // Filter out halo-temp before persisting
+  // Filter out Cafe-temp before persisting
   const persistable: Record<string, SpaceIndexEntry> = {}
   for (const [id, entry] of map) {
     if (!entry.isTemp) {
@@ -255,7 +255,7 @@ function persistIndex(map: Map<string, SpaceIndexEntry>): void {
   const tmpPath = indexPath + '.tmp'
   try {
     // Ensure parent directory exists
-    const dir = getHaloDir()
+    const dir = getCafeDir()
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true })
     }
@@ -303,7 +303,7 @@ function entryToSpaceWithPreferences(id: string, entry: SpaceIndexEntry): Space 
 /**
  * Get Cafe temp space. Delegates to unified getSpace().
  */
-export function getHaloSpace(): Space {
+export function getCafeSpace(): Space {
   return getSpace('cafe-temp')!
 }
 
@@ -337,7 +337,7 @@ export function listSpaces(): Space[] {
   const invalidIds: string[] = []
 
   for (const [id, entry] of getRegistry()) {
-    if (entry.isTemp) continue  // halo-temp is returned via getHaloSpace()
+    if (entry.isTemp) continue  // Cafe-temp is returned via getCafeSpace()
 
     if (!existsSync(entry.path)) {
       invalidIds.push(id)
@@ -452,9 +452,9 @@ export async function deleteSpace(spaceId: string): Promise<boolean> {
       rmSync(spacePath, { recursive: true, force: true })
     } else {
       // Legacy custom path spaces: only delete .cafe folder (preserve user's files)
-      const haloDir = join(spacePath, '.cafe')
-      if (existsSync(haloDir)) {
-        rmSync(haloDir, { recursive: true, force: true })
+      const CafeDir = join(spacePath, '.cafe')
+      if (existsSync(CafeDir)) {
+        rmSync(CafeDir, { recursive: true, force: true })
       }
     }
 
@@ -543,9 +543,9 @@ export function updateSpacePreferences(
 
   try {
     // Ensure .cafe directory exists
-    const haloDir = join(entry.path, '.cafe')
-    if (!existsSync(haloDir)) {
-      mkdirSync(haloDir, { recursive: true })
+    const CafeDir = join(entry.path, '.cafe')
+    if (!existsSync(CafeDir)) {
+      mkdirSync(CafeDir, { recursive: true })
     }
 
     // Read existing meta to get current preferences

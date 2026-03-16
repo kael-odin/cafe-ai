@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API Setup - Custom API configuration
  * No validation - just save and enter, errors will show on first chat
  * Includes language selector for first-time users
@@ -294,7 +294,7 @@ export function ApiSetup({ onBack, showBack = false }: ApiSetupProps) {
       {/* Header */}
       <div className="flex flex-col items-center mb-8">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-full border-2 border-primary/60 flex items-center justify-center halo-glow">
+        <div className="w-16 h-16 rounded-full border-2 border-primary/60 flex items-center justify-center Cafe-glow">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-transparent" />
         </div>
         <h1 className="mt-4 text-2xl font-light">Cafe</h1>

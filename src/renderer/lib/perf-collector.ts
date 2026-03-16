@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Renderer Process Performance Collector
  *
  * Collects performance metrics from the renderer process:
@@ -163,9 +163,9 @@ class RendererPerfCollector {
     import('../api')
       .then(({ api }) => api.perfReportRendererMetrics(metrics))
       .catch(() => {
-        // Fallback to direct window.halo if api not available
-        if (typeof window !== 'undefined' && window.halo?.perfReportRendererMetrics) {
-          window.halo.perfReportRendererMetrics(metrics)
+        // Fallback to direct window.Cafe if api not available
+        if (typeof window !== 'undefined' && window.Cafe?.perfReportRendererMetrics) {
+          window.Cafe.perfReportRendererMetrics(metrics)
         }
       })
 

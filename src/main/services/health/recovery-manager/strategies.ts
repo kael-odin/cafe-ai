@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Recovery Strategies - Definitions and configurations
  *
  * Defines the available recovery strategies and their parameters.
@@ -44,7 +44,7 @@ export const RECOVERY_STRATEGIES: Record<RecoveryStrategyId, RecoveryStrategy> =
   S3: {
     id: 'S3',
     name: 'Restart Application',
-    description: 'Completely restarts the Halo application',
+    description: 'Completely restarts the Cafe application',
     trigger: '5+ consecutive errors',
     actions: [
       'Save current state (if possible)',

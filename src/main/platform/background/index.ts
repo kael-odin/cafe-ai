@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/background -- Main entry point
  *
  * Provides the initBackground() and shutdownBackground() functions
@@ -72,7 +72,7 @@ export function initBackground(): BackgroundService {
                 buttons: ['Quit', 'Cancel'],
                 defaultId: 1,
                 cancelId: 1,
-                title: 'Quit Halo',
+                title: 'Quit Cafe',
                 message: `There are ${reasons.length} active background task(s). Quitting will stop them.`,
                 detail:
                   reasons.slice(0, 5).join('\n') +
@@ -213,7 +213,7 @@ function notifyStatusChange(): void {
 
 /**
  * Show the main window, or create a new one if none exists.
- * Triggered by tray "Show Halo" or tray icon click (Windows).
+ * Triggered by tray "Show Cafe" or tray icon click (Windows).
  *
  * Uses the authoritative window reference from window.service to avoid
  * accidentally picking up the daemon browser or other internal windows.

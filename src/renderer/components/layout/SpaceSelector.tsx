@@ -19,7 +19,7 @@ const LOAD_THROTTLE_MS = 5_000
 export function SpaceSelector() {
   const { t } = useTranslation()
   const { setView } = useAppStore()
-  const { haloSpace, spaces, currentSpace, setCurrentSpace, refreshCurrentSpace, loadSpaces, isLoading } = useSpaceStore()
+  const { cafeSpace, spaces, currentSpace, setCurrentSpace, refreshCurrentSpace, loadSpaces, isLoading } = useSpaceStore()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const lastLoadRef = useRef(0)
@@ -92,10 +92,10 @@ export function SpaceSelector() {
     setView('home')
   }
 
-  // Build space list: Halo Space first, then dedicated spaces
+  // Build space list: Cafe Space first, then dedicated spaces
   // Fallback: if store hasn't loaded yet, at least show currentSpace
   const storeSpaces: Space[] = [
-    ...(haloSpace ? [haloSpace] : []),
+    ...(cafeSpace ? [cafeSpace] : []),
     ...spaces
   ]
   const allSpaces: Space[] = storeSpaces.length > 0

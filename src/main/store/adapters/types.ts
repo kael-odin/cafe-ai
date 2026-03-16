@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Registry Adapter Interface
  *
  * Each adapter is responsible for fetching and normalising data from one
@@ -58,7 +58,7 @@ export interface RegistryAdapter {
    * Fetch bundled skill files for skills declared with `bundled: true` in `requires.skills`.
    *
    * Only implemented by adapters whose package format supports co-located skill directories
-   * (e.g. HaloAdapter). Other adapters leave this unimplemented.
+   * (e.g. CafeAdapter). Other adapters leave this unimplemented.
    *
    * Each skill entry includes its `files` list (declared in spec.yaml) so the adapter
    * can fetch them directly via static URLs — no directory listing or API calls needed.

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Diagnostics Reporter - Generate and export reports
  *
  * Handles formatting and exporting diagnostic reports.
@@ -26,7 +26,7 @@ export async function exportReport(filePath?: string): Promise<string> {
   // Default to downloads folder
   const outputPath = filePath || join(
     app.getPath('downloads'),
-    `halo-diagnostics-${Date.now()}.json`
+    `Cafe-diagnostics-${Date.now()}.json`
   )
 
   writeFileSync(outputPath, JSON.stringify(report, null, 2))
@@ -40,7 +40,7 @@ export async function exportReport(filePath?: string): Promise<string> {
 export function formatReportAsText(report: DiagnosticReport): string {
   const lines: string[] = [
     '='.repeat(50),
-    'HALO DIAGNOSTIC REPORT',
+    'Cafe DIAGNOSTIC REPORT',
     '='.repeat(50),
     '',
     `Generated: ${report.timestamp}`,

@@ -1,4 +1,4 @@
-# platform/store -- Design Decisions
+﻿# platform/store -- Design Decisions
 
 > Date: 2026-02-21
 > Author: platform-store engineer
@@ -49,14 +49,14 @@ unnecessary abstraction layers.
 
 ### 2.4 Database path resolution
 
-The project uses `getHaloDir()` from `config.service.ts` which resolves to:
-- Production: `~/.halo/`
-- Development: `~/.halo-dev/` (when `app.isPackaged === false`)
-- Custom: `HALO_DATA_DIR` env var
+The project uses `getCafeDir()` from `config.service.ts` which resolves to:
+- Production: `~/.Cafe/`
+- Development: `~/.Cafe-dev/` (when `app.isPackaged === false`)
+- Custom: `Cafe_DATA_DIR` env var
 - Tests: overridden via `os.homedir()` mock
 
-For the store module, we use `getHaloDir()` to get the base path, then append
-`halo.db`. This keeps consistency with the existing data path strategy.
+For the store module, we use `getCafeDir()` to get the base path, then append
+`Cafe.db`. This keeps consistency with the existing data path strategy.
 
 ### 2.5 Electron build pipeline
 
@@ -98,11 +98,11 @@ The entire migration sequence for a namespace runs in a single transaction.
 
 | Database | Path | V1 Status |
 |----------|------|-----------|
-| App-level | `{haloDir}/halo.db` | Active |
+| App-level | `{CafeDir}/Cafe.db` | Active |
 | Space-level | `{space}/data.db` | Interface only, not created |
 
-We use `getHaloDir()` from config.service.ts for path resolution. This respects
-`HALO_DATA_DIR` env var, dev mode separation, and test isolation.
+We use `getCafeDir()` from config.service.ts for path resolution. This respects
+`Cafe_DATA_DIR` env var, dev mode separation, and test isolation.
 
 ### 3.3 better-sqlite3 in Electron main process
 

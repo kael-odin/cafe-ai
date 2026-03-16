@@ -1,11 +1,11 @@
-/**
+﻿/**
  * CodeMirror 6 Configuration Module
  *
  * Provides a unified setup for CodeMirror with:
  * - Language support (lazy-loaded)
  * - Reading-optimized extensions (line numbers, folding, search)
  * - Light editing support (history for undo/redo)
- * - Theme integration with Halo's CSS variables
+ * - Theme integration with Cafe's CSS variables
  *
  * Design philosophy: Reader-first, not IDE-first
  * - Virtual scrolling for large files
@@ -57,7 +57,7 @@ import { php } from '@codemirror/lang-php'
 import { vue } from '@codemirror/lang-vue'
 import { svelte } from '@replit/codemirror-lang-svelte'
 import { StreamLanguage } from '@codemirror/language'
-import { haloTheme } from './codemirror-theme'
+import { CafeTheme } from './codemirror-theme'
 
 // Legacy mode languages (for less common languages)
 import { shell } from '@codemirror/legacy-modes/mode/shell'
@@ -414,7 +414,7 @@ export interface CreateEditorStateOptions {
 }
 
 /**
- * Create a new EditorState with Halo's default configuration
+ * Create a new EditorState with Cafe's default configuration
  */
 export function createEditorState(options: CreateEditorStateOptions): EditorState {
   const { doc, language, readOnly = true, extensions = [] } = options
@@ -430,7 +430,7 @@ export function createEditorState(options: CreateEditorStateOptions): EditorStat
       // Compartmentalized configurations
       readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
       languageCompartment.of(languageExt || []),
-      themeCompartment.of(haloTheme), // Always use haloTheme
+      themeCompartment.of(CafeTheme), // Always use CafeTheme
 
       // Additional extensions
       ...extensions,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Agent Module - Helper Functions
  *
  * Utility functions shared across the agent module.
@@ -39,7 +39,7 @@ let headlessElectronPath: string | null = null
  * - Copying just the binary breaks the framework loading
  * - Symlinks preserve the framework resolution because the real binary is still in .app
  *
- * This is a novel solution discovered while building Halo - most Electron apps
+ * This is a novel solution discovered while building Cafe - most Electron apps
  * that spawn child processes suffer from this Dock icon flashing issue.
  */
 export function getHeadlessElectronPath(): string {
@@ -128,7 +128,7 @@ export function getHeadlessElectronPath(): string {
 export function getWorkingDir(spaceId: string): string {
   console.log(`[Agent] getWorkingDir called with spaceId: ${spaceId}`)
 
-  if (spaceId === 'halo-temp') {
+  if (spaceId === 'Cafe-temp') {
     const artifactsDir = join(getTempSpacePath(), 'artifacts')
     if (!existsSync(artifactsDir)) {
       mkdirSync(artifactsDir, { recursive: true })
@@ -298,7 +298,7 @@ export async function getApiCredentialsForSource(
  */
 export function inferOpenAIWireApi(apiUrl: string): 'responses' | 'chat_completions' {
   // 1. Check environment variable override
-  const envApiType = process.env.HALO_OPENAI_API_TYPE || process.env.HALO_OPENAI_WIRE_API
+  const envApiType = process.env.Cafe_OPENAI_API_TYPE || process.env.Cafe_OPENAI_WIRE_API
   if (envApiType) {
     const v = envApiType.toLowerCase()
     if (v.includes('response')) return 'responses'
@@ -328,7 +328,7 @@ export function getEnabledMcpServers(mcpServers: Record<string, any>): Record<st
   const enabled: Record<string, any> = {}
   for (const [name, config] of Object.entries(mcpServers)) {
     if (!config.disabled) {
-      // Remove the 'disabled' field before passing to SDK (it's a Halo extension)
+      // Remove the 'disabled' field before passing to SDK (it's a Cafe extension)
       const { disabled, ...sdkConfig } = config as any
       enabled[name] = sdkConfig
     }

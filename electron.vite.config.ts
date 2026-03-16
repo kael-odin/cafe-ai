@@ -1,4 +1,4 @@
-import { resolve } from 'path'
+﻿import { resolve } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
@@ -42,9 +42,9 @@ const envLocal = loadEnvLocal()
  * In open-source builds without .env.local, these will be empty strings (analytics disabled)
  */
 const analyticsDefine = {
-  '__HALO_GA_MEASUREMENT_ID__': JSON.stringify(envLocal.HALO_GA_MEASUREMENT_ID || ''),
-  '__HALO_GA_API_SECRET__': JSON.stringify(envLocal.HALO_GA_API_SECRET || ''),
-  '__HALO_BAIDU_SITE_ID__': JSON.stringify(envLocal.HALO_BAIDU_SITE_ID || ''),
+  '__Cafe_GA_MEASUREMENT_ID__': JSON.stringify(envLocal.Cafe_GA_MEASUREMENT_ID || ''),
+  '__Cafe_GA_API_SECRET__': JSON.stringify(envLocal.Cafe_GA_API_SECRET || ''),
+  '__Cafe_BAIDU_SITE_ID__': JSON.stringify(envLocal.Cafe_BAIDU_SITE_ID || ''),
 }
 
 /**

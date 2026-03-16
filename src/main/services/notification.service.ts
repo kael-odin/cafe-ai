@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Service — System + In-App + External channel notifications
  *
  * Triple delivery strategy:
@@ -78,7 +78,7 @@ export function notifyTaskComplete(conversationTitle: string): void {
   try {
     const mainWindow = getMainWindow()
     const notification = new Notification({
-      title: 'Halo',
+      title: 'Cafe',
       body: `Task complete: ${conversationTitle}`,
       silent: false
     })

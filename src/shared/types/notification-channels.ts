@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Channels — Shared type definitions
  *
  * Used by both main process and renderer process.
@@ -101,7 +101,7 @@ export interface WebhookChannelConfig {
 // Aggregate Config
 // ============================================
 
-/** All notification channels configuration — stored in HaloConfig */
+/** All notification channels configuration — stored in CafeConfig */
 export interface NotificationChannelsConfig {
   email?: EmailChannelConfig
   wecom?: WecomChannelConfig

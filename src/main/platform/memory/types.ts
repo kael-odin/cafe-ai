@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/memory -- Type Definitions
  *
  * Public types for the memory subsystem.
@@ -12,7 +12,7 @@
 /**
  * Memory scope determines which memory file is targeted.
  *
- * - 'user':  Global user preferences, stored at {haloDir}/user-memory.md
+ * - 'user':  Global user preferences, stored at {CafeDir}/user-memory.md
  * - 'space': Per-space knowledge, stored at {spacePath}/.cafe/memory.md
  * - 'app':   Per-app private memory, stored at {spacePath}/.cafe/apps/{appId}/memory.md
  */

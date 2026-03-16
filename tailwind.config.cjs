@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+﻿/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     './src/renderer/**/*.{js,ts,jsx,tsx,html}',
@@ -39,11 +39,11 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Halo brand colors
-        'halo-glow': 'hsl(var(--halo-glow))',
-        'halo-success': 'hsl(var(--halo-success))',
-        'halo-warning': 'hsl(var(--halo-warning))',
-        'halo-error': 'hsl(var(--halo-error))',
+        // Cafe brand colors
+        'Cafe-glow': 'hsl(var(--Cafe-glow))',
+        'Cafe-success': 'hsl(var(--Cafe-success))',
+        'Cafe-warning': 'hsl(var(--Cafe-warning))',
+        'Cafe-error': 'hsl(var(--Cafe-error))',
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -1,4 +1,4 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
 /**
  * Cafe - Electron Main Process
  * The main entry point for the Electron application
@@ -358,7 +358,7 @@ function createWindow(): void {
   }
 
   // Open DevTools in development (skip during E2E to avoid viewport interference)
-  if (is.dev && !process.env.HALO_E2E_TEST) {
+  if (is.dev && !process.env.Cafe_E2E_TEST) {
     mainWindow.webContents.openDevTools()
   }
 }
@@ -368,7 +368,7 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cafe.app')
 
-  // Register custom protocols (halo-file://, etc.)
+  // Register custom protocols (Cafe-file://, etc.)
   registerProtocols()
 
   // Default open or close DevTools by F12 in development

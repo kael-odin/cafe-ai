@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Artifact Service - Scans and manages files created by the agent
  * Provides real-time artifact discovery and file information
  *
@@ -40,7 +40,7 @@ export interface Artifact {
 
 // Get working directory for a space
 function getWorkingDir(spaceId: string): string {
-  if (spaceId === 'halo-temp') {
+  if (spaceId === 'Cafe-temp') {
     const artifactsDir = join(getTempSpacePath(), 'artifacts')
     return artifactsDir
   }

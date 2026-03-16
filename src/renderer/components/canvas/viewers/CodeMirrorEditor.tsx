@@ -1,11 +1,11 @@
-/**
+﻿/**
  * CodeMirror Editor Component
  *
  * A React wrapper for CodeMirror 6 with:
  * - Virtual scrolling for large files
  * - Read-only mode by default
  * - Optional edit mode with undo/redo
- * - Theme integration with Halo (auto light/dark)
+ * - Theme integration with Cafe (auto light/dark)
  * - Scroll position preservation
  *
  * Performance optimizations:

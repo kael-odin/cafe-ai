@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/store -- Type Definitions
  *
  * Public types for the SQLite persistence layer.
@@ -28,7 +28,7 @@ export interface Migration {
 }
 
 /**
- * Central database manager for the Halo application.
+ * Central database manager for the Cafe application.
  *
  * Provides access to SQLite databases and handles schema migrations.
  * Each consuming module (scheduler, app manager, etc.) obtains a database

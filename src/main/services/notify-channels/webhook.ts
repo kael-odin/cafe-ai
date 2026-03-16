@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notify Channels — Generic Webhook Channel
  *
  * Sends notifications via HTTP POST to a user-specified endpoint.
@@ -30,7 +30,7 @@ export async function sendWebhook(
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'Halo/1.0',
+      'User-Agent': 'Cafe/1.0',
       ...config.headers,
     }
 
@@ -39,7 +39,7 @@ export async function sendWebhook(
       const signature = createHmac('sha256', config.secret)
         .update(body)
         .digest('hex')
-      headers['X-Halo-Signature'] = `sha256=${signature}`
+      headers['X-Cafe-Signature'] = `sha256=${signature}`
     }
 
     const method = config.method || 'POST'
@@ -69,8 +69,8 @@ export async function sendWebhook(
 export async function testWebhook(config: WebhookChannelConfig): Promise<{ success: boolean; error?: string }> {
   try {
     const testPayload: NotificationPayload = {
-      title: 'Halo Test',
-      body: 'This is a test notification from Halo.',
+      title: 'Cafe Test',
+      body: 'This is a test notification from Cafe.',
       timestamp: Date.now(),
     }
     const result = await sendWebhook(config, testPayload)

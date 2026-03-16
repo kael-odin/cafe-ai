@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/manager -- Public API
  *
  * App lifecycle management: install, configure, pause, resume, uninstall.
@@ -28,7 +28,7 @@
 import { join } from 'path'
 import type { DatabaseManager } from '../../platform/store'
 import { getSpace } from '../../services/space.service'
-import { getHaloDir } from '../../services/config.service'
+import { getCafeDir } from '../../services/config.service'
 import { AppManagerStore } from './store'
 import { createAppManagerService } from './service'
 import { MIGRATION_NAMESPACE, migrations } from './migrations'
@@ -110,7 +110,7 @@ export async function initAppManager(
   const getSpacePath = (spaceId: string): string | null => {
     const space = getSpace(spaceId)
     if (!space) return null
-    // For halo-temp, skills must go into artifacts/ — that's the Claude SDK workDir.
+    // For Cafe-temp, skills must go into artifacts/ — that's the Claude SDK workDir.
     // For regular spaces, workingDir (if set) or path is the project root.
     if (space.isTemp) return join(space.path, 'artifacts')
     return space.workingDir || space.path
@@ -120,7 +120,7 @@ export async function initAppManager(
   const service = createAppManagerService({
     store,
     getSpacePath,
-    getGlobalAppDir: () => getHaloDir(),
+    getGlobalAppDir: () => getCafeDir(),
   })
 
   managerInstance = service

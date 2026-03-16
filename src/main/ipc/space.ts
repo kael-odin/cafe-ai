@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Space IPC Handlers
  */
 
 import { ipcMain, dialog } from 'electron'
 import {
-  getHaloSpace,
+  getCafeSpace,
   listSpaces,
   createSpace,
   deleteSpace,
@@ -27,15 +27,15 @@ interface SpacePreferences {
 }
 
 export function registerSpaceHandlers(): void {
-  // Get Halo temp space
-  ipcMain.handle('space:get-halo', async () => {
+  // Get Cafe temp space
+  ipcMain.handle('space:get-Cafe', async () => {
     try {
-      const space = getHaloSpace()
-      console.log('[SpaceIPC] space:get-halo response: id=%s', space?.id)
+      const space = getCafeSpace()
+      console.log('[SpaceIPC] space:get-Cafe response: id=%s', space?.id)
       return { success: true, data: space }
     } catch (error: unknown) {
       const err = error as Error
-      console.error('[SpaceIPC] space:get-halo error:', err.message)
+      console.error('[SpaceIPC] space:get-Cafe error:', err.message)
       return { success: false, error: err.message }
     }
   })

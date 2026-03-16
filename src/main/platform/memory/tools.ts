@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/memory -- MCP Tool Definitions
  *
  * Creates MCP tools (memory_read, memory_write, memory_list) using
@@ -231,7 +231,7 @@ export function createMemoryMcpServer(
 
   // ── Build MCP Server ─────────────────────────────────────────────────────
   return createSdkMcpServer({
-    name: 'halo-memory',
+    name: 'Cafe-memory',
     version: '1.0.0',
     tools: [memory_read, memory_write, memory_list]
   })

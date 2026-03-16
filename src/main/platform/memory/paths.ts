@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/memory -- Path Resolution
  *
  * Maps (caller, scope) pairs to filesystem paths.
@@ -6,7 +6,7 @@
  *
  * Path conventions (from architecture doc section 3.4):
  *
- *   user-memory:   {haloDir}/user-memory.md
+ *   user-memory:   {CafeDir}/user-memory.md
  *   space-memory:  {spacePath}/.cafe/memory.md
  *   app-memory:    {spacePath}/.cafe/apps/{appId}/memory.md
  *
@@ -15,7 +15,7 @@
  */
 
 import { join, sep } from 'path'
-import { getHaloDir } from '../../services/config.service'
+import { getCafeDir } from '../../services/config.service'
 import type { MemoryCallerScope, MemoryScopeType } from './types'
 
 /** Memory file name (main file for each scope) */
@@ -41,8 +41,8 @@ const MEMORY_ARCHIVE_DIR = 'memory'
 export function getMemoryBaseDir(caller: MemoryCallerScope, scope: MemoryScopeType): string {
   switch (scope) {
     case 'user':
-      // User memory lives directly in the halo data directory
-      return getHaloDir()
+      // User memory lives directly in the Cafe data directory
+      return getCafeDir()
 
     case 'space':
       // Space memory lives in the space's .cafe directory
@@ -65,7 +65,7 @@ export function getMemoryBaseDir(caller: MemoryCallerScope, scope: MemoryScopeTy
  * Get the path to the main memory file (memory.md) for a given scope.
  *
  * Special case: user scope uses "user-memory.md" instead of "memory.md"
- * to avoid confusion with other files in the halo directory.
+ * to avoid confusion with other files in the Cafe directory.
  */
 export function getMemoryFilePath(caller: MemoryCallerScope, scope: MemoryScopeType): string {
   const baseDir = getMemoryBaseDir(caller, scope)

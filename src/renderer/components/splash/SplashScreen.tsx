@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { HaloLogo } from '../brand/HaloLogo'
+import { HaloLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 
 export function SplashScreen() {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ArtifactTree - Professional tree view using react-arborist
  * VSCode-style file explorer with virtual scrolling and lazy loading
  *
@@ -41,7 +41,7 @@ const DIMMED_DIRS = new Set([
   // Test/Coverage
   'coverage', '.nyc_output', '__pycache__', '.pytest_cache', '.mypy_cache', '.tox',
   // Misc
-  '.halo', 'logs', 'tmp', 'temp',
+  '.Cafe', 'logs', 'tmp', 'temp',
 ])
 
 function isDimmed(name: string): boolean {

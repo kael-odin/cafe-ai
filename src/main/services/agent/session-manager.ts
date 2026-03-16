@@ -1,4 +1,4 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
  * Agent Module - Session Manager
  *
  * Manages V2 Session lifecycle including creation, reuse, cleanup,
@@ -33,7 +33,7 @@ import {
 import { emitAgentEvent } from './events'
 import { registerProcess, unregisterProcess, getCurrentInstanceId } from '../health'
 import { resolveCredentialsForSdk, buildBaseSdkOptions } from './sdk-config'
-import { createHaloAppsMcpServer } from '../../apps/conversation-mcp'
+import { createCafeAppsMcpServer } from '../../apps/conversation-mcp'
 import { createWebSearchMcpServer } from '../web-search'
 
 // ============================================
@@ -258,8 +258,8 @@ export function stopSessionCleanup(): void {
  * Migrate session file from old config directory to new config directory on demand.
  *
  * Background: We changed CLI config directory from ~/.claude/ to
- * ~/Library/Application Support/halo/claude-config/ (via CLAUDE_CONFIG_DIR env)
- * to isolate Halo from user's own Claude Code configuration.
+ * ~/Library/Application Support/Cafe/claude-config/ (via CLAUDE_CONFIG_DIR env)
+ * to isolate Cafe from user's own Claude Code configuration.
  *
  * This causes historical conversations to fail because their sessionId points to
  * session files in the old directory. This function migrates session files on demand
@@ -535,7 +535,7 @@ export async function ensureSessionWarm(
 
   // Build MCP servers config (must match sendMessage to avoid session rebuild)
   const mcpServers: Record<string, any> = dbMcpServers ? { ...dbMcpServers } : {}
-  mcpServers['halo-apps'] = createHaloAppsMcpServer(spaceId)
+  mcpServers['Cafe-apps'] = createCafeAppsMcpServer(spaceId)
   mcpServers['web-search'] = createWebSearchMcpServer()
 
   // Build SDK options using shared configuration

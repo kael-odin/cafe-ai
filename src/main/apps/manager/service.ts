@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/manager -- Service Implementation
  *
  * Implements the AppManagerService interface with:
@@ -118,8 +118,8 @@ export interface AppManagerDeps {
   getSpacePath: (spaceId: string) => string | null
 
   /**
-   * Get the root directory for global app data (haloDir).
-   * Global apps store work data at `{haloDir}/apps/{appId}/`.
+   * Get the root directory for global app data (CafeDir).
+   * Global apps store work data at `{CafeDir}/apps/{appId}/`.
    */
   getGlobalAppDir: () => string
 }
@@ -165,7 +165,7 @@ export function createAppManagerService(deps: AppManagerDeps): AppManagerService
   /**
    * Resolve the work directory path for an App.
    * Space-scoped: {spacePath}/.cafe/apps/{appId}/
-   * Global: {haloDir}/apps/{appId}/
+   * Global: {CafeDir}/apps/{appId}/
    */
   function resolveWorkDir(appId: string, spaceId: string | null): string {
     if (spaceId === null) {

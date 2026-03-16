@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Registry Section Component
  * Manages App Store registry sources (view, add, remove, toggle, adapter config)
  */
@@ -10,7 +10,7 @@ import { api } from '../../api'
 import type { RegistrySource } from '../../../shared/store/store-types'
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
-  'halo': 'Cafe',
+  'Cafe': 'Cafe',
   'mcp-registry': 'MCP',
   'smithery': 'Smithery',
   'claude-skills': 'Claude Skills',

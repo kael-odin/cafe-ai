@@ -1,8 +1,8 @@
-/**
+﻿/**
  * Health System Module - System Health Management (SHM)
  *
  * Provides comprehensive health monitoring, process tracking,
- * and automatic recovery for the Halo application.
+ * and automatic recovery for the Cafe application.
  *
  * Architecture:
  * - Process Guardian: Track and cleanup subprocess lifecycle
@@ -60,7 +60,7 @@ export {
   // Cleanup
   cleanupOrphans,
   verifyCleanup,
-  getRunningHaloProcesses,
+  getRunningCafeProcesses,
 
   // Platform operations
   getPlatformOps

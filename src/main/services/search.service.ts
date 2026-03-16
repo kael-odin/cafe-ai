@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Search Service - Implements conversation search across scopes
  *
  * Supports three search scopes:
@@ -11,7 +11,7 @@
 
 import { join } from 'path'
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
-import { getTempSpacePath, getHaloDir } from './config.service'
+import { getTempSpacePath, getCafeDir } from './config.service'
 import { getSpace } from './space.service'
 
 /**
@@ -142,10 +142,10 @@ export class SearchService {
       const searchRegex = new RegExp(query, 'gi')
 
       // Get space name
-      let spaceName = data.spaceId === 'halo-temp' ? 'Halo' : data.spaceId
+      let spaceName = data.spaceId === 'Cafe-temp' ? 'Cafe' : data.spaceId
 
       try {
-        if (data.spaceId !== 'halo-temp') {
+        if (data.spaceId !== 'Cafe-temp') {
           const space = getSpace(data.spaceId)
           if (space) {
             spaceName = space.name
@@ -208,7 +208,7 @@ export class SearchService {
     conversationId?: string,
     spaceId?: string
   ): string[] {
-    const haloDir = getHaloDir()
+    const CafeDir = getCafeDir()
     const files: string[] = []
 
     if (scope === 'conversation' && conversationId) {
@@ -219,7 +219,7 @@ export class SearchService {
 
     if (scope === 'space' && spaceId) {
       // Search all conversations in a space
-      if (spaceId === 'halo-temp') {
+      if (spaceId === 'Cafe-temp') {
         const tempPath = getTempSpacePath()
         return this.scanConversationFiles(join(tempPath, 'conversations'))
       } else {
@@ -245,7 +245,7 @@ export class SearchService {
       }
 
       // Scan all custom spaces
-      const spacesDir = join(haloDir, 'spaces')
+      const spacesDir = join(CafeDir, 'spaces')
       if (existsSync(spacesDir)) {
         const spaceNames = readdirSync(spacesDir)
         spaceNames.forEach(spaceName => {
@@ -294,11 +294,11 @@ export class SearchService {
    * Find conversation file in filesystem
    */
   private findConversationFile(conversationId: string, spaceId?: string): string | null {
-    const haloDir = getHaloDir()
+    const CafeDir = getCafeDir()
 
     // If spaceId is provided, search in that space first
     if (spaceId) {
-      if (spaceId === 'halo-temp') {
+      if (spaceId === 'Cafe-temp') {
         const tempPath = getTempSpacePath()
         const filePath = join(tempPath, 'conversations', `${conversationId}.json`)
         if (existsSync(filePath)) {
@@ -328,7 +328,7 @@ export class SearchService {
     }
 
     // Search custom spaces
-    const spacesDir = join(haloDir, 'spaces')
+    const spacesDir = join(CafeDir, 'spaces')
     if (existsSync(spacesDir)) {
       const spaceNames = readdirSync(spacesDir)
       for (const spaceName of spaceNames) {

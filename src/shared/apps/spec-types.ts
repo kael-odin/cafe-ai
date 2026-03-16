@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared App Spec Types
  *
  * Pure TypeScript type definitions for the App Spec system.
@@ -301,7 +301,7 @@ export interface AppSpecCommon {
   i18n?: Record<string, I18nLocaleBlock>
 }
 
-/** Automation (AI Digital Human) — Halo core type */
+/** Automation (AI Digital Human) — Cafe core type */
 export interface AutomationSpec extends AppSpecCommon {
   type: 'automation'
   system_prompt: string

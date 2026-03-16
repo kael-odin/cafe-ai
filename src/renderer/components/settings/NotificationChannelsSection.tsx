@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Channels Section Component
  * Manages external notification channel configurations (email, WeCom, DingTalk, Feishu, webhook)
  */
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
-import type { HaloConfig } from '../../types'
+import type { CafeConfig } from '../../types'
 import { NOTIFICATION_CHANNEL_META } from '../../../shared/types/notification-channels'
 import type {
   NotificationChannelType,
@@ -27,8 +27,8 @@ import type {
 // ============================================
 
 interface NotificationChannelsSectionProps {
-  config: HaloConfig | null
-  setConfig: (config: HaloConfig) => void
+  config: CafeConfig | null
+  setConfig: (config: CafeConfig) => void
 }
 
 interface TestResult {
@@ -464,7 +464,7 @@ export function NotificationChannelsSection({ config, setConfig }: NotificationC
         ...config.notificationChannels,
         [channelType]: channelConfig,
       },
-    } as HaloConfig
+    } as CafeConfig
     try {
       await api.setConfig({ notificationChannels: updatedConfig.notificationChannels })
       setConfig(updatedConfig)

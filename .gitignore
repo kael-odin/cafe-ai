@@ -5,7 +5,6 @@ out
 
 # TypeScript build cache
 *.tsbuildinfo
-.halo
 
 # Release notes temp file
 .release-notes-current.md

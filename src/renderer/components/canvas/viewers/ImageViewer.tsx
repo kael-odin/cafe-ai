@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Image Viewer - Image display with zoom and pan
  *
  * Features:
@@ -31,11 +31,11 @@ export function ImageViewer({ tab }: ImageViewerProps) {
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 })
 
   // Get image URL
-  // Priority: halo-file:// (custom protocol, fast) > remote download > base64 fallback
+  // Priority: Cafe-file:// (custom protocol, fast) > remote download > base64 fallback
   const imageUrl = tab.path
     ? (api.isRemoteMode()
         ? api.getArtifactDownloadUrl(tab.path)
-        : `halo-file://${tab.path}`)
+        : `Cafe-file://${tab.path}`)
     : tab.content
       ? `data:${tab.mimeType || 'image/png'};base64,${tab.content}`
       : ''

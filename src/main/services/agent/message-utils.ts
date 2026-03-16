@@ -1,4 +1,4 @@
-/**
+﻿﻿/**
  * Agent Module - Message Utilities
  *
  * Utilities for building and parsing messages including:
@@ -31,15 +31,15 @@ export function formatCanvasContext(canvasContext?: CanvasContext): string {
     .map(t => `${t.isActive ? '▶ ' : '  '}${t.title} (${t.type})${t.path ? ` - ${t.path}` : ''}${t.url ? ` - ${t.url}` : ''}`)
     .join('\n')
 
-  return `<halo_canvas>
-Content canvas currently open in Halo:
+  return `<Cafe_canvas>
+Content canvas currently open in Cafe:
 - Total ${canvasContext.tabCount} tabs
 - Active: ${activeTab ? `${activeTab.title} (${activeTab.type})` : 'None'}
 ${activeTab?.url ? `- URL: ${activeTab.url}` : ''}${activeTab?.path ? `- File path: ${activeTab.path}` : ''}
 
 All tabs:
 ${tabsSummary}
-</halo_canvas>
+</Cafe_canvas>
 
 `
 }

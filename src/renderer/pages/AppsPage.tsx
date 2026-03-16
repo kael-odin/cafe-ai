@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Apps Page
  *
  * Top-level page for the Apps system. Accessible from SpacePage header.
@@ -40,7 +40,7 @@ export function AppsPage() {
   const { t } = useTranslation()
   const { setView, previousView } = useAppStore()
   const currentSpace = useSpaceStore(state => state.currentSpace)
-  const haloSpace = useSpaceStore(state => state.haloSpace)
+  const CafeSpace = useSpaceStore(state => state.CafeSpace)
   const spaces = useSpaceStore(state => state.spaces)
   const { apps, loadApps, updateAppOverrides } = useAppsStore()
   const {
@@ -77,15 +77,15 @@ export function AppsPage() {
   }, [loadApps])
 
   // Build spaceId -> space name map for display
-  // Always populate from both haloSpace and dedicated spaces
+  // Always populate from both CafeSpace and dedicated spaces
   const spaceMap = useMemo(() => {
     const map: Record<string, string> = {}
-    if (haloSpace) map[haloSpace.id] = haloSpace.name
+    if (CafeSpace) map[CafeSpace.id] = CafeSpace.name
     for (const s of spaces) {
       map[s.id] = s.name
     }
     return map
-  }, [spaces, haloSpace])
+  }, [spaces, CafeSpace])
 
   // Auto-select initial app (from notification/badge navigation)
   useEffect(() => {

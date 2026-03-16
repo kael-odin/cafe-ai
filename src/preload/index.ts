@@ -1,4 +1,4 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
  * Preload Script - Exposes IPC to renderer
  */
 
@@ -14,7 +14,7 @@ import type {
 import type { StoreInstallProgress } from '../shared/store/store-types'
 
 // Type definitions for exposed API
-export interface HaloAPI {
+export interface CafeAPI {
   // Generic Auth (provider-agnostic)
   authGetProviders: () => Promise<IpcResponse>
   authGetBuiltinProviders: () => Promise<IpcResponse>
@@ -40,7 +40,7 @@ export interface HaloAPI {
   aiSourcesDeleteSource: (sourceId: string) => Promise<IpcResponse>
 
   // Space
-  getHaloSpace: () => Promise<IpcResponse>
+  getCafeSpace: () => Promise<IpcResponse>
   listSpaces: () => Promise<IpcResponse>
   createSpace: (input: { name: string; icon: string; customPath?: string }) => Promise<IpcResponse>
   deleteSpace: (spaceId: string) => Promise<IpcResponse>
@@ -412,7 +412,7 @@ function createEventListener(channel: string, callback: (data: unknown) => void)
 }
 
 // Expose API to renderer
-const api: HaloAPI = {
+const api: CafeAPI = {
   // Generic Auth (provider-agnostic)
   authGetProviders: () => ipcRenderer.invoke('auth:get-providers'),
   authGetBuiltinProviders: () => ipcRenderer.invoke('auth:get-builtin-providers'),
@@ -440,7 +440,7 @@ const api: HaloAPI = {
   aiSourcesDeleteSource: (sourceId) => ipcRenderer.invoke('ai-sources:delete-source', sourceId),
 
   // Space
-  getHaloSpace: () => ipcRenderer.invoke('space:get-halo'),
+  getCafeSpace: () => ipcRenderer.invoke('space:get-Cafe'),
   listSpaces: () => ipcRenderer.invoke('space:list'),
   createSpace: (input) => ipcRenderer.invoke('space:create', input),
   deleteSpace: (spaceId) => ipcRenderer.invoke('space:delete', spaceId),
@@ -710,7 +710,7 @@ const api: HaloAPI = {
   onNotificationToast: (callback) => createEventListener('notification:toast', callback),
 }
 
-contextBridge.exposeInMainWorld('halo', api)
+contextBridge.exposeInMainWorld('Cafe', api)
 
 // Analytics: Listen for tracking events from main process
 // Baidu Tongji SDK is loaded in index.html, we just need to call _hmt.push()
@@ -755,7 +755,7 @@ const platformInfo = {
 contextBridge.exposeInMainWorld('platform', platformInfo)
 
 // Expose basic electron IPC for overlay SPA
-// This is used by the overlay window which doesn't need the full halo API
+// This is used by the overlay window which doesn't need the full Cafe API
 const electronAPI = {
   ipcRenderer: {
     on: (channel: string, callback: (...args: unknown[]) => void) => {
@@ -772,10 +772,10 @@ const electronAPI = {
 
 contextBridge.exposeInMainWorld('electron', electronAPI)
 
-// TypeScript declaration for window.halo and window.platform
+// TypeScript declaration for window.Cafe and window.platform
 declare global {
   interface Window {
-    halo: HaloAPI
+    Cafe: CafeAPI
     platform: {
       platform: 'darwin' | 'win32' | 'linux'
       isMac: boolean

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ToolIcons - Centralized icon mapping using Lucide icons
  * Provides consistent, cross-platform icons for all UI elements
  */
@@ -219,7 +219,7 @@ export const spaceIconColors: Record<string, string> = {
   lightbulb: 'text-yellow-500',    // Ideas/creativity
   rocket: 'text-rose-500',         // Launch/speed
   star: 'text-amber-400',          // Favorite/important
-  sparkles: 'text-primary',        // Halo brand color
+  sparkles: 'text-primary',        // Cafe brand color
 }
 
 // Space icon component with color

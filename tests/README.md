@@ -1,6 +1,6 @@
-# Halo Test Suite
+﻿# Cafe Test Suite
 
-This directory contains the automated test infrastructure for Halo.
+This directory contains the automated test infrastructure for Cafe.
 
 ## Test Layers
 

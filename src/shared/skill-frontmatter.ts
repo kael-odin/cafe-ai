@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SKILL.md Frontmatter Utilities (shared)
  *
  * Pure-TypeScript utilities for normalizing and extracting frontmatter fields
@@ -39,7 +39,7 @@
 /**
  * Parsed CC SDK SKILL.md frontmatter fields.
  *
- * This type documents the complete CC SDK skill API surface.  Halo stores
+ * This type documents the complete CC SDK skill API surface.  Cafe stores
  * the raw SKILL.md in `SkillSpec.skill_files` — this type is for runtime
  * introspection, not persistence.
  */

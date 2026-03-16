@@ -1,11 +1,11 @@
-/**
- * CodeMirror Theme for Halo
+﻿/**
+ * CodeMirror Theme for Cafe
  *
- * Creates a theme that matches Halo's CSS variable-based theme system.
+ * Creates a theme that matches Cafe's CSS variable-based theme system.
  * The theme automatically adapts to light/dark mode via CSS variables.
  *
  * Design principles:
- * - Use Halo CSS variables (--background, --foreground, etc.)
+ * - Use Cafe CSS variables (--background, --foreground, etc.)
  * - Syntax colors complement the base theme
  * - Comfortable reading experience (proper contrast, spacing)
  * - Visual consistency with highlight.js syntax-theme.css
@@ -21,10 +21,10 @@ import { tags } from '@lezer/highlight'
 // ============================================
 
 /**
- * Base editor theme using Halo CSS variables
+ * Base editor theme using Cafe CSS variables
  * Uses CSS variables that automatically adapt to light/dark mode
  */
-export const haloEditorTheme = EditorView.theme(
+export const CafeEditorTheme = EditorView.theme(
   {
     // Main editor container
     '&': {
@@ -207,7 +207,7 @@ export const haloEditorTheme = EditorView.theme(
  * Hardcoded colors are from One Dark Pro palette, which works well in dark mode
  * and has acceptable contrast in light mode
  */
-export const haloHighlightStyle = HighlightStyle.define([
+export const CafeHighlightStyle = HighlightStyle.define([
   // Comments
   { tag: tags.comment, color: 'hsl(var(--muted-foreground) / 0.6)', fontStyle: 'italic' },
   { tag: tags.lineComment, color: 'hsl(var(--muted-foreground) / 0.6)', fontStyle: 'italic' },
@@ -306,21 +306,21 @@ export const haloHighlightStyle = HighlightStyle.define([
 // ============================================
 
 /**
- * Complete Halo theme for CodeMirror
+ * Complete Cafe theme for CodeMirror
  * Combines editor styling and syntax highlighting
  */
-export const haloTheme: Extension = [
-  haloEditorTheme,
-  syntaxHighlighting(haloHighlightStyle),
+export const CafeTheme: Extension = [
+  CafeEditorTheme,
+  syntaxHighlighting(CafeHighlightStyle),
 ]
 
 /**
  * Light theme variant (same structure, CSS variables handle the colors)
- * The base haloTheme already uses CSS variables, so it works for both
+ * The base CafeTheme already uses CSS variables, so it works for both
  */
-export const haloLightTheme = haloTheme
+export const CafeLightTheme = CafeTheme
 
 /**
  * Dark theme variant
  */
-export const haloDarkTheme = haloTheme
+export const CafeDarkTheme = CafeTheme

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * System Section Component
  * Manages permissions, auto-launch, logs, and diagnostics
  */
@@ -10,12 +10,12 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
-import type { HaloConfig } from '../../types'
+import type { CafeConfig } from '../../types'
 import type { HealthCheckResult, HealthReport } from './types'
 
 interface SystemSectionProps {
-  config: HaloConfig | null
-  setConfig: (config: HaloConfig) => void
+  config: CafeConfig | null
+  setConfig: (config: CafeConfig) => void
 }
 
 export function SystemSection({ config, setConfig }: SystemSectionProps) {
@@ -70,7 +70,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
       const updatedConfig = {
         ...config,
         notifications: { ...config?.notifications, taskComplete: enabled }
-      } as HaloConfig
+      } as CafeConfig
       await api.setConfig({ notifications: updatedConfig.notifications })
       setConfig(updatedConfig)
     } catch (error) {

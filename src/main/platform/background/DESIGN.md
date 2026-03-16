@@ -1,4 +1,4 @@
-# platform/background -- Design Document
+﻿# platform/background -- Design Document
 
 > Author: AI Engineer (background module)
 > Date: 2026-02-21
@@ -6,7 +6,7 @@
 
 ## 1. Module Scope
 
-`platform/background` is the process-survival and browser-resource layer for Halo.
+`platform/background` is the process-survival and browser-resource layer for Cafe.
 It provides three capabilities:
 
 1. **Keep-Alive** -- Prevent the Electron process from exiting when the main window
@@ -56,11 +56,11 @@ Implementation in `index.ts`:
   on non-macOS. On macOS the quit sequence continues from `before-quit`.
 
 **`shouldKeepAlive()` role**: No longer gates process survival. Used solely to
-show a confirmation dialog when the user clicks "Quit Halo" from the tray menu
+show a confirmation dialog when the user clicks "Quit Cafe" from the tray menu
 while background tasks are active.
 
 Window restoration paths (macOS/Windows):
-- Tray "Show Halo" → `showMainWindow()`
+- Tray "Show Cafe" → `showMainWindow()`
 - macOS dock click → `app.on('activate')`
 - Windows tray click → `showMainWindow()`
 - Second instance launch → `app.on('second-instance')`

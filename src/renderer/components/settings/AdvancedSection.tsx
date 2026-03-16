@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Advanced Section Component
  * Developer-level settings: prompt profile, max turns
  */
@@ -7,19 +7,19 @@ import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
-import type { HaloConfig } from '../../types'
+import type { CafeConfig } from '../../types'
 
 interface AdvancedSectionProps {
-  config: HaloConfig | null
-  setConfig: (config: HaloConfig) => void
+  config: CafeConfig | null
+  setConfig: (config: CafeConfig) => void
 }
 
 export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
   const { t } = useTranslation()
 
   const [maxTurns, setMaxTurnsState] = useState(config?.agent?.maxTurns ?? 50)
-  const [promptProfile, setPromptProfileState] = useState<'official' | 'halo'>(
-    config?.agent?.promptProfile ?? 'halo'
+  const [promptProfile, setPromptProfileState] = useState<'official' | 'Cafe'>(
+    config?.agent?.promptProfile ?? 'Cafe'
   )
 
   const handleMaxTurnsChange = async (value: number) => {
@@ -29,7 +29,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
       const updatedConfig = {
         ...config,
         agent: { ...config?.agent, maxTurns: clamped }
-      } as HaloConfig
+      } as CafeConfig
       await api.setConfig({ agent: updatedConfig.agent })
       setConfig(updatedConfig)
     } catch (error) {
@@ -38,18 +38,18 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
     }
   }
 
-  const handlePromptProfileChange = async (profile: 'official' | 'halo') => {
+  const handlePromptProfileChange = async (profile: 'official' | 'Cafe') => {
     setPromptProfileState(profile)
     try {
       const updatedConfig = {
         ...config,
         agent: { ...config?.agent, promptProfile: profile }
-      } as HaloConfig
+      } as CafeConfig
       await api.setConfig({ agent: updatedConfig.agent })
       setConfig(updatedConfig)
     } catch (error) {
       console.error('[AdvancedSection] Failed to update promptProfile:', error)
-      setPromptProfileState(config?.agent?.promptProfile ?? 'halo')
+      setPromptProfileState(config?.agent?.promptProfile ?? 'Cafe')
     }
   }
 
@@ -95,9 +95,9 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
               <input
                 type="radio"
                 name="promptProfile"
-                value="halo"
-                checked={promptProfile === 'halo'}
-                onChange={() => handlePromptProfileChange('halo')}
+                value="Cafe"
+                checked={promptProfile === 'Cafe'}
+                onChange={() => handlePromptProfileChange('Cafe')}
                 className="mt-0.5 accent-primary"
               />
               <div>

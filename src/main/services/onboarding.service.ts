@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Onboarding Service - Handle first-time user onboarding data
  */
 
@@ -90,7 +90,7 @@ export function saveOnboardingConversation(
     const conversation: Conversation = {
       id: conversationId,
       spaceId,
-      title: 'Welcome to Halo',
+      title: 'Welcome to Cafe',
       messages: [
         {
           id: uuidv4(),

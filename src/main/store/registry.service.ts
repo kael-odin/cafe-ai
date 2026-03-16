@@ -16,7 +16,7 @@
 
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
-import { getConfig, saveConfig as saveHaloConfig } from '../services/config.service'
+import { getConfig, saveConfig as saveCafeConfig } from '../services/config.service'
 import { getAppManager } from '../apps/manager'
 import { AppAlreadyInstalledError } from '../apps/manager/errors'
 import { getAppRuntime } from '../apps/runtime'
@@ -49,7 +49,7 @@ const BUILTIN_REGISTRIES: RegistrySource[] = [
     url: 'https://openkursar.github.io/digital-human-protocol',
     enabled: true,
     isDefault: true,
-    sourceType: 'halo',
+    sourceType: 'Cafe',
   },
   {
     id: 'mcp-official',
@@ -84,7 +84,7 @@ const DEFAULT_CACHE_TTL_MS = 3600000
 /** Per-registry timeout for getIndex: prevents one slow registry from blocking all data */
 const REGISTRY_LOAD_TIMEOUT_MS = 15000
 
-/** Config key used in HaloConfig for store settings */
+/** Config key used in CafeConfig for store settings */
 const CONFIG_KEY = 'appStore'
 
 // ============================================
@@ -97,7 +97,7 @@ const RegistrySourceSchema = z.object({
   url: z.string().url(),
   enabled: z.boolean(),
   isDefault: z.boolean().optional(),
-  sourceType: z.enum(['halo', 'mcp-registry', 'smithery', 'claude-skills']).optional(),
+  sourceType: z.enum(['cafe', 'mcp-registry', 'smithery', 'claude-skills']).optional(),
   adapterConfig: z.record(z.string(), z.unknown()).optional(),
 })
 
@@ -397,7 +397,7 @@ export async function installFromStore(
     }
   }
 
-  // Fetch bundled skill specs if the adapter supports it (e.g. HaloAdapter)
+  // Fetch bundled skill specs if the adapter supports it (e.g. CafeAdapter)
   let bundledSkillSpecs: Map<string, SkillSpec> | undefined
   if (specWithStore.type !== 'skill' && typeof adapter.fetchBundledSkills === 'function') {
     const bundledDeps = (specWithStore.requires?.skills ?? [])
@@ -766,13 +766,13 @@ export function updateRegistryAdapterConfig(
 // ============================================
 
 /**
- * Load registry service configuration from the main HaloConfig.
+ * Load registry service configuration from the main CafeConfig.
  * Returns defaults if no configuration exists.
  */
 export function loadConfig(): RegistryServiceConfig {
   try {
-    const haloConfig = getConfig()
-    const storeConfig = (haloConfig as Record<string, unknown>)[CONFIG_KEY] as Record<string, unknown> | undefined
+    const CafeConfig = getConfig()
+    const storeConfig = (CafeConfig as Record<string, unknown>)[CONFIG_KEY] as Record<string, unknown> | undefined
 
     if (!storeConfig) {
       return {
@@ -808,7 +808,7 @@ export function loadConfig(): RegistryServiceConfig {
 }
 
 /**
- * Persist the current registry service configuration to the main HaloConfig.
+ * Persist the current registry service configuration to the main CafeConfig.
  */
 export function saveConfig(): void {
   saveConfigToFile()
@@ -1050,11 +1050,11 @@ function ensureInitialized(): void {
 }
 
 /**
- * Persist current config to the HaloConfig file.
+ * Persist current config to the CafeConfig file.
  */
 function saveConfigToFile(): void {
   try {
-    saveHaloConfig({
+    saveCafeConfig({
       [CONFIG_KEY]: {
         registries: config.registries,
         cacheTtlMs: config.cacheTtlMs,

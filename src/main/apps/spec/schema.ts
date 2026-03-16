@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/spec Zod Schemas
  *
  * Single source of truth for all App Spec type definitions.
@@ -396,7 +396,7 @@ const AppSpecCommonSchema = z.object({
 })
 
 /**
- * Automation (AI Digital Human) — Halo core type.
+ * Automation (AI Digital Human) — Cafe core type.
  * Requires system_prompt. Supports subscriptions, filters, memory, output, escalation.
  */
 export const AutomationSpecSchema = AppSpecCommonSchema.extend({

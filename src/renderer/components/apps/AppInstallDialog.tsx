@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AppInstallDialog
  *
  * Modal dialog for creating / installing an App.
@@ -42,7 +42,7 @@ const FREQUENCY_PRESETS = [
 
 const DEFAULT_YAML_TEMPLATE = `\
 # ============================================
-# Halo Digital Human Spec - Complete Example
+# Cafe Digital Human Spec - Complete Example
 # ============================================
 # This template shows ALL available fields.
 # Delete or modify sections as needed.
@@ -211,16 +211,16 @@ export function AppInstallDialog({ onClose }: AppInstallDialogProps) {
 
   // Get all spaces
   const currentSpace = useSpaceStore(state => state.currentSpace)
-  const haloSpace = useSpaceStore(state => state.haloSpace)
+  const CafeSpace = useSpaceStore(state => state.CafeSpace)
   const spaces = useSpaceStore(state => state.spaces)
 
-  // Combine all available spaces (haloSpace + dedicated spaces)
+  // Combine all available spaces (CafeSpace + dedicated spaces)
   const allSpaces = useMemo(() => {
     const result: Array<{ id: string; name: string; icon: string }> = []
-    if (haloSpace) result.push(haloSpace)
+    if (CafeSpace) result.push(CafeSpace)
     result.push(...spaces)
     return result
-  }, [haloSpace, spaces])
+  }, [CafeSpace, spaces])
 
   const [mode, setMode] = useState<InstallMode>('visual')
   const [form, setForm] = useState<VisualFormState>({ ...INITIAL_FORM })

@@ -1,12 +1,12 @@
-/**
+﻿/**
  * Agent Module - System Prompt
  *
- * Halo's custom system prompt for the Claude Code SDK.
- * This replaces the SDK's default 'claude_code' preset with Halo-specific instructions.
+ * Cafe's custom system prompt for the Claude Code SDK.
+ * This replaces the SDK's default 'claude_code' preset with Cafe-specific instructions.
  *
  * Two prompt profiles are available:
- * - 'official': Base prompt without Halo-specific optimizations
- * - 'halo': Optimized prompt with Halo improvements (Web Research strategy, etc.)
+ * - 'official': Base prompt without Cafe-specific optimizations
+ * - 'Cafe': Optimized prompt with Cafe improvements (Web Research strategy, etc.)
  *
  * Users can switch profiles in Settings > Advanced.
  */
@@ -34,7 +34,7 @@ export const DEFAULT_ALLOWED_TOOLS = [
 export type AllowedTool = (typeof DEFAULT_ALLOWED_TOOLS)[number]
 
 /** System prompt profile selection */
-export type PromptProfile = 'official' | 'halo'
+export type PromptProfile = 'official' | 'Cafe'
 
 // ============================================
 // System Prompt Context
@@ -58,7 +58,7 @@ export interface SystemPromptContext {
   isGitRepo?: boolean
   /** List of allowed tools (defaults to DEFAULT_ALLOWED_TOOLS) */
   allowedTools?: readonly string[]
-  /** Prompt profile to use (defaults to 'halo') */
+  /** Prompt profile to use (defaults to 'Cafe') */
   promptProfile?: PromptProfile
   /** Claude config directory path (defaults to platform-specific path) */
   claudeConfigDir?: string
@@ -69,26 +69,26 @@ export interface SystemPromptContext {
 // ============================================
 
 /**
- * Official system prompt — base version without Halo-specific optimizations.
+ * Official system prompt — base version without Cafe-specific optimizations.
  * Placeholders use {{VARIABLE_NAME}} format.
  */
 export const SYSTEM_PROMPT_OFFICIAL = `
-You are Halo, an AI assistant built with Claude Code. You have remote access, file management, and built-in AI browser capabilities. You help users with software engineering tasks.
+You are Cafe, an AI assistant built with Claude Code. You have remote access, file management, and built-in AI browser capabilities. You help users with software engineering tasks.
 
 IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
 
-If the user asks for help, inform them of Halo's capabilities:
+If the user asks for help, inform them of Cafe's capabilities:
 - General Assistance: Answer questions, provide advice, and help with daily tasks.
 - Get Things Done: Read, edit, and manage files in the current space.
-- Remote Access: Enable in Settings > Remote Access to access Halo via HTTP from other devices.
+- Remote Access: Enable in Settings > Remote Access to access Cafe via HTTP from other devices.
 - AI Browser: Toggle in bottom-left of input area. Enables ai-browser tools for web automation.
 - System Commands: Execute shell commands, manage files, organize desktop, and perform system operations.
-- Halo Digital Humans: Create and manage automated AI agents (also called "digital humans") that run on a schedule or in response to events.
+- Cafe Digital Humans: Create and manage automated AI agents (also called "digital humans") that run on a schedule or in response to events.
 
 
 # Tone and style
 - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
-- Your output will be rendered in Halo user's chat conversation. You can use Github-flavored markdown for formatting.
+- Your output will be rendered in Cafe user's chat conversation. You can use Github-flavored markdown for formatting.
 - Users can only see the final text output of your response. They do not see intermediate tool calls or text outputs during processing. Therefore, any response to the user's request MUST be placed in the final text output.
 - NEVER create files unless they're absolutely necessary for achieving your goal. ALWAYS prefer editing an existing file to creating a new one. This includes markdown files.
 
@@ -214,38 +214,38 @@ Today's date: {{TODAY}}
 </env>
 {{MODEL_INFO}}
 
-# Halo Directory Structure
-Halo uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
-- Halo config: ~/.cafe/ (stores spaces, settings, app data)
-- Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Halo's isolated Claude config)
+# Cafe Directory Structure
+Cafe uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
+- Cafe config: ~/.cafe/ (stores spaces, settings, app data)
+- Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Cafe's isolated Claude config)
 - Global skills: {{CLAUDE_CONFIG_DIR}}/skills/<skill-name>/SKILL.md
 - Space-scoped skills: <space-path>/.claude/skills/<skill-name>/SKILL.md
 
-When looking for configuration or skills, use these Halo-specific paths, not Claude Code's default ~/.claude/ directory.
+When looking for configuration or skills, use these Cafe-specific paths, not Claude Code's default ~/.claude/ directory.
 `.trim()
 
 /**
- * Halo-optimized system prompt — includes Halo-specific improvements.
+ * Cafe-optimized system prompt — includes Cafe-specific improvements.
  * Currently adds: Web Research strategy (prefer MCP web-search, combine with WebFetch).
  * Placeholders use {{VARIABLE_NAME}} format.
  */
-export const SYSTEM_PROMPT_HALO = `
-You are Halo, an AI assistant built with Claude Code. You have remote access, file management, and built-in AI browser capabilities. You help users with software engineering tasks.
+export const SYSTEM_PROMPT_Cafe = `
+You are Cafe, an AI assistant built with Claude Code. You have remote access, file management, and built-in AI browser capabilities. You help users with software engineering tasks.
 
 IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
 
-If the user asks for help, inform them of Halo's capabilities:
+If the user asks for help, inform them of Cafe's capabilities:
 - General Assistance: Answer questions, provide advice, and help with daily tasks.
 - Get Things Done: Read, edit, and manage files in the current space.
-- Remote Access: Enable in Settings > Remote Access to access Halo via HTTP from other devices.
+- Remote Access: Enable in Settings > Remote Access to access Cafe via HTTP from other devices.
 - AI Browser: Toggle in bottom-left of input area. Enables ai-browser tools for web automation.
 - System Commands: Execute shell commands, manage files, organize desktop, and perform system operations.
-- Halo Digital Humans: Create and manage automated AI agents (also called "digital humans") that run on a schedule or in response to events.
+- Cafe Digital Humans: Create and manage automated AI agents (also called "digital humans") that run on a schedule or in response to events.
 
 
 # Tone and style
 - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
-- Your output will be rendered in Halo user's chat conversation. You can use Github-flavored markdown for formatting.
+- Your output will be rendered in Cafe user's chat conversation. You can use Github-flavored markdown for formatting.
 - Users can only see the final text output of your response. They do not see intermediate tool calls or text outputs during processing. Therefore, any response to the user's request MUST be placed in the final text output.
 - NEVER create files unless they're absolutely necessary for achieving your goal. ALWAYS prefer editing an existing file to creating a new one. This includes markdown files.
 
@@ -377,14 +377,14 @@ Today's date: {{TODAY}}
 </env>
 {{MODEL_INFO}}
 
-# Halo Directory Structure
-Halo uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
-- Halo config: ~/.cafe/ (stores spaces, settings, app data)
-- Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Halo's isolated Claude config)
+# Cafe Directory Structure
+Cafe uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
+- Cafe config: ~/.cafe/ (stores spaces, settings, app data)
+- Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Cafe's isolated Claude config)
 - Global skills: {{CLAUDE_CONFIG_DIR}}/skills/<skill-name>/SKILL.md
 - Space-scoped skills: <space-path>/.claude/skills/<skill-name>/SKILL.md
 
-When looking for configuration or skills, use these Halo-specific paths, not Claude Code's default ~/.claude/ directory.
+When looking for configuration or skills, use these Cafe-specific paths, not Claude Code's default ~/.claude/ directory.
 `.trim()
 
 // ============================================
@@ -407,11 +407,11 @@ function applyTemplateVariables(template: string, ctx: SystemPromptContext): str
   if (!claudeConfigDir) {
     const home = os.homedir()
     if (process.platform === 'darwin') {
-      claudeConfigDir = `${home}/Library/Application Support/halo/claude-config`
+      claudeConfigDir = `${home}/Library/Application Support/Cafe/claude-config`
     } else if (process.platform === 'win32') {
-      claudeConfigDir = `${process.env.APPDATA || home + '/AppData/Roaming'}/halo/claude-config`
+      claudeConfigDir = `${process.env.APPDATA || home + '/AppData/Roaming'}/Cafe/claude-config`
     } else {
-      claudeConfigDir = `${home}/.config/halo/claude-config`
+      claudeConfigDir = `${home}/.config/Cafe/claude-config`
     }
   }
 
@@ -428,7 +428,7 @@ function applyTemplateVariables(template: string, ctx: SystemPromptContext): str
 
 /**
  * Build the complete system prompt with dynamic context.
- * Selects template based on promptProfile (defaults to 'halo').
+ * Selects template based on promptProfile (defaults to 'Cafe').
  *
  * @param ctx - Dynamic context for the prompt
  * @returns Complete system prompt string
@@ -436,7 +436,7 @@ function applyTemplateVariables(template: string, ctx: SystemPromptContext): str
 export function buildSystemPrompt(ctx: SystemPromptContext): string {
   const template = ctx.promptProfile === 'official'
     ? SYSTEM_PROMPT_OFFICIAL
-    : SYSTEM_PROMPT_HALO
+    : SYSTEM_PROMPT_Cafe
 
   return applyTemplateVariables(template, ctx)
 }

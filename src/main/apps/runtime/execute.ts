@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/runtime -- Run Execution Engine
  *
  * Core logic for executing a single automation App run.
@@ -97,7 +97,7 @@ const AUTO_CONTINUE_MESSAGE =
 const AUTO_CONTINUE_FINAL_MESSAGE =
   'FINAL REMINDER: You must call report_to_user NOW. ' +
   'This is your last chance to report results. Summarize whatever you have accomplished ' +
-  'and call mcp__halo-report__report_to_user immediately. ' +
+  'and call mcp__Cafe-report__report_to_user immediately. ' +
   'If you do not call it, this run will be marked as failed.'
 
 /** Session key prefix for automation runs */
@@ -277,7 +277,7 @@ export async function executeRun(options: ExecuteRunOptions): Promise<AppRunResu
       emitEntry
     )
 
-    // Create halo-notify MCP server for AI autonomous notifications
+    // Create Cafe-notify MCP server for AI autonomous notifications
     const notifyMcpServer = createNotifyToolServer({
       appId: app.id,
       appName: app.spec.name,
@@ -317,9 +317,9 @@ export async function executeRun(options: ExecuteRunOptions): Promise<AppRunResu
       },
       mcpServers: {
         ...requiredMcpServers,              // declared MCP dependencies
-        'halo-memory': memoryMcpServer,     // built-in: persistent memory
-        'halo-report': reportMcpServer,     // built-in: completion signal
-        'halo-notify': notifyMcpServer,     // built-in: user notification
+        'Cafe-memory': memoryMcpServer,     // built-in: persistent memory
+        'Cafe-report': reportMcpServer,     // built-in: completion signal
+        'Cafe-notify': notifyMcpServer,     // built-in: user notification
         ...(usesAIBrowser ? { 'ai-browser': createAIBrowserMcpServer(scopedBrowserCtx, workDir) } : {}),
       },
     })
@@ -666,7 +666,7 @@ async function processStream(
             }
             if (block.type === 'tool_use') {
               toolUseCount++
-              // Detect report_to_user calls (MCP name: mcp__halo-report__report_to_user)
+              // Detect report_to_user calls (MCP name: mcp__Cafe-report__report_to_user)
               if (typeof block.name === 'string' && block.name.includes('report_to_user')) {
                 result.reportToolCalled = true
               }

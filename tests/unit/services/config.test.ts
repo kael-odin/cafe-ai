@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Config Service Unit Tests
  *
  * Tests for the configuration management service.
@@ -13,16 +13,16 @@ import path from 'path'
 import {
   getConfig,
   saveConfig,
-  getHaloDir,
+  getCafeDir,
   getConfigPath,
   initializeApp
 } from '../../../src/main/services/config.service'
 
 describe('Config Service', () => {
-  describe('getHaloDir', () => {
-    it('should return path to .halo directory in home', () => {
-      const haloDir = getHaloDir()
-      expect(haloDir).toContain('.halo')
+  describe('getCafeDir', () => {
+    it('should return path to .Cafe directory in home', () => {
+      const CafeDir = getCafeDir()
+      expect(CafeDir).toContain('.Cafe')
     })
   })
 
@@ -30,7 +30,7 @@ describe('Config Service', () => {
     it('should return path to config.json', () => {
       const configPath = getConfigPath()
       expect(configPath).toContain('config.json')
-      expect(configPath).toContain('.halo')
+      expect(configPath).toContain('.Cafe')
     })
   })
 
@@ -38,10 +38,10 @@ describe('Config Service', () => {
     it('should create necessary directories', async () => {
       await initializeApp()
 
-      const haloDir = getHaloDir()
-      expect(fs.existsSync(haloDir)).toBe(true)
-      expect(fs.existsSync(path.join(haloDir, 'temp'))).toBe(true)
-      expect(fs.existsSync(path.join(haloDir, 'spaces'))).toBe(true)
+      const CafeDir = getCafeDir()
+      expect(fs.existsSync(CafeDir)).toBe(true)
+      expect(fs.existsSync(path.join(CafeDir, 'temp'))).toBe(true)
+      expect(fs.existsSync(path.join(CafeDir, 'spaces'))).toBe(true)
     })
 
     it('should create default config if not exists', async () => {

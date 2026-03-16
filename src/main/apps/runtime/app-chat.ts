@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/runtime -- App Chat
  *
  * Interactive chat entry point for automation Apps.
@@ -176,7 +176,7 @@ export async function sendAppChatMessage(
 
   const mcpServers: Record<string, any> = {
     ...(dbMcpServers ?? {}),
-    'halo-memory': memoryMcpServer,
+    'Cafe-memory': memoryMcpServer,
     ...(usesAIBrowser ? { 'ai-browser': createAIBrowserMcpServer(scopedBrowserCtx, workDir) } : {}),
   }
   console.log(`[AppChat][${appId}] MCP servers: [${Object.keys(mcpServers).join(', ')}], aiBrowser=${usesAIBrowser}`)

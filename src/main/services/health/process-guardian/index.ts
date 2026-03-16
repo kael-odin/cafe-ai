@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Process Guardian Module
  *
  * Central module for process tracking and orphan cleanup.
@@ -26,8 +26,8 @@ export {
 export {
   cleanupOrphans,
   forceKillProcess,
-  isHaloManagedProcess,
-  getRunningHaloProcesses,
+  isCafeManagedProcess,
+  getRunningCafeProcesses,
   verifyCleanup
 } from './cleaner'
 

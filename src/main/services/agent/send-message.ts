@@ -1,4 +1,4 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
  * Agent Module - Send Message
  *
  * Core message sending logic including:
@@ -18,7 +18,7 @@ import {
   createAIBrowserMcpServer
 } from '../ai-browser'
 import { createWebSearchMcpServer } from '../web-search'
-import { createHaloAppsMcpServer } from '../../apps/conversation-mcp'
+import { createCafeAppsMcpServer } from '../../apps/conversation-mcp'
 import type {
   AgentRequest,
   SessionConfig,
@@ -112,7 +112,7 @@ export async function sendMessage(
   try {
     // Get API credentials and resolve for SDK use (inside try/catch so errors reach frontend)
     const credentials = await getApiCredentials(config)
-    console.log(`[Agent] sendMessage using: ${credentials.provider}, model: ${credentials.model}, prompt: ${config.agent?.promptProfile ?? 'halo'}`)
+    console.log(`[Agent] sendMessage using: ${credentials.provider}, model: ${credentials.model}, prompt: ${config.agent?.promptProfile ?? 'Cafe'}`)
 
     // Resolve credentials for SDK (handles OpenAI compat router for non-Anthropic providers)
     const resolvedCredentials = await resolveCredentialsForSdk(credentials)
@@ -134,9 +134,9 @@ export async function sendMessage(
       console.log(`[Agent][${conversationId}] AI Browser MCP server added`)
     }
 
-    // Always add halo-apps MCP for automation control
-    mcpServers['halo-apps'] = createHaloAppsMcpServer(spaceId)
-    console.log(`[Agent][${conversationId}] Halo Apps MCP server added`)
+    // Always add Cafe-apps MCP for automation control
+    mcpServers['Cafe-apps'] = createCafeAppsMcpServer(spaceId)
+    console.log(`[Agent][${conversationId}] Cafe Apps MCP server added`)
 
     // Always add web-search MCP for web searching (replaces Claude's WebSearch)
     mcpServers['web-search'] = createWebSearchMcpServer()

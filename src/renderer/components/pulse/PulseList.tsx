@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PulseList - Shared presentational component for rendering pulse task items
  *
  * Pure list rendering of active tasks, unseen completions, and pinned conversations.
@@ -46,8 +46,8 @@ export function navigateToConversation(spaceId: string, conversationId: string) 
 
   // Different space - switch space first
   const spaceStore = useSpaceStore.getState()
-  const targetSpace = spaceStore.haloSpace?.id === spaceId
-    ? spaceStore.haloSpace
+  const targetSpace = spaceStore.CafeSpace?.id === spaceId
+    ? spaceStore.CafeSpace
     : spaceStore.spaces.find(s => s.id === spaceId)
 
   if (!targetSpace) return
@@ -72,19 +72,19 @@ interface PulseListProps {
 export function PulseList({ maxHeight = '360px', onItemClick, compact = false }: PulseListProps) {
   const { t } = useTranslation()
   const rawItems = usePulseItems()
-  const haloSpace = useSpaceStore(state => state.haloSpace)
+  const CafeSpace = useSpaceStore(state => state.CafeSpace)
   const spaces = useSpaceStore(state => state.spaces)
 
   // Enrich items with proper space names from space store
   const items = useMemo(() => {
     return rawItems.map(item => {
       if (item.spaceName !== item.spaceId) return item
-      const space = haloSpace?.id === item.spaceId
-        ? haloSpace
+      const space = CafeSpace?.id === item.spaceId
+        ? CafeSpace
         : spaces.find(s => s.id === item.spaceId)
       return space ? { ...item, spaceName: space.isTemp ? 'Cafe' : space.name } : item
     })
-  }, [rawItems, haloSpace, spaces])
+  }, [rawItems, CafeSpace, spaces])
 
   const handleItemClick = useCallback((item: PulseItem) => {
     navigateToConversation(item.spaceId, item.conversationId)

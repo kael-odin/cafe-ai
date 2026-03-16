@@ -1,4 +1,4 @@
-# platform/memory -- Design Document
+﻿# platform/memory -- Design Document
 
 > Date: 2026-02-23
 > Status: V3 Implementation
@@ -7,7 +7,7 @@
 
 ## 1. Architecture Overview
 
-The memory module provides persistent, cross-session memory for AI agents in Halo.
+The memory module provides persistent, cross-session memory for AI agents in Cafe.
 
 **V3 core changes from V2:**
 
@@ -169,7 +169,7 @@ the recent timeline without loading full content.
 ## 4. Memory File Structure on Disk
 
 ```
-{spacePath}/.halo/apps/{appId}/
+{spacePath}/.Cafe/apps/{appId}/
   memory.md              -- Active memory (# now + # History)
   memory/
     run/                 -- Per-run session summaries (auto-generated)

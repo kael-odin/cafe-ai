@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Chat Store - Conversation and messaging state
  *
  * Architecture:
@@ -1443,7 +1443,7 @@ function _computePulseItems(state: ChatState): PulseItem[] {
   const addedIds = new Set<string>()
 
   const getSpaceName = (spaceId: string): string => {
-    return spaceId === 'halo-temp' ? 'Cafe' : spaceId
+    return spaceId === 'Cafe-temp' ? 'Cafe' : spaceId
   }
 
   // 1. Active sessions

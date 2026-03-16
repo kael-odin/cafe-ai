@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Diagnostics Collector - Gather system information for debugging
  *
  * Collects data from various sources for diagnostic reports.
@@ -8,7 +8,7 @@
 import { app } from 'electron'
 import { freemem, totalmem } from 'os'
 import type { DiagnosticReport } from '../types'
-import { getConfig, getHaloDir } from '../../config.service'
+import { getConfig, getCafeDir } from '../../config.service'
 import { getHealthState } from '../orchestrator'
 import { getRegistryStats } from '../process-guardian'
 import { getRecentEvents } from '../health-checker'

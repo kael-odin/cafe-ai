@@ -8,7 +8,7 @@
  * Proxy strategy: queries are forwarded on demand, one page at a time.
  */
 
-import { fetchWithTimeout } from './halo.adapter'
+import { fetchWithTimeout } from './cafe.adapter'
 import { sanitizeSlug } from './mcp-registry.adapter'
 import type { RegistrySource, RegistryEntry, StoreQueryParams } from '../../../shared/store/store-types'
 import type { AppSpec, McpSpec } from '../../apps/spec/schema'
@@ -50,7 +50,7 @@ export class SmitheryAdapter implements RegistryAdapter {
     const url = `${baseUrl}/servers?q=${encodeURIComponent(params.search ?? '')}&page=${params.page}&pageSize=${pageSize}`
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'User-Agent': 'Halo-Store/1.0',
+      'User-Agent': 'Cafe-Store/1.0',
     }
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`

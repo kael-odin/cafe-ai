@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Home Page - Space list view
  */
 
@@ -30,7 +30,7 @@ const isWebMode = api.isRemoteMode()
 export function HomePage() {
   const { t } = useTranslation()
   const { setView } = useAppStore()
-  const { haloSpace, spaces, loadSpaces, setCurrentSpace, refreshCurrentSpace, createSpace, updateSpace, deleteSpace } = useSpaceStore()
+  const { CafeSpace, spaces, loadSpaces, setCurrentSpace, refreshCurrentSpace, createSpace, updateSpace, deleteSpace } = useSpaceStore()
   const { apps, loadApps } = useAppsStore()
   const { setInitialAppId } = useAppsPageStore()
 
@@ -52,7 +52,7 @@ export function HomePage() {
   // Path selection state
   const [useCustomPath, setUseCustomPath] = useState(false)
   const [customPath, setCustomPath] = useState<string | null>(null)
-  const [defaultPath, setDefaultPath] = useState<string>('~/.halo/spaces')
+  const [defaultPath, setDefaultPath] = useState<string>('~/.Cafe/spaces')
 
   // Load spaces on mount
   useEffect(() => {
@@ -148,7 +148,7 @@ export function HomePage() {
     // Check if it's a project-linked space:
     // - New centralized spaces with project: have workingDir
     // - Legacy custom spaces: path doesn't end with /spaces/{uuid}
-    //   (centralized paths are always {haloDir}/spaces/{uuid-v4}, uuid is 36 chars)
+    //   (centralized paths are always {CafeDir}/spaces/{uuid-v4}, uuid is 36 chars)
     const lastSegment = space.path.split(/[/\\]/).pop() ?? ''
     const isCentralizedSpace = space.path.includes('/spaces/') && lastSegment.length === 36
     const isProjectSpace = !!space.workingDir || !isCentralizedSpace
@@ -232,11 +232,11 @@ export function HomePage() {
         {/* Primary entry cards: Cafe Space + Apps */}
         <div className="grid grid-cols-2 gap-4 mb-8 animate-fade-in">
           {/* Cafe Space card */}
-          {haloSpace && (
+          {CafeSpace && (
             <div
-              data-onboarding="halo-space"
-              onClick={() => handleSpaceClick(haloSpace)}
-              className="halo-space-card p-5 rounded-xl cursor-pointer flex flex-col justify-between min-h-[160px]"
+              data-onboarding="Cafe-space"
+              onClick={() => handleSpaceClick(CafeSpace)}
+              className="Cafe-space-card p-5 rounded-xl cursor-pointer flex flex-col justify-between min-h-[160px]"
             >
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />

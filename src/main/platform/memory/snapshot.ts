@@ -1,4 +1,4 @@
-/**
+﻿/**
  * platform/memory -- Memory Snapshot
  *
  * Builds a structural snapshot of an app's memory.md and archive directory.
@@ -261,7 +261,7 @@ export function createMemoryStatusMcpServer(caller: MemoryCallerScope) {
   )
 
   return createSdkMcpServer({
-    name: 'halo-memory',
+    name: 'Cafe-memory',
     version: '1.0.0',
     tools: [memory_status],
   })

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit Tests: apps/spec — End-to-End Integration
  *
  * Tests the full YAML-to-validated-AppSpec pipeline.
@@ -441,7 +441,7 @@ type: automation
 const fullSkillYaml = `
 name: "Code Review Expert"
 version: "2.1.0"
-author: "halo-official"
+author: "Cafe-official"
 description: "Expert code review with security and performance analysis"
 type: skill
 icon: "code-review"
@@ -501,7 +501,7 @@ const extensionYaml = `
 name: "Dark Theme"
 version: "1.0"
 author: "themes-community"
-description: "Dark color theme for Halo"
+description: "Dark color theme for Cafe"
 type: extension
 icon: "moon"
 `

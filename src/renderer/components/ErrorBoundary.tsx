@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Error Boundary - Catches React rendering errors
  *
  * Wraps the entire app to catch component errors and display a user-friendly UI.
@@ -6,7 +6,7 @@
  */
 
 import { Component, ReactNode } from 'react'
-import { HaloLogo } from './brand/HaloLogo'
+import { CafeLogo } from './brand/CafeLogo'
 
 interface Props {
   children: ReactNode
@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-xl w-full">
             {/* Logo */}
             <div className="flex justify-center mb-6 opacity-60">
-              <HaloLogo size="md" />
+              <CafeLogo size="md" />
             </div>
 
             {/* Title */}

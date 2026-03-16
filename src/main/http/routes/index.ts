@@ -39,7 +39,7 @@ import * as storeController from '../../controllers/store.controller'
 
 // Helper: get working directory for a space
 function getWorkingDir(spaceId: string): string {
-  if (spaceId === 'halo-temp') {
+  if (spaceId === 'cafe-temp') {
     return join(getTempSpacePath(), 'artifacts')
   }
   const space = getSpace(spaceId)
@@ -221,8 +221,8 @@ export function registerApiRoutes(app: Express): void {
   })
 
   // ===== Space Routes =====
-  app.get('/api/spaces/halo', async (req: Request, res: Response) => {
-    const result = spaceController.getHaloTempSpace()
+  app.get('/api/spaces/cafe', async (req: Request, res: Response) => {
+    const result = spaceController.getCafeTempSpace()
     res.json(result)
   })
 
@@ -548,7 +548,7 @@ export function registerApiRoutes(app: Express): void {
 
       // For simplicity, just download the first file if archiver is not available
       // A proper implementation would use archiver to create a zip
-      const fileName = spaceId === 'halo-temp' ? 'halo-artifacts' : basename(workDir)
+      const fileName = spaceId === 'cafe-temp' ? 'cafe-artifacts' : basename(workDir)
       res.setHeader('Content-Type', 'application/gzip')
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}.tar.gz"`)
 

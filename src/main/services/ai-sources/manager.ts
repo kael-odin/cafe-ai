@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI Source Manager (v2)
  *
  * Central manager for all AI source providers.
@@ -140,7 +140,7 @@ class AISourceManager {
   }
 
   /**
-   * Get aiSources config from HaloConfig (v2 format)
+   * Get aiSources config from CafeConfig (v2 format)
    */
   private getAiSourcesConfig(): AISourcesConfig {
     const config = getConfig() as any

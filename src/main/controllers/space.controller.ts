@@ -1,10 +1,10 @@
-/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
  * Space Controller - Unified business logic for space operations
  * Used by both IPC handlers and HTTP routes
  */
 
 import {
-  getHaloSpace,
+  getCafeSpace,
   listSpaces as serviceListSpaces,
   createSpace as serviceCreateSpace,
   deleteSpace as serviceDeleteSpace,
@@ -20,11 +20,11 @@ export interface ControllerResponse<T = unknown> {
 }
 
 /**
- * Get the Halo temp space
+ * Get the Cafe temp space
  */
-export function getHaloTempSpace(): ControllerResponse {
+export function getCafeTempSpace(): ControllerResponse {
   try {
-    const space = getHaloSpace()
+    const space = getCafeSpace()
     return { success: true, data: space }
   } catch (error: unknown) {
     const err = error as Error

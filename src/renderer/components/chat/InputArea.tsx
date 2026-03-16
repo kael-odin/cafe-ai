@@ -414,10 +414,10 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
         {/* Input container */}
         <div
           className={`
-            relative flex flex-col rounded-2xl transition-all duration-200
+            relative flex flex-col rounded-2xl transition-all duration-300
             ${isFocused
-              ? 'ring-1 ring-primary/30 bg-card shadow-sm'
-              : 'bg-secondary/50 hover:bg-secondary/70'
+              ? 'ring-2 ring-primary/40 bg-card shadow-lg shadow-primary/5'
+              : 'bg-secondary/50 hover:bg-secondary/70 hover:shadow-md'
             }
             ${isGenerating ? 'opacity-60' : ''}
             ${isDragOver ? 'ring-2 ring-primary/50 bg-primary/5' : ''}

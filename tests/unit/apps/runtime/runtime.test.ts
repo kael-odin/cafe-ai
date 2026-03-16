@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for apps/runtime
  *
  * Tests the App execution engine including:
@@ -65,7 +65,7 @@ vi.mock('../../../../src/main/services/agent/sdk-config', () => ({
 // Mock config service (used by execute.ts)
 vi.mock('../../../../src/main/services/config.service', () => ({
   getConfig: vi.fn().mockReturnValue({}),
-  getTempSpacePath: vi.fn().mockReturnValue('/tmp/halo-test/temp'),
+  getTempSpacePath: vi.fn().mockReturnValue('/tmp/Cafe-test/temp'),
 }))
 
 // Mock space service (used by index.ts)

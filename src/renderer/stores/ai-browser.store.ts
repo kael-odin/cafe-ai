@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI Browser Store - State management for AI Browser mode
  *
  * Manages the AI Browser feature toggle and related state.
@@ -106,7 +106,7 @@ export const useAIBrowserStore = create<AIBrowserState>()(
       },
     }),
     {
-      name: 'halo-ai-browser',
+      name: 'Cafe-ai-browser',
       // Only persist the default preference
       partialize: (state) => ({
         defaultEnabled: state.defaultEnabled,

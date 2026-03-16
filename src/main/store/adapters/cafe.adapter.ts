@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cafe Adapter
  *
  * Implements the original Cafe registry protocol:
@@ -58,7 +58,7 @@ const RegistryIndexSchema = z.object({
 
 // ── Adapter ────────────────────────────────────────────────────────────────
 
-export class HaloAdapter implements RegistryAdapter {
+export class CafeAdapter implements RegistryAdapter {
   readonly strategy = 'mirror' as const
 
   async fetchIndex(source: RegistrySource): Promise<RegistryIndex> {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/runtime/sources -- WebhookSource
  *
  * Event source adapter that mounts a `POST /hooks/:path*` route on the
@@ -15,7 +15,7 @@
  *   `"wh:{path}:{body-hash}"` for idempotency against retries.
  *
  * Security:
- * - The /hooks/* endpoint is NOT behind the Halo auth middleware because
+ * - The /hooks/* endpoint is NOT behind the Cafe auth middleware because
  *   external services (GitHub, Stripe, etc.) need to POST without an
  *   auth token.
  * - Per-hook HMAC signature verification is performed when a secret is

@@ -8,7 +8,7 @@
  * No full-index download.
  */
 
-import { fetchWithTimeout } from './halo.adapter'
+import { fetchWithTimeout } from './cafe.adapter'
 import type { RegistrySource, RegistryEntry, StoreQueryParams } from '../../../shared/store/store-types'
 import type { AppSpec, McpSpec } from '../../apps/spec/schema'
 import type { RegistryAdapter, AdapterQueryResult } from './types'
@@ -82,7 +82,7 @@ export class McpRegistryAdapter implements RegistryAdapter {
     }
 
     const response = await fetchWithTimeout(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Halo-Store/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Cafe-Store/1.0' },
     })
 
     if (!response.ok) {

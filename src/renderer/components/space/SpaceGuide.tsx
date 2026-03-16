@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SpaceGuide - Collapsible guide component for explaining space concepts
  *
  * Features:
@@ -20,7 +20,7 @@ import {
 import { useTranslation } from '../../i18n'
 
 // localStorage key for guide state
-const GUIDE_STATE_KEY = 'halo-space-guide-expanded'
+const GUIDE_STATE_KEY = 'Cafe-space-guide-expanded'
 
 export function SpaceGuide() {
   const { t } = useTranslation()
@@ -124,11 +124,11 @@ export function SpaceGuide() {
           </div>
 
           {/* Warning section - keep separate with subtle top border */}
-          <div className="px-3 py-2.5 sm:p-3 bg-halo-warning/5 border-t border-border/50">
+          <div className="px-3 py-2.5 sm:p-3 bg-Cafe-warning/5 border-t border-border/50">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-halo-warning flex-shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-Cafe-warning flex-shrink-0" />
               <p className="text-xs text-muted-foreground">
-                <span className="text-halo-warning font-medium">{t('AI has delete permissions')}</span>
+                <span className="text-Cafe-warning font-medium">{t('AI has delete permissions')}</span>
                 {t(', be mindful of backing up important files')}
               </p>
             </div>

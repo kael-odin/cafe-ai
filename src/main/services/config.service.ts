@@ -300,7 +300,7 @@ export function onApiConfigChange(handler: ApiConfigChangeHandler): () => void {
 }
 
 // Types (shared with renderer)
-interface HaloConfig {
+interface CafeConfig {
   api: {
     provider: 'anthropic' | 'openai' | 'custom'
     apiKey: string
@@ -324,7 +324,7 @@ interface HaloConfig {
   // Agent behavior configuration
   agent?: {
     maxTurns: number
-    promptProfile?: 'official' | 'halo'
+    promptProfile?: 'official' | 'Cafe'
   }
   remoteAccess: {
     enabled: boolean
@@ -375,21 +375,21 @@ interface McpStdioServerConfig {
   args?: string[]
   env?: Record<string, string>
   timeout?: number
-  disabled?: boolean  // Halo extension: temporarily disable this server
+  disabled?: boolean  // Cafe extension: temporarily disable this server
 }
 
 interface McpHttpServerConfig {
   type: 'http'
   url: string
   headers?: Record<string, string>
-  disabled?: boolean  // Halo extension: temporarily disable this server
+  disabled?: boolean  // Cafe extension: temporarily disable this server
 }
 
 interface McpSseServerConfig {
   type: 'sse'
   url: string
   headers?: Record<string, string>
-  disabled?: boolean  // Halo extension: temporarily disable this server
+  disabled?: boolean  // Cafe extension: temporarily disable this server
 }
 
 // Paths
@@ -417,10 +417,6 @@ export function getCafeDir(): string {
   return join(homedir(), '.cafe')
 }
 
-export function getHaloDir(): string {
-  return getCafeDir()
-}
-
 export function getConfigPath(): string {
   return join(getCafeDir(), 'config.json')
 }
@@ -437,7 +433,7 @@ export function getSpacesDir(): string {
 const DEFAULT_MODEL = 'claude-opus-4-5-20251101'
 
 // Default configuration
-const DEFAULT_CONFIG: HaloConfig = {
+const DEFAULT_CONFIG: CafeConfig = {
   api: {
     provider: 'anthropic',
     apiKey: '',
@@ -463,7 +459,7 @@ const DEFAULT_CONFIG: HaloConfig = {
   },
   agent: {
     maxTurns: 999,
-    promptProfile: 'halo'
+    promptProfile: 'Cafe'
   },
   remoteAccess: {
     enabled: false,
@@ -729,14 +725,14 @@ function getAiSourcesSignature(aiSources?: AISourcesConfig): string {
 
 // Initialize app directories
 export async function initializeApp(): Promise<void> {
-  const haloDir = getHaloDir()
+  const CafeDir = getCafeDir()
   const tempDir = getTempSpacePath()
   const spacesDir = getSpacesDir()
   const tempArtifactsDir = join(tempDir, 'artifacts')
   const tempConversationsDir = join(tempDir, 'conversations')
 
   // Create directories if they don't exist
-  const dirs = [haloDir, tempDir, spacesDir, tempArtifactsDir, tempConversationsDir]
+  const dirs = [CafeDir, tempDir, spacesDir, tempArtifactsDir, tempConversationsDir]
   for (const dir of dirs) {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true })
@@ -762,7 +758,7 @@ export async function initializeApp(): Promise<void> {
 }
 
 // Get configuration
-export function getConfig(): HaloConfig {
+export function getConfig(): CafeConfig {
   const configPath = getConfigPath()
 
   if (!existsSync(configPath)) {
@@ -798,7 +794,7 @@ export function getConfig(): HaloConfig {
 }
 
 // Save configuration
-export function saveConfig(config: Partial<HaloConfig>): HaloConfig {
+export function saveConfig(config: Partial<CafeConfig>): CafeConfig {
   const currentConfig = getConfig()
   const newConfig = { ...currentConfig, ...config }
   const previousAiSourcesSignature = getAiSourcesSignature(currentConfig.aiSources)

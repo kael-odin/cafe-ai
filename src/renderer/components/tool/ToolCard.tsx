@@ -135,10 +135,10 @@ export function ToolCard({ toolCall, conversationId }: ToolCardProps) {
   }
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${status.className}`}>
+    <div className={`border rounded-xl overflow-hidden transition-all duration-300 ${status.className} hover:shadow-md`}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2.5 bg-secondary/30 cursor-pointer hover:bg-secondary/50 transition-colors"
+        className="flex items-center justify-between px-3 py-2.5 bg-secondary/30 cursor-pointer hover:bg-secondary/50 transition-all duration-200"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2.5">

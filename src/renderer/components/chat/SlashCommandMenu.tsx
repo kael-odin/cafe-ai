@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SlashCommandMenu - Autocomplete popup for "/" quick-input in the chat input area.
  *
  * Behaviour:
@@ -14,7 +14,7 @@
  * keeps focus throughout — this component is purely presentational.
  *
  * Design:
- *  - Follows Halo's existing dropdown language: bg-popover, border-border, rounded-xl, shadow-lg.
+ *  - Follows Cafe's existing dropdown language: bg-popover, border-border, rounded-xl, shadow-lg.
  *  - Selected row: subtle bg-primary/10 + left accent bar (border-l-2 border-primary).
  *  - Hover: hover:bg-muted/50 — matches InputArea's attachment menu items.
  *  - Category badge: neutral muted pill, no bright colours.

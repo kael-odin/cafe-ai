@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ManualAddDialog
  *
  * Dialog for manually adding an MCP server or Skill (without going through the App Store).
@@ -160,14 +160,14 @@ function McpForm({ onClose, installApp, loadApps }: FormProps) {
   const [editMode, setEditMode] = useState<EditMode>('visual')
 
   // Space selector
-  const haloSpace = useSpaceStore(state => state.haloSpace)
+  const CafeSpace = useSpaceStore(state => state.CafeSpace)
   const spaces = useSpaceStore(state => state.spaces)
   const allSpaces = useMemo(() => {
     const result: Array<{ id: string; name: string }> = []
-    if (haloSpace) result.push(haloSpace)
+    if (CafeSpace) result.push(CafeSpace)
     result.push(...spaces)
     return result
-  }, [haloSpace, spaces])
+  }, [CafeSpace, spaces])
   const [selectedSpaceId, setSelectedSpaceId] = useState(GLOBAL_SCOPE)
 
   // Visual fields

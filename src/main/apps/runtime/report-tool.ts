@@ -1,4 +1,4 @@
-/**
+﻿/**
  * apps/runtime -- report_to_user MCP Tool
  *
  * Creates an SDK MCP server providing the `report_to_user` tool.
@@ -213,7 +213,7 @@ export function createReportToolServer(
   )
 
   return createSdkMcpServer({
-    name: 'halo-report',
+    name: 'Cafe-report',
     version: '1.0.0',
     tools: [reportTool],
   })

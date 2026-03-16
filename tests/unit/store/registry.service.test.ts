@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { mkdirSync } from "fs"
 import { join } from "path"
 import { homedir } from "os"
@@ -48,7 +48,7 @@ describe("registry.service", () => {
   beforeEach(() => {
     fetchMock.mockReset()
     vi.stubGlobal("fetch", fetchMock)
-    mkdirSync(join(homedir(), ".halo-dev"), { recursive: true })
+    mkdirSync(join(homedir(), ".Cafe-dev"), { recursive: true })
     getAppManagerMock.mockReset()
     getAppRuntimeMock.mockReset()
     getAppManagerMock.mockReturnValue(null)

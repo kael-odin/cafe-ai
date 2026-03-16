@@ -97,10 +97,10 @@ export function ArtifactCard({ artifact }: ArtifactCardProps) {
       onMouseLeave={() => setIsHovered(false)}
       className={`
         w-full artifact-card p-2.5 rounded-lg text-left
-        transition-all duration-200 group cursor-pointer
+        transition-all duration-300 group cursor-pointer
         ${isHovered
-          ? 'bg-secondary shadow-sm'
-          : 'bg-secondary/50 hover:bg-secondary/80'
+          ? 'bg-secondary shadow-md -translate-y-0.5'
+          : 'bg-secondary/50 hover:bg-secondary/80 hover:shadow-sm'
         }
       `}
       title={canViewInCanvas
