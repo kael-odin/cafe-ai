@@ -18,7 +18,7 @@ export function SplashScreen() {
 
   return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-background">
-      {/* Halo Logo */}
+      {/* Cafe Logo */}
       <div
         className={`transition-all duration-1000 ${
           animate ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
@@ -33,7 +33,7 @@ export function SplashScreen() {
           animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
       >
-        Halo
+        Cafe
       </h1>
 
       {/* Tagline */}

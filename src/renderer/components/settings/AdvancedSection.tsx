@@ -86,11 +86,11 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
               />
               <div>
                 <p className="font-medium text-sm">{t('Official')}</p>
-                <p className="text-xs text-muted-foreground">{t('Base prompt without Halo-specific optimizations')}</p>
+                <p className="text-xs text-muted-foreground">{t('Base prompt without Cafe-specific optimizations')}</p>
               </div>
             </label>
 
-            {/* Halo Optimized */}
+            {/* Cafe Optimized */}
             <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
               <input
                 type="radio"
@@ -101,8 +101,8 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
                 className="mt-0.5 accent-primary"
               />
               <div>
-                <p className="font-medium text-sm">{t('Halo Optimized')}</p>
-                <p className="text-xs text-muted-foreground">{t('Includes Halo-specific improvements (Web Research strategy, etc.)')}</p>
+                <p className="font-medium text-sm">{t('Cafe Optimized')}</p>
+                <p className="text-xs text-muted-foreground">{t('Includes Cafe-specific improvements (Web Research strategy, etc.)')}</p>
               </div>
             </label>
           </div>

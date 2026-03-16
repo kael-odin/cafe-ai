@@ -271,7 +271,7 @@ export function stopSessionCleanup(): void {
  * Project directory naming rule (cross-platform):
  *   Replace all non-alphanumeric characters with '-' (same as Claude Code CLI)
  *   e.g., /Users/fly/Desktop/myproject -> -Users-fly-Desktop-myproject
- *   e.g., /Volumes/one_tb/code2/hello-halo -> -Volumes-one-tb-code2-hello-halo
+ *   e.g., /Volumes/one_tb/code2/cafe -> -Volumes-one-tb-code2-cafe
  *
  * @param workDir - Working directory (used to compute project directory name)
  * @param sessionId - Session ID

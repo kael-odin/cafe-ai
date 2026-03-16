@@ -496,7 +496,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
               onPaste={handlePaste}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder={placeholder || t('Type a message, let Halo help you...')}
+              placeholder={placeholder || t('Type a message, let Cafe help you...')}
               disabled={isGenerating}
               readOnly={isOnboardingSendStep}
               rows={1}

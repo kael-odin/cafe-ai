@@ -164,7 +164,7 @@ export function createAppManagerService(deps: AppManagerDeps): AppManagerService
 
   /**
    * Resolve the work directory path for an App.
-   * Space-scoped: {spacePath}/.halo/apps/{appId}/
+   * Space-scoped: {spacePath}/.cafe/apps/{appId}/
    * Global: {haloDir}/apps/{appId}/
    */
   function resolveWorkDir(appId: string, spaceId: string | null): string {
@@ -175,7 +175,7 @@ export function createAppManagerService(deps: AppManagerDeps): AppManagerService
     if (!spacePath) {
       throw new SpaceNotFoundError(spaceId)
     }
-    return join(spacePath, '.halo', 'apps', appId)
+    return join(spacePath, '.cafe', 'apps', appId)
   }
 
   /**

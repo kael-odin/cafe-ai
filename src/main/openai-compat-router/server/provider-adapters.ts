@@ -87,8 +87,8 @@ const openRouterAdapter: ProviderAdapter = {
 
   getExtraHeaders(): Record<string, string> {
     return {
-      'HTTP-Referer': 'https://hello-halo.cc/',
-      'X-Title': 'Halo'
+      'HTTP-Referer': 'https://github.com/kael-odin/cafe',
+      'X-Title': 'Cafe'
     }
   }
 }

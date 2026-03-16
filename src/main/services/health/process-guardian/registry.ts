@@ -4,7 +4,7 @@
  * Manages a disk-based registry of Halo-managed processes.
  * Uses Instance ID mechanism for safe orphan detection.
  *
- * Location: ~/.halo/.health-registry.json
+ * Location: ~/.cafe/.health-registry.json
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'

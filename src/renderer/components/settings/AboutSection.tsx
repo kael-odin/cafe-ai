@@ -11,8 +11,8 @@ import type { UpdateStatus } from './types'
 
 declare const __BUILD_TIME__: string
 
-const DOCS_URL = 'https://hello-halo.cc/docs/'
-const FEEDBACK_URL = 'https://github.com/openkursar/hello-halo/issues'
+const DOCS_URL = 'https://github.com/kael-odin/cafe#readme'
+const FEEDBACK_URL = 'https://github.com/kael-odin/cafe/issues'
 
 const handleOpenLink = async (url: string) => {
   try {

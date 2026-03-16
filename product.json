@@ -20,7 +20,7 @@
       },
       "icon": "log-in",
       "iconBgColor": "#3b82f6",
-      "path": "./halo-local/dist/providers/tencent/index.js",
+      "path": "./cafe-local/dist/providers/tencent/index.js",
       "enabled": true
     },
     {
@@ -36,7 +36,7 @@
       "icon": "log-in",
       "iconBgColor": "#6d28d9",
       "recommended": true,
-      "path": "./halo-local/dist/providers/qwen/index.js",
+      "path": "./cafe-local/dist/providers/qwen/index.js",
       "enabled": true
     },
     {
@@ -52,7 +52,7 @@
       "icon": "log-in",
       "iconBgColor": "#232f3e",
       "recommended": false,
-      "path": "./halo-local/dist/providers/kiro/index.js",
+      "path": "./cafe-local/dist/providers/kiro/index.js",
       "enabled": true
     },
     {

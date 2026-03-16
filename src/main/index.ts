@@ -259,7 +259,7 @@ function createAppMenu(): void {
         {
           label: 'Learn More',
           click: async () => {
-            await open('https://github.com/openkursar/hello-halo')
+            await open('https://github.com/kael-odin/cafe')
           }
         }
       ]
@@ -366,7 +366,7 @@ function createWindow(): void {
 // Initialize application
 app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.halo.app')
+  electronApp.setAppUserModelId('com.cafe.app')
 
   // Register custom protocols (halo-file://, etc.)
   registerProtocols()

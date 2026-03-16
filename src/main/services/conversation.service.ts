@@ -611,7 +611,7 @@ function getConversationsDir(spaceId: string): string {
 
   const convDir = space.isTemp
     ? join(space.path, 'conversations')
-    : join(space.path, '.halo', 'conversations')
+    : join(space.path, '.cafe', 'conversations')
   return convDir
 }
 

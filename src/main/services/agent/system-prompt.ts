@@ -216,7 +216,7 @@ Today's date: {{TODAY}}
 
 # Halo Directory Structure
 Halo uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
-- Halo config: ~/.halo/ (stores spaces, settings, app data)
+- Halo config: ~/.cafe/ (stores spaces, settings, app data)
 - Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Halo's isolated Claude config)
 - Global skills: {{CLAUDE_CONFIG_DIR}}/skills/<skill-name>/SKILL.md
 - Space-scoped skills: <space-path>/.claude/skills/<skill-name>/SKILL.md
@@ -379,7 +379,7 @@ Today's date: {{TODAY}}
 
 # Halo Directory Structure
 Halo uses custom directories separate from Claude Code's defaults (NOT ~/.claude/):
-- Halo config: ~/.halo/ (stores spaces, settings, app data)
+- Halo config: ~/.cafe/ (stores spaces, settings, app data)
 - Claude SDK config: {{CLAUDE_CONFIG_DIR}} (Halo's isolated Claude config)
 - Global skills: {{CLAUDE_CONFIG_DIR}}/skills/<skill-name>/SKILL.md
 - Space-scoped skills: <space-path>/.claude/skills/<skill-name>/SKILL.md

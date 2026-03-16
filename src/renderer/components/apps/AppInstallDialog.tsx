@@ -589,7 +589,7 @@ export function AppInstallDialog({ onClose }: AppInstallDialogProps) {
             /* Import mode */
             <>
               <p className="text-xs text-muted-foreground">
-                {t('Import a digital human from a .yaml spec file exported from Halo.')}
+                {t('Import a digital human from a .yaml spec file exported from Cafe.')}
               </p>
 
               {importYaml === null ? (

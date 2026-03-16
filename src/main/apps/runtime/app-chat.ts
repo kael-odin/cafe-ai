@@ -10,7 +10,7 @@
  * - app-chat.ts: Interactive chat triggered by user, real-time streaming
  *
  * The V2 session is keyed by "app-chat:{appId}" for reuse across messages.
- * Messages are persisted to JSONL ({spacePath}/.halo/apps/{appId}/runs/chat.jsonl)
+ * Messages are persisted to JSONL ({spacePath}/.cafe/apps/{appId}/runs/chat.jsonl)
  * for reload recovery.
  *
  * Design:
@@ -404,7 +404,7 @@ export async function clearAppChat(appId: string, spaceId: string): Promise<void
   // 3. Clear the JSONL file
   const space = getSpace(spaceId)
   if (space?.path) {
-    const filePath = join(space.path, '.halo', 'apps', appId, 'runs', `${CHAT_RUN_ID}.jsonl`)
+    const filePath = join(space.path, '.cafe', 'apps', appId, 'runs', `${CHAT_RUN_ID}.jsonl`)
     try {
       await writeFile(filePath, '', 'utf8')
     } catch {

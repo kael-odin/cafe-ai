@@ -225,7 +225,7 @@ function registerHaloTemp(map: Map<string, SpaceIndexEntry>): void {
  * Try to read SpaceMeta from a path. Returns null on any failure.
  */
 function tryReadMeta(spacePath: string): SpaceMeta | null {
-  const metaPath = join(spacePath, '.halo', 'meta.json')
+  const metaPath = join(spacePath, '.cafe', 'meta.json')
   if (!existsSync(metaPath)) return null
   try {
     return JSON.parse(readFileSync(metaPath, 'utf-8'))
@@ -384,7 +384,7 @@ export function createSpace(input: { name: string; icon: string; customPath?: st
   const id = uuidv4()
   const now = new Date().toISOString()
 
-  // Data always stored centrally under ~/.halo/spaces/{id}/
+  // Data always stored centrally under ~/.cafe/spaces/{id}/
   const spacePath = join(getSpacesDir(), id)
 
   // customPath is stored as workingDir (agent cwd, artifact root, file explorer)
@@ -392,8 +392,8 @@ export function createSpace(input: { name: string; icon: string; customPath?: st
 
   // Create directories
   mkdirSync(spacePath, { recursive: true })
-  mkdirSync(join(spacePath, '.halo'), { recursive: true })
-  mkdirSync(join(spacePath, '.halo', 'conversations'), { recursive: true })
+  mkdirSync(join(spacePath, '.cafe'), { recursive: true })
+  mkdirSync(join(spacePath, '.cafe', 'conversations'), { recursive: true })
 
   // Create meta file
   const meta: SpaceMeta = {
@@ -405,7 +405,7 @@ export function createSpace(input: { name: string; icon: string; customPath?: st
     workingDir
   }
 
-  writeFileSync(join(spacePath, '.halo', 'meta.json'), JSON.stringify(meta, null, 2))
+  writeFileSync(join(spacePath, '.cafe', 'meta.json'), JSON.stringify(meta, null, 2))
 
   // Register in index (memory + disk)
   const entry: SpaceIndexEntry = {
@@ -451,8 +451,8 @@ export async function deleteSpace(spaceId: string): Promise<boolean> {
       // Centralized storage (new spaces + default spaces): delete entire folder
       rmSync(spacePath, { recursive: true, force: true })
     } else {
-      // Legacy custom path spaces: only delete .halo folder (preserve user's files)
-      const haloDir = join(spacePath, '.halo')
+      // Legacy custom path spaces: only delete .cafe folder (preserve user's files)
+      const haloDir = join(spacePath, '.cafe')
       if (existsSync(haloDir)) {
         rmSync(haloDir, { recursive: true, force: true })
       }
@@ -519,7 +519,7 @@ export function updateSpace(spaceId: string, updates: { name?: string; icon?: st
       preferences: existingMeta?.preferences,
       workingDir: entry.workingDir
     }
-    writeFileSync(join(entry.path, '.halo', 'meta.json'), JSON.stringify(meta, null, 2))
+    writeFileSync(join(entry.path, '.cafe', 'meta.json'), JSON.stringify(meta, null, 2))
 
     return entryToSpaceWithPreferences(spaceId, entry)
   } catch (error) {
@@ -539,11 +539,11 @@ export function updateSpacePreferences(
   const entry = getRegistry().get(spaceId)
   if (!entry) return null
 
-  const metaPath = join(entry.path, '.halo', 'meta.json')
+  const metaPath = join(entry.path, '.cafe', 'meta.json')
 
   try {
-    // Ensure .halo directory exists
-    const haloDir = join(entry.path, '.halo')
+    // Ensure .cafe directory exists
+    const haloDir = join(entry.path, '.cafe')
     if (!existsSync(haloDir)) {
       mkdirSync(haloDir, { recursive: true })
     }
@@ -648,7 +648,7 @@ export function saveOnboardingConversation(
 
     const conversationsDir = space.isTemp
       ? join(space.path, 'conversations')
-      : join(space.path, '.halo', 'conversations')
+      : join(space.path, '.cafe', 'conversations')
 
     mkdirSync(conversationsDir, { recursive: true })
 
