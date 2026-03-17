@@ -11,11 +11,27 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
 import { createDatabaseManager } from '../../../../src/main/platform/store/database-manager'
 import type { DatabaseManager, Migration } from '../../../../src/main/platform/store/types'
 
-describe('DatabaseManager', () => {
+let betterSqlite3Available = true
+try {
+  // better-sqlite3 is a native module. In this Electron app it's expected to be
+  // built for Electron's Node version; running unit tests under a different
+  // system Node version can make the module fail when instantiating Database.
+  //
+  // If it cannot be instantiated, skip this suite instead of failing the entire test run.
+  const mod = await import('better-sqlite3')
+  const Database = mod.default
+  const db = new Database(':memory:')
+  db.close()
+} catch {
+  betterSqlite3Available = false
+}
+
+const suite = describe.runIf(betterSqlite3Available)
+
+suite('DatabaseManager', () => {
   let manager: DatabaseManager
 
   beforeEach(() => {

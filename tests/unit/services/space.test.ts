@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Space Service Unit Tests
  *
  * Tests for workspace/space management service.
@@ -31,7 +31,7 @@ describe('Space Service', () => {
     it('should return the Cafe temp space', () => {
       const CafeSpace = getCafeSpace()
 
-      expect(CafeSpace.id).toBe('Cafe-temp')
+      expect(CafeSpace.id).toBe('cafe-temp')
       expect(CafeSpace.name).toBe('Cafe')
       expect(CafeSpace.isTemp).toBe(true)
       expect(CafeSpace.icon).toBe('sparkles')
@@ -148,7 +148,7 @@ describe('Space Service', () => {
       const space = getSpace('Cafe-temp')
 
       expect(space).toBeDefined()
-      expect(space?.id).toBe('Cafe-temp')
+      expect(space?.id).toBe('cafe-temp')
       expect(space?.isTemp).toBe(true)
     })
   })

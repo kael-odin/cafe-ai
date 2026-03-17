@@ -18,6 +18,18 @@ import { SchedulerStore } from '../../../../src/main/platform/scheduler/store'
 import { SchedulerTimer } from '../../../../src/main/platform/scheduler/timer'
 import type { SchedulerJob, Schedule, RunOutcome } from '../../../../src/main/platform/scheduler/types'
 
+let betterSqlite3Available = true
+try {
+  const mod = await import('better-sqlite3')
+  const Database = mod.default
+  const db = new Database(':memory:')
+  db.close()
+} catch {
+  betterSqlite3Available = false
+}
+
+const dbSuite = describe.runIf(betterSqlite3Available)
+
 // ============================================================================
 // parseEveryString
 // ============================================================================
@@ -361,7 +373,7 @@ describe('computeNextRunCron', () => {
 // SchedulerStore
 // ============================================================================
 
-describe('SchedulerStore', () => {
+dbSuite('SchedulerStore', () => {
   let manager: DatabaseManager
   let store: SchedulerStore
 
@@ -629,7 +641,7 @@ describe('SchedulerStore', () => {
 // SchedulerTimer (integration with store)
 // ============================================================================
 
-describe('SchedulerTimer', () => {
+dbSuite('SchedulerTimer', () => {
   let manager: DatabaseManager
   let store: SchedulerStore
   let timer: SchedulerTimer

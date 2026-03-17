@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Unit tests for apps/manager
  *
  * Tests the App lifecycle management layer including:
@@ -33,6 +33,18 @@ import {
 } from '../../../../src/main/apps/manager/errors'
 import type { AppSpec } from '../../../../src/main/apps/spec/schema'
 
+let betterSqlite3Available = true
+try {
+  const mod = await import('better-sqlite3')
+  const Database = mod.default
+  const db = new Database(':memory:')
+  db.close()
+} catch {
+  betterSqlite3Available = false
+}
+
+const suite = describe.runIf(betterSqlite3Available)
+
 // ============================================
 // Test Fixtures
 // ============================================
@@ -59,7 +71,7 @@ const TEST_SPACE_ID_2 = 'space-002'
 // Test Setup
 // ============================================
 
-describe('AppManager', () => {
+suite('AppManager', () => {
   let dbManager: DatabaseManager
   let store: AppManagerStore
   let service: AppManagerService

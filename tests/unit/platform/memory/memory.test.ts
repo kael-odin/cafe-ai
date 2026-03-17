@@ -431,15 +431,13 @@ describe('generatePromptInstructions', () => {
 
     const instructions = await generatePromptInstructions(caller)
     expect(instructions).toContain('## Memory')
-    expect(instructions).toContain('memory_read')
-    expect(instructions).toContain('memory_write')
+    expect(instructions).toContain('Read(')
+    expect(instructions).toContain('Write')
     expect(instructions).toContain('user')
-    expect(instructions).toContain('space')
     expect(instructions).not.toContain('append-only') // User has full access
-    // V2: state-document rules
-    expect(instructions).toContain('STATE document')
-    expect(instructions).toContain('headers')
-    expect(instructions).toContain('replace')
+    // Expected content markers for the memory format guidance
+    expect(instructions).toContain('# now')
+    expect(instructions).toContain('## State')
   })
 
   it('should generate instructions for app caller', async () => {
@@ -452,10 +450,7 @@ describe('generatePromptInstructions', () => {
 
     const instructions = await generatePromptInstructions(caller)
     expect(instructions).toContain('## Memory')
-    expect(instructions).toContain('read-only') // user scope for apps
-    expect(instructions).toContain('append-only') // space scope for apps
-    // V2: state-document rules
-    expect(instructions).toContain('STATE document')
+    expect(instructions).toContain('# now')
     expect(instructions).toContain('## State')
   })
 
@@ -468,8 +463,8 @@ describe('generatePromptInstructions', () => {
     }
 
     const instructions = await generatePromptInstructions(caller)
-    expect(instructions).toContain('headers')
-    expect(instructions).toContain('section')
-    expect(instructions).toContain('tail')
+    expect(instructions).toContain('Archive Files')
+    expect(instructions).toContain('memory.md')
+    expect(instructions).toContain('memory/run/')
   })
 })

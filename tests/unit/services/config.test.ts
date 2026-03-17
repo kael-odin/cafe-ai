@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Config Service Unit Tests
  *
  * Tests for the configuration management service.
@@ -22,7 +22,8 @@ describe('Config Service', () => {
   describe('getCafeDir', () => {
     it('should return path to .Cafe directory in home', () => {
       const CafeDir = getCafeDir()
-      expect(CafeDir).toContain('.Cafe')
+      // In tests we may use a dev-scoped data dir (e.g. ".cafe-dev") via env.
+      expect(CafeDir).toMatch(/\.Cafe|\.cafe-dev/i)
     })
   })
 
@@ -30,7 +31,7 @@ describe('Config Service', () => {
     it('should return path to config.json', () => {
       const configPath = getConfigPath()
       expect(configPath).toContain('config.json')
-      expect(configPath).toContain('.Cafe')
+      expect(configPath).toMatch(/\.Cafe|\.cafe-dev/i)
     })
   })
 

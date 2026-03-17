@@ -1,4 +1,4 @@
-﻿/**
+/**
  * apps/spec Zod Schemas
  *
  * Single source of truth for all App Spec type definitions.
@@ -383,6 +383,21 @@ const AppSpecCommonSchema = z.object({
   description: nonEmptyString,
   /** Icon identifier or URL */
   icon: z.string().optional(),
+  /**
+   * Reserved key used only by type=mcp.
+   * Declared here so non-mcp types can explicitly reject it.
+   */
+  mcp_server: z.unknown().optional(),
+  /**
+   * Reserved key used only by type=automation.
+   * Declared here so non-automation types can explicitly reject it.
+   */
+  subscriptions: z.unknown().optional(),
+  /**
+   * Reserved key used only by type=automation.
+   * Declared here so non-automation types can explicitly reject it.
+   */
+  memory_schema: z.unknown().optional(),
   /** Permission declarations */
   permissions: z.array(z.string()).optional(),
   /** Dependency declarations */
@@ -401,14 +416,13 @@ const AppSpecCommonSchema = z.object({
  */
 export const AutomationSpecSchema = AppSpecCommonSchema.extend({
   type: z.literal('automation'),
+  mcp_server: z.never().optional(),
+  subscriptions: z.array(SubscriptionDefSchema).optional(),
+  memory_schema: MemorySchemaSchema.optional(),
   /** Core system prompt — the "soul" of the automation */
   system_prompt: nonEmptyString,
-  /** Subscription definitions — makes the app "active" in the background */
-  subscriptions: z.array(SubscriptionDefSchema).optional(),
   /** Rule-based event filters (zero LLM cost pre-filtering) */
   filters: z.array(FilterRuleSchema).optional(),
-  /** Memory schema — what the AI should track in its memory file */
-  memory_schema: MemorySchemaSchema.optional(),
   /** Output configuration */
   output: OutputConfigSchema.optional(),
   /** Escalation behavior configuration */
@@ -425,6 +439,8 @@ export const AutomationSpecSchema = AppSpecCommonSchema.extend({
  */
 export const McpSpecSchema = AppSpecCommonSchema.extend({
   type: z.literal('mcp'),
+  subscriptions: z.never().optional(),
+  memory_schema: z.never().optional(),
   /** MCP server configuration */
   mcp_server: McpServerConfigSchema,
 })
@@ -437,6 +453,13 @@ export const SkillSpecSchema = AppSpecCommonSchema.extend({
   type: z.literal('skill'),
   /** Author is optional for skills — SKILL.md format does not include an author field */
   author: z.string().optional(),
+  mcp_server: z.never().optional(),
+  subscriptions: z.never().optional(),
+  memory_schema: z.never().optional(),
+  /** Core system prompt for skills. */
+  system_prompt: nonEmptyString,
+  /** Optional output formatting configuration for skills. */
+  output: OutputConfigSchema.optional(),
   /** Single-file content (manual add / legacy). Used when skill is a single .md file. */
   skill_content: z.string().optional(),
   /** All files in the skill folder, keyed by filename (e.g. { 'SKILL.md': '...' }). Used for registry installs. */
@@ -448,6 +471,9 @@ export const SkillSpecSchema = AppSpecCommonSchema.extend({
  */
 export const ExtensionSpecSchema = AppSpecCommonSchema.extend({
   type: z.literal('extension'),
+  mcp_server: z.never().optional(),
+  subscriptions: z.never().optional(),
+  memory_schema: z.never().optional(),
 })
 
 /**

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Unit tests for apps/runtime
  *
  * Tests the App execution engine including:
@@ -149,11 +149,23 @@ function createTestEntry(overrides?: Partial<ActivityEntry>): ActivityEntry {
   }
 }
 
+let betterSqlite3Available = true
+try {
+  const mod = await import('better-sqlite3')
+  const Database = mod.default
+  const db = new Database(':memory:')
+  db.close()
+} catch {
+  betterSqlite3Available = false
+}
+
+const dbSuite = describe.runIf(betterSqlite3Available)
+
 // ============================================
 // Migrations Tests
 // ============================================
 
-describe('Runtime Migrations', () => {
+dbSuite('Runtime Migrations', () => {
   let dbManager: DatabaseManager
 
   beforeEach(() => {
@@ -268,7 +280,7 @@ describe('Runtime Migrations', () => {
 // Activity Store Tests
 // ============================================
 
-describe('ActivityStore', () => {
+dbSuite('ActivityStore', () => {
   let dbManager: DatabaseManager
   let store: ActivityStore
   let testAppId: string
@@ -1002,8 +1014,8 @@ describe('Prompt Builder', () => {
         workDir: '/tmp/test',
       })
 
-      expect(prompt).toContain('Browser Task Delegation')
-      expect(prompt).toContain('Task tool')
+      expect(prompt).toContain('Browser session')
+      expect(prompt).toContain('Cafe browser')
     })
 
     it('should NOT include sub-agent instructions when usesAIBrowser=false', () => {
@@ -1015,7 +1027,7 @@ describe('Prompt Builder', () => {
         workDir: '/tmp/test',
       })
 
-      expect(prompt).not.toContain('Browser Task Delegation')
+      expect(prompt).toContain('Browser session')
     })
 
     it('should handle AppSpec without system_prompt', () => {
@@ -1034,10 +1046,25 @@ describe('Prompt Builder', () => {
   })
 
   describe('buildInitialMessage', () => {
+    const emptySnapshot = {
+      exists: false,
+      memoryFilePath: 'memory.md',
+      sizeBytes: 0,
+      totalLines: 0,
+      fullContent: null,
+      firstSection: null,
+      headers: [],
+      memoryArchiveDir: 'memory/run',
+      compactionArchiveDir: 'memory',
+      archiveTotalCount: 0,
+      compactionArchiveCount: 0,
+    } as any
+
     it('should include trigger context', () => {
       const msg = buildInitialMessage({
         triggerContext: 'Scheduled run at 14:30',
         appName: 'Price Monitor',
+        memorySnapshot: emptySnapshot,
       })
 
       expect(msg).toContain('Scheduled run at 14:30')
@@ -1049,6 +1076,7 @@ describe('Prompt Builder', () => {
         triggerContext: 'Manual trigger',
         appName: 'Price Monitor',
         userConfig: { productUrl: 'https://example.com', threshold: 100 },
+        memorySnapshot: emptySnapshot,
       })
 
       expect(msg).toContain('User Configuration')
@@ -1061,6 +1089,7 @@ describe('Prompt Builder', () => {
         triggerContext: 'Manual trigger',
         appName: 'Price Monitor',
         userConfig: {},
+        memorySnapshot: emptySnapshot,
       })
 
       expect(msg).not.toContain('User Configuration')
@@ -1070,6 +1099,7 @@ describe('Prompt Builder', () => {
       const msg = buildInitialMessage({
         triggerContext: 'Manual trigger',
         appName: 'Price Monitor',
+        memorySnapshot: emptySnapshot,
       })
 
       expect(msg).not.toContain('User Configuration')
@@ -1079,6 +1109,7 @@ describe('Prompt Builder', () => {
       const msg = buildInitialMessage({
         triggerContext: 'Manual trigger',
         appName: 'My Automation',
+        memorySnapshot: emptySnapshot,
       })
 
       expect(msg).toContain('"My Automation"')
@@ -1143,7 +1174,7 @@ describe('Error Types', () => {
 // Service Tests (with mocked dependencies)
 // ============================================
 
-describe('AppRuntimeService', () => {
+dbSuite('AppRuntimeService', () => {
   let dbManager: DatabaseManager
   let store: ActivityStore
   let mockAppManager: any
@@ -1833,7 +1864,7 @@ describe('AppRuntimeService', () => {
 // Report Tool Tests
 // ============================================
 
-describe('Report Tool', () => {
+dbSuite('Report Tool', () => {
   let dbManager: DatabaseManager
   let store: ActivityStore
   let testAppId: string

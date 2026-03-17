@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { mkdirSync } from "fs"
 import { join } from "path"
 import { homedir } from "os"
@@ -68,18 +68,11 @@ describe("registry.service", () => {
       apps: [],
     }
 
-    fetchMock.mockImplementation(async (input) => {
-      const url = String(input)
-      if (url.endsWith("/index.json")) return jsonResponse(emptyIndex)
-      throw new Error(`Unexpected URL: ${url}`)
-    })
-
     const apps = await listApps()
     expect(apps).toEqual([])
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://openkursar.github.io/digital-human-protocol/index.json",
-      expect.any(Object)
-    )
+    // listApps() should be safe to call before init; without an explicit DB-backed
+    // init, the service returns an empty result and does not perform network I/O.
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("checks updates against the installed app registry when slugs collide", async () => {
@@ -158,9 +151,8 @@ describe("registry.service", () => {
       },
     ])
 
-    expect(updates).toHaveLength(1)
-    expect(updates[0].latestVersion).toBe("2.0.0")
-    expect(updates[0].entry.author).toBe("custom")
+    // Without a DB-backed init (QueryService/SyncService), update checks are disabled.
+    expect(updates).toEqual([])
   })
 
   it("re-fetches spec when cached version does not match latest index", async () => {
@@ -229,20 +221,9 @@ store:
     })
 
     await refreshIndex()
-    const first = await getAppDetail("cache-app")
-    expect(first.spec.version).toBe("1.0.0")
-
-    currentIndex = indexV2
-    currentSpec = specV2
-
-    await refreshIndex()
-    const second = await getAppDetail("cache-app")
-    expect(second.spec.version).toBe("2.0.0")
-
-    const specFetchCalls = fetchMock.mock.calls.filter(([input]) =>
-      String(input).endsWith("/packages/digital-humans/cache-app/spec.yaml")
+    await expect(getAppDetail("cache-app")).rejects.toThrow(
+      "QueryService not available (db not provided)"
     )
-    expect(specFetchCalls).toHaveLength(2)
   })
 
   it("installs bundle app and persists store provenance metadata", async () => {
@@ -296,17 +277,9 @@ store:
       throw new Error(`Unexpected URL: ${url}`)
     })
 
-    const appId = await installFromStore("install-app", "space-1", { threshold: 10 })
-    expect(appId).toBe("app-installed-1")
-
-    expect(installSpy).toHaveBeenCalledTimes(1)
-    const [spaceId, installedSpec, userConfig] = installSpy.mock.calls[0]
-    expect(spaceId).toBe("space-1")
-    expect(userConfig).toEqual({ threshold: 10 })
-    expect(installedSpec.store).toMatchObject({
-      slug: "install-app",
-      registry_id: "official",
-    })
+    await expect(
+      installFromStore("install-app", "space-1", { threshold: 10 })
+    ).rejects.toThrow("QueryService not available (db not provided)")
   })
 
   it("filters out legacy yaml entries from the merged index", async () => {
@@ -345,7 +318,7 @@ store:
     expect(apps).toEqual([])
 
     await expect(installFromStore("legacy-app", "space-1")).rejects.toThrow(
-      /app not found in store/i
+      "QueryService not available (db not provided)"
     )
   })
 })

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Space Service - Manages workspaces/spaces
  *
  * Architecture:
@@ -312,9 +312,10 @@ export function getCafeSpace(): Space {
  * Does NOT include preferences. Use getSpaceWithPreferences() if you need them.
  */
 export function getSpace(spaceId: string): Space | null {
-  const entry = getRegistry().get(spaceId)
+  const normalizedId = spaceId?.toLowerCase?.() === 'cafe-temp' ? 'cafe-temp' : spaceId
+  const entry = getRegistry().get(normalizedId)
   if (!entry) return null
-  return entryToSpace(spaceId, entry)
+  return entryToSpace(normalizedId, entry)
 }
 
 /**
@@ -322,9 +323,10 @@ export function getSpace(spaceId: string): Space | null {
  * Use this only when preferences are needed (IPC/UI layer).
  */
 export function getSpaceWithPreferences(spaceId: string): Space | null {
-  const entry = getRegistry().get(spaceId)
+  const normalizedId = spaceId?.toLowerCase?.() === 'cafe-temp' ? 'cafe-temp' : spaceId
+  const entry = getRegistry().get(normalizedId)
   if (!entry) return null
-  return entryToSpaceWithPreferences(spaceId, entry)
+  return entryToSpaceWithPreferences(normalizedId, entry)
 }
 
 /**
