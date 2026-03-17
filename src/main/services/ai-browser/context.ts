@@ -31,7 +31,7 @@ import type {
 } from './types'
 
 // Default timeout for CDP commands (ms)
-const CDP_TIMEOUT = 15_000
+const CDP_TIMEOUT = 30_000
 // Default timeout for navigation operations (ms)
 const NAVIGATION_TIMEOUT = 30_000
 // Default timeout for element wait operations (ms)
@@ -857,7 +857,8 @@ export class BrowserContext implements BrowserContextInterface {
 
   /**
    * Capture a screenshot
-   * Aligned with chrome-devtools-mcp: supports png, jpeg, webp formats
+   * Uses Electron's native capturePage() for better reliability with offscreen views.
+   * Falls back to CDP for element-specific or full-page captures.
    */
   async captureScreenshot(options?: {
     format?: 'png' | 'jpeg' | 'webp'
@@ -865,11 +866,11 @@ export class BrowserContext implements BrowserContextInterface {
     fullPage?: boolean
     uid?: string
   }): Promise<{ data: string; mimeType: string }> {
+    console.log(`[BrowserContext] captureScreenshot called - options:`, JSON.stringify(options || {}))
+    
     const format = options?.format || 'png'
-    // Quality only applies to jpeg and webp, not png
     const quality = format === 'png' ? undefined : (options?.quality || 80)
 
-    // Helper to get mime type
     const getMimeType = (fmt: string): string => {
       switch (fmt) {
         case 'jpeg': return 'image/jpeg'
@@ -878,65 +879,206 @@ export class BrowserContext implements BrowserContextInterface {
       }
     }
 
-    // If uid provided, capture specific element
+    const webContents = this.getWebContents()
+    if (!webContents) {
+      console.error('[BrowserContext] captureScreenshot - No webContents available')
+      throw new Error('No active browser view')
+    }
+    
+    console.log(`[BrowserContext] captureScreenshot - webContents OK, URL: ${webContents.getURL()}`)
+
+    // For element-specific capture, still use CDP
     if (options?.uid) {
       const element = this.getElementByUid(options.uid)
       if (!element) {
         throw new Error(`Element not found: ${options.uid}`)
       }
 
-      const webContents = this.getWebContents()
-      if (!webContents) {
-        throw new Error('No active browser view')
-      }
-
       await scrollIntoView(webContents, element.backendNodeId)
       const box = await getElementBoundingBox(webContents, element.backendNodeId)
 
       if (box) {
-        const response = await this.sendCDPCommand<{ data: string }>('Page.captureScreenshot', {
-          format,
-          quality,
-          clip: {
-            x: box.x,
-            y: box.y,
-            width: box.width,
-            height: box.height,
-            scale: 1
-          }
+        console.log(`[BrowserContext] captureScreenshot - capturing element with uid: ${options.uid}`)
+        const nativeImage = await webContents.capturePage({
+          x: Math.round(box.x),
+          y: Math.round(box.y),
+          width: Math.round(box.width),
+          height: Math.round(box.height)
         })
+        const dataUrl = nativeImage.toDataURL()
+        const base64 = dataUrl.split(',')[1] || ''
+        return { data: base64, mimeType: getMimeType(format) }
+      }
+    }
 
-        return {
-          data: response.data,
-          mimeType: getMimeType(format)
+    // For full-page capture, use CDP with timeout protection
+    if (options?.fullPage) {
+      console.log(`[BrowserContext] captureScreenshot - full page capture using native`)
+      try {
+        // Use webContents to get full page size
+        const scrollWidth = await webContents.executeJavaScript('document.documentElement.scrollWidth')
+        const scrollHeight = await webContents.executeJavaScript('document.documentElement.scrollHeight')
+        
+        console.log(`[BrowserContext] captureScreenshot - full page size: ${scrollWidth}x${scrollHeight}`)
+        
+        const nativeImage = await webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: Math.round(scrollWidth),
+          height: Math.round(scrollHeight)
+        })
+        
+        const size = nativeImage.getSize()
+        console.log(`[BrowserContext] captureScreenshot - captured image size: ${size.width}x${size.height}`)
+        
+        const dataUrl = nativeImage.toDataURL()
+        const base64 = dataUrl.split(',')[1] || ''
+        return { data: base64, mimeType: getMimeType(format) }
+      } catch (error) {
+        console.error('[BrowserContext] captureScreenshot - full page capture failed:', error)
+        throw error
+      }
+    }
+
+    // Use native capturePage - works for BrowserView when window is visible at x:5000
+    console.log(`[BrowserContext] captureScreenshot - using native capturePage()`)
+    const viewId = this.getActiveViewId()
+    console.log(`[BrowserContext] captureScreenshot - viewId: ${viewId}`)
+    
+    if (!viewId) {
+      throw new Error('No active view ID for screenshot')
+    }
+    
+    try {
+      // Get webContents from the BrowserView directly
+      const webContents = browserViewManager.getWebContents(viewId)
+      if (!webContents) {
+        throw new Error(`No webContents found for view: ${viewId}`)
+      }
+      console.log(`[BrowserContext] captureScreenshot - webContents URL: ${webContents.getURL()}`)
+      
+      // Wait for page to finish loading
+      const waitForPageLoad = async () => {
+        const state = browserViewManager.getState(viewId)
+        if (state?.isLoading) {
+          console.log(`[BrowserContext] captureScreenshot - waiting for page to finish loading...`)
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          return waitForPageLoad()
         }
       }
-    }
-
-    // Full page or viewport screenshot
-    const params: Record<string, unknown> = { format, quality }
-
-    if (options?.fullPage) {
-      // Get full page dimensions
-      const metrics = await this.sendCDPCommand<{
-        contentSize: { width: number; height: number }
-      }>('Page.getLayoutMetrics')
-
-      params.clip = {
-        x: 0,
-        y: 0,
-        width: metrics.contentSize.width,
-        height: metrics.contentSize.height,
-        scale: 1
+      await waitForPageLoad()
+      
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+      const withLocalTimeout = async <T>(p: Promise<T>, ms: number, label: string): Promise<T> => {
+        return await new Promise<T>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+          p.then(
+            (v) => { clearTimeout(timer); resolve(v) },
+            (e) => { clearTimeout(timer); reject(e) }
+          )
+        })
       }
-      params.captureBeyondViewport = true
-    }
 
-    const response = await this.sendCDPCommand<{ data: string }>('Page.captureScreenshot', params)
+      const captureViewportBase64 = async (): Promise<{ base64: string; width: number; height: number }> => {
+        try {
+          const img = await withLocalTimeout(webContents.capturePage(), 10_000, 'capturePage(viewport)')
+          const size = img.getSize()
+          const dataUrl = img.toDataURL()
+          const base64 = dataUrl.split(',')[1] || ''
+          return { base64, width: size.width, height: size.height }
+        } catch (e) {
+          // Windows/Electron can throw "Current display surface not available for capture"
+          // when the host window surface is temporarily unavailable (minimized, not painted,
+          // or compositor hiccup). Best-effort: briefly surface the offscreen host window
+          // and retry once.
+          const msg = (e as Error)?.message || String(e)
+          if (msg.includes('display surface not available for capture')) {
+            try {
+              const host = browserViewManager.getOffscreenWindow?.()
+              if (host && !host.isDestroyed()) {
+                if (host.isMinimized()) host.restore()
+                // Temporarily make it capturable.
+                try { host.setOpacity(1) } catch {}
+                try { host.showInactive() } catch {}
+                try { host.focusable = false } catch {}
+                await sleep(200)
+              }
+            } catch {}
 
-    return {
-      data: response.data,
-      mimeType: getMimeType(format)
+            const img = await withLocalTimeout(webContents.capturePage(), 10_000, 'capturePage(viewport) retry')
+            const size = img.getSize()
+            const dataUrl = img.toDataURL()
+            const base64 = dataUrl.split(',')[1] || ''
+
+            // Restore invisible host window state (best-effort).
+            try {
+              const host = browserViewManager.getOffscreenWindow?.()
+              if (host && !host.isDestroyed()) {
+                try { host.setOpacity(0.01) } catch {}
+              }
+            } catch {}
+
+            return { base64, width: size.width, height: size.height }
+          }
+          throw e
+        }
+      }
+
+      const captureFullPageBase64 = async (): Promise<{ base64: string; width: number; height: number }> => {
+        // Keep executeJavaScript best-effort and bounded — it can hang on some pages.
+        const scrollWidth = await withLocalTimeout(
+          webContents.executeJavaScript('document.documentElement.scrollWidth'),
+          3_000,
+          'executeJavaScript(scrollWidth)'
+        )
+        const scrollHeight = await withLocalTimeout(
+          webContents.executeJavaScript('document.documentElement.scrollHeight'),
+          3_000,
+          'executeJavaScript(scrollHeight)'
+        )
+        const fullImg = await withLocalTimeout(
+          webContents.capturePage({
+            x: 0,
+            y: 0,
+            width: Math.round(scrollWidth),
+            height: Math.round(scrollHeight)
+          }),
+          10_000,
+          'capturePage(full)'
+        )
+        const size = fullImg.getSize()
+        const dataUrl = fullImg.toDataURL()
+        const base64 = dataUrl.split(',')[1] || ''
+        return { base64, width: size.width, height: size.height }
+      }
+
+      // Try a few times with small delays; never wait on requestAnimationFrame
+      // (RAF can be throttled/suspended in background/offscreen scenarios).
+      await sleep(300)
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const viewport = await captureViewportBase64()
+        console.log(`[BrowserContext] captureScreenshot - attempt ${attempt} viewport size: ${viewport.width}x${viewport.height}, base64: ${viewport.base64.length}`)
+        if (viewport.width > 0 && viewport.height > 0 && viewport.base64.length > 100) {
+          return { data: viewport.base64, mimeType: getMimeType(format) }
+        }
+
+        try {
+          const full = await captureFullPageBase64()
+          console.log(`[BrowserContext] captureScreenshot - attempt ${attempt} full size: ${full.width}x${full.height}, base64: ${full.base64.length}`)
+          if (full.width > 0 && full.height > 0 && full.base64.length > 100) {
+            return { data: full.base64, mimeType: getMimeType(format) }
+          }
+        } catch (e) {
+          console.warn('[BrowserContext] captureScreenshot - full page fallback failed:', e)
+        }
+
+        await sleep(400 * attempt)
+      }
+
+      throw new Error('Screenshot capture produced empty frames (0x0)')
+    } catch (error) {
+      console.error('[BrowserContext] captureScreenshot failed:', error)
+      throw error
     }
   }
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BrowserView Service - Manages embedded browser views
  *
  * This service creates and manages BrowserView instances for the Content Canvas,
@@ -15,7 +15,7 @@
  *   hidden BrowserWindow to prevent lifecycle conflicts with user-visible views
  */
 
-import { BrowserView, BrowserWindow } from 'electron'
+import { BrowserView, BrowserWindow, screen } from 'electron'
 
 // ============================================
 // Types
@@ -103,26 +103,51 @@ class BrowserViewManager {
       return this.offscreenWindow
     }
 
+    const primary = screen.getPrimaryDisplay()
+    const wa = primary.workArea
+    // Place the host window inside the visible work area.
+    // Keeping it on-screen avoids Windows optimizations that stop painting for
+    // windows fully outside the virtual screen (which breaks capturePage()).
+    //
+    // Important: the host window must have a real, non-trivial drawable size,
+    // otherwise BrowserView.capturePage() may repeatedly return 0x0 frames.
+    const width = Math.min(1280, wa.width)
+    const height = Math.min(720, wa.height)
+    const x = Math.max(wa.x, wa.x + wa.width - width)
+    const y = Math.max(wa.y, wa.y + wa.height - height)
+
     this.offscreenWindow = new BrowserWindow({
-      show: false,
-      width: 1280,
-      height: 720,
+      show: true,
+      width,
+      height,
+      x,
+      y,
       webPreferences: {
-        // Minimal prefs — this window never loads content itself
         nodeIntegration: false,
         contextIsolation: true,
       },
     })
 
-    // Prevent from appearing in taskbar / dock
     this.offscreenWindow.setSkipTaskbar(true)
+    // Make the host window effectively invisible/non-interactive while still
+    // allowing Chromium to composite frames for BrowserViews.
+    try {
+      // Use a tiny non-zero opacity: some Windows paths may stop painting
+      // completely for fully transparent windows.
+      this.offscreenWindow.setOpacity(0.01)
+      this.offscreenWindow.setIgnoreMouseEvents(true)
+      this.offscreenWindow.setFocusable(false)
+      // Ensure the window is actually shown (but don't steal focus).
+      this.offscreenWindow.showInactive()
+    } catch {
+      // Some platforms/window managers may not support all of these — best-effort.
+    }
 
-    // Handle unexpected close (e.g. OS kill)
     this.offscreenWindow.on('closed', () => {
       this.offscreenWindow = null
     })
 
-    console.log('[BrowserView] Offscreen host window created for AI automation views')
+    console.log('[BrowserView] Offscreen host window created for AI automation views (transparent on-screen)')
     return this.offscreenWindow
   }
 
@@ -179,7 +204,10 @@ class BrowserViewManager {
       // Offscreen window is hidden, so (0,0) is fine. User views start off-screen
       // and are repositioned by show().
       const initialBounds = isOffscreen
-        ? { x: 0, y: 0, width: 1280, height: 720 }
+        ? (() => {
+            const b = (hostWindow as BrowserWindow).getContentBounds()
+            return { x: 0, y: 0, width: Math.max(1, Math.round(b.width)), height: Math.max(1, Math.round(b.height)) }
+          })()
         : { x: -10000, y: -10000, width: 1280, height: 720 }
       view.setBounds(initialBounds)
     }
@@ -433,11 +461,17 @@ class BrowserViewManager {
    * Capture screenshot of the view
    */
   async capture(viewId: string): Promise<string | null> {
+    console.log(`[BrowserView] capture() called for viewId: ${viewId}`)
     const view = this.views.get(viewId)
-    if (!view) return null
+    if (!view) {
+      console.error(`[BrowserView] capture() - View not found: ${viewId}`)
+      return null
+    }
 
     try {
+      console.log(`[BrowserView] capture() - calling webContents.capturePage()`)
       const image = await view.webContents.capturePage()
+      console.log(`[BrowserView] capture() - screenshot captured, size: ${image.getSize().width}x${image.getSize().height}`)
       return image.toDataURL()
     } catch (error) {
       console.error('[BrowserView] Screenshot failed:', error)
@@ -563,6 +597,13 @@ class BrowserViewManager {
     }
     this.offscreenWindow = null
     this.offscreenViewIds.clear()
+  }
+
+  /**
+   * Get the offscreen host window (for AI browser screenshot support)
+   */
+  getOffscreenWindow(): BrowserWindow | null {
+    return this.offscreenWindow
   }
 
   /**
@@ -700,14 +741,24 @@ class BrowserViewManager {
 
   /**
    * Actually emit the state change event
+   * For offscreen views (AI automation), we still need to send state to mainWindow
+   * so the frontend UI can display loading status correctly.
    */
   private doEmitStateChange(viewId: string) {
     const state = this.states.get(viewId)
-    if (state && this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (!state) return
+
+    // For offscreen views, we still need to send state to mainWindow
+    // because the frontend needs to know about AI browser state
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send('browser:state-change', {
         viewId,
         state: { ...state },
       })
+    } else if (this.offscreenViewIds.has(viewId)) {
+      // If mainWindow is not available but this is an offscreen view,
+      // log a warning - this shouldn't happen in normal operation
+      console.warn(`[BrowserView] Cannot emit state change for offscreen view ${viewId} - mainWindow not available`)
     }
   }
 

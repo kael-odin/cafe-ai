@@ -90,6 +90,7 @@ const browser_screenshot = tool(
       if (args.filePath) {
         const { writeFileSync } = require('fs')
         const buffer = Buffer.from(result.data, 'base64')
+        console.log(`[browser_screenshot] Saving screenshot to: ${args.filePath}, buffer size: ${buffer.length} bytes`)
         writeFileSync(args.filePath, buffer)
         return textResult(`${message}\nSaved screenshot to ${args.filePath}.`)
       }

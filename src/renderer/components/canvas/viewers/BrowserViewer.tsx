@@ -40,6 +40,7 @@ import { api } from '../../../api'
 import { canvasLifecycle, type TabState, type BrowserState } from '../../../services/canvas-lifecycle'
 import { useBrowserState } from '../../../hooks/useCanvasLifecycle'
 import { useAIBrowserStore } from '../../../stores/ai-browser.store'
+import { useNotificationStore } from '../../../stores/notification.store'
 import { useTranslation } from '../../../i18n'
 
 interface BrowserViewerProps {
@@ -216,11 +217,48 @@ export function BrowserViewer({ tab }: BrowserViewerProps) {
   const handleCapture = useCallback(async () => {
     if (!tab.browserViewId) return
 
+    const showToast = useNotificationStore.getState().show
     const result = await api.captureBrowserView(tab.browserViewId)
     if (result.success && result.data) {
       console.log('[BrowserViewer] Screenshot captured')
+      
+      // Copy to clipboard
+      try {
+        const base64Data = result.data.split(',')[1] || result.data
+        const byteCharacters = atob(base64Data)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: 'image/png' })
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ])
+        showToast({
+          title: t('Screenshot captured'),
+          body: t('The screenshot has been saved to clipboard'),
+          variant: 'success',
+          duration: 3000
+        })
+      } catch (clipboardError) {
+        console.error('[BrowserViewer] Failed to copy to clipboard:', clipboardError)
+        showToast({
+          title: t('Screenshot captured'),
+          body: t('Screenshot saved, but failed to copy to clipboard'),
+          variant: 'warning',
+          duration: 3000
+        })
+      }
+    } else {
+      showToast({
+        title: t('Screenshot failed'),
+        body: result.error || t('Failed to capture screenshot'),
+        variant: 'error',
+        duration: 3000
+      })
     }
-  }, [tab.browserViewId])
+  }, [tab.browserViewId, t])
 
   const handleOpenExternal = useCallback(async () => {
     // For PDF, open with system default app; for browser, open URL in external browser

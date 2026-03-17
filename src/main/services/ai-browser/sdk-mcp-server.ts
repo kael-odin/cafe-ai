@@ -18,7 +18,7 @@
  */
 
 import { createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
-import { browserContext, type BrowserContext } from './context'
+import { browserContext, createScopedBrowserContext, type BrowserContext } from './context'
 import { buildAllTools } from './tools'
 
 /**
@@ -35,7 +35,14 @@ import { buildAllTools } from './tools'
  *   when omitted.
  */
 export function createAIBrowserMcpServer(scopedContext?: BrowserContext, workDir?: string) {
-  const ctx = scopedContext ?? browserContext
+  // Important: when used by the Agent runtime, we must operate in a scoped
+  // (automation) context. Otherwise browser_new_page will create a BrowserView
+  // on the main window and leave it offscreen, which can make capturePage()
+  // return 0x0 frames on Windows.
+  //
+  // Apps runtime passes an explicit scopedContext; interactive UI may use the
+  // singleton browserContext. For safety, default to a scoped context here.
+  const ctx = scopedContext ?? createScopedBrowserContext(null)
   if (workDir !== undefined) {
     ctx.workDir = workDir
   }

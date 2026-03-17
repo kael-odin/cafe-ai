@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { HaloLogo } from '../brand/CafeLogo'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 
 export function SplashScreen() {
@@ -24,7 +24,7 @@ export function SplashScreen() {
           animate ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
       >
-        <HaloLogo size="lg" />
+        <CafeLogo size="lg" />
       </div>
 
       {/* Brand Name */}

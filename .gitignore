@@ -20,7 +20,7 @@ app.log
 local_docs/
 
 # Local plugins (uncomment to exclude)
-# halo-local/
+# cafe-local/
 # product.json
 
 # Local deploy scripts

@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { tool } from '@anthropic-ai/claude-agent-sdk'
 import type { BrowserContext } from '../context'
 import { browserViewManager } from '../../browser-view.service'
-import { textResult, NAV_TIMEOUT } from './helpers'
+import { textResult, NAV_TIMEOUT, TOOL_TIMEOUT, withTimeout } from './helpers'
 
 export function buildNavigationTools(ctx: BrowserContext) {
 
@@ -26,7 +26,9 @@ const browser_list_pages = tool(
 
     const lines = ['Open browser pages:']
     states.forEach((state, index) => {
-      lines.push(`[${index}] ${state.title || 'Untitled'} - ${state.url || 'about:blank'}`)
+      // Include stable view id so the agent can reliably select the right page
+      // even if ordering changes or multiple pages share similar titles.
+      lines.push(`[${index}] id=${state.id} ${state.title || 'Untitled'} - ${state.url || 'about:blank'}`)
     })
 
     return textResult(lines.join('\n'))
@@ -37,20 +39,33 @@ const browser_select_page = tool(
   'browser_select_page',
   'Select a page as a context for future tool calls.',
   {
-    pageIdx: z.number().describe('The index of the page to select. Call browser_list_pages to get available pages.'),
+    pageIdx: z.number().optional().describe('The index of the page to select. Call browser_list_pages to get available pages.'),
+    viewId: z.string().optional().describe('The id of the page to select (recommended; stable across ordering).'),
     bringToFront: z.boolean().optional().describe('Whether to focus the page and bring it to the top.')
   },
   async (args) => {
     const states = browserViewManager.getAllStates()
 
-    if (args.pageIdx < 0 || args.pageIdx >= states.length) {
-      return textResult(`Invalid page index: ${args.pageIdx}. Valid range: 0-${states.length - 1}`, true)
+    const hasIdx = typeof args.pageIdx === 'number'
+    const hasId = typeof args.viewId === 'string' && args.viewId.length > 0
+    if ((hasIdx && hasId) || (!hasIdx && !hasId)) {
+      return textResult('Provide exactly one of "pageIdx" or "viewId".', true)
     }
 
-    const state = states[args.pageIdx]
+    const state = hasId
+      ? states.find(s => s.id === args.viewId)
+      : states[args.pageIdx as number]
+
+    if (!state) {
+      if (hasId) {
+        return textResult(`Invalid viewId: ${args.viewId}. Call browser_list_pages to see available pages.`, true)
+      }
+      return textResult(`Invalid page index: ${args.pageIdx}. Valid range: 0-${states.length - 1}`, true)
+    }
     ctx.setActiveViewId(state.id)
 
-    return textResult(`Selected page [${args.pageIdx}]: ${state.title || 'Untitled'} - ${state.url}`)
+    const idx = states.findIndex(s => s.id === state.id)
+    return textResult(`Selected page [${idx}]: id=${state.id} ${state.title || 'Untitled'} - ${state.url}`)
   }
 )
 
@@ -76,9 +91,58 @@ const browser_new_page = tool(
       await ctx.waitForNavigation(timeout)
 
       const finalState = browserViewManager.getState(viewId)
-      return textResult(`Created new page: ${finalState?.title || 'Untitled'} - ${finalState?.url || args.url}`)
+      return textResult(`Created new page: id=${viewId} ${finalState?.title || 'Untitled'} - ${finalState?.url || args.url}`)
     } catch (error) {
       return textResult(`Failed to create new page: ${(error as Error).message}`, true)
+    }
+  }
+)
+
+const browser_open_and_screenshot = tool(
+  'browser_open_and_screenshot',
+  'Open a URL in a fresh page and immediately take a screenshot, saving to filePath.',
+  {
+    url: z.string().describe('URL to open.'),
+    filePath: z.string().describe('Absolute path (or cwd-relative) to save the screenshot.'),
+    fullPage: z.boolean().optional().describe('If true takes a screenshot of the full page instead of the viewport. Default false.'),
+    format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Image format. Default "png".'),
+    quality: z.number().optional().describe('Compression quality for JPEG/WebP (0-100). Ignored for PNG.'),
+    timeout: z.number().int().optional().describe('Maximum wait time in milliseconds for navigation + capture. If 0, uses default.')
+  },
+  async (args) => {
+    const timeout = (args.timeout && args.timeout > 0) ? args.timeout : NAV_TIMEOUT
+    const format = args.format || 'png'
+
+    try {
+      const viewId = `ai-browser-${Date.now()}`
+      await browserViewManager.create(viewId, args.url, { offscreen: ctx.isScoped })
+      ctx.trackView(viewId)
+      ctx.setActiveViewId(viewId)
+
+      await ctx.waitForNavigation(timeout)
+
+      const result = await withTimeout(
+        ctx.captureScreenshot({
+          format,
+          quality: format === 'png' ? undefined : args.quality,
+          fullPage: args.fullPage || false
+        }),
+        TOOL_TIMEOUT,
+        'browser_open_and_screenshot'
+      )
+
+      const { writeFileSync } = require('fs')
+      const buffer = Buffer.from(result.data, 'base64')
+      writeFileSync(args.filePath, buffer)
+
+      const finalState = browserViewManager.getState(viewId)
+      return textResult(
+        `Opened: ${finalState?.url || args.url}\n` +
+        `Saved screenshot to: ${args.filePath}\n` +
+        `Page id: ${viewId}`
+      )
+    } catch (error) {
+      return textResult(`Failed to open and screenshot: ${(error as Error).message}`, true)
     }
   }
 )
@@ -227,6 +291,7 @@ return [
   browser_list_pages,
   browser_select_page,
   browser_new_page,
+  browser_open_and_screenshot,
   browser_close_page,
   browser_navigate,
   browser_wait_for,

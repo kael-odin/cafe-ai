@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Auto-translate empty values in i18n files
  *
@@ -117,7 +117,9 @@ function getKeysToTranslate(sourceJson, targetJson, force = false) {
 
 // Detect API format based on URL or explicit config
 function detectApiFormat(apiUrl) {
-  const explicit = process.env.Cafe_TEST_API_FORMAT?.toLowerCase()
+  if (!apiUrl) return null
+
+  const explicit = (process.env.Cafe_TEST_API_FORMAT || process.env.CAFE_TEST_API_FORMAT)?.toLowerCase()
   if (explicit === 'anthropic' || explicit === 'openai') {
     return explicit
   }
@@ -132,9 +134,11 @@ function detectApiFormat(apiUrl) {
 
 // Call LLM API for translation (supports both Anthropic and OpenAI formats)
 async function translateBatch(texts, targetLocale) {
-  const apiKey = process.env.Cafe_TEST_API_KEY
-  const apiUrl = process.env.Cafe_TEST_API_URL
-  const model = process.env.Cafe_TEST_MODEL
+  // Support both Cafe_* and CAFE_* env var prefixes.
+  // The repo's .env.example uses CAFE_*; older scripts used Cafe_*.
+  const apiKey = process.env.Cafe_TEST_API_KEY || process.env.CAFE_TEST_API_KEY
+  const apiUrl = process.env.Cafe_TEST_API_URL || process.env.CAFE_TEST_API_URL
+  const model = process.env.Cafe_TEST_MODEL || process.env.CAFE_TEST_MODEL
 
   if (!apiKey || !apiUrl) {
     throw new Error('Missing Cafe_TEST_API_KEY or Cafe_TEST_API_URL in .env.local')
@@ -329,11 +333,22 @@ async function main() {
   const force = process.argv.includes('--force')
   const dryRun = process.argv.includes('--dry-run')
 
+  const apiUrl = process.env.Cafe_TEST_API_URL || process.env.CAFE_TEST_API_URL
+  const model = process.env.Cafe_TEST_MODEL || process.env.CAFE_TEST_MODEL
+  const apiFormat = detectApiFormat(apiUrl)
+
   console.log('\n🌍 i18n Auto Translator\n')
   console.log(`   Mode: ${force ? 'Force (translate all)' : 'Incremental (empty values only)'}`)
-  console.log(`   API: ${process.env.Cafe_TEST_API_URL}`)
-  console.log(`   Model: ${process.env.Cafe_TEST_MODEL}`)
-  console.log(`   Format: ${detectApiFormat(process.env.Cafe_TEST_API_URL)}\n`)
+  console.log(`   API: ${apiUrl}`)
+  console.log(`   Model: ${model}`)
+  console.log(`   Format: ${apiFormat}\n`)
+
+  // If no translation API is configured, skip auto-translation successfully.
+  // This allows running `npm run i18n` in CI/dev without secrets.
+  if (!apiUrl || !(process.env.Cafe_TEST_API_KEY || process.env.CAFE_TEST_API_KEY)) {
+    console.log('ℹ No translation API configured in .env.local — skipping auto-translation.\n')
+    return
+  }
 
   // Read source file
   const sourceFile = path.join(CONFIG.localesDir, `${CONFIG.sourceLocale}.json`)
