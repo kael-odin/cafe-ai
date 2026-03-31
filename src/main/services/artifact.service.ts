@@ -111,21 +111,19 @@ export function watchArtifacts(
  * List artifacts as tree structure (lazy loading)
  * Only loads root level initially, children are loaded on demand
  */
-export async function listArtifactsTree(spaceId: string): Promise<CachedTreeNode[]> {
-  console.log(`[Artifact] listArtifactsTree for space: ${spaceId}`)
-
+export async function listArtifactsTree(spaceId: string): Promise<{ workspaceRoot: string; nodes: CachedTreeNode[] }> {
   const workDir = getWorkingDir(spaceId)
-  console.log(`[Artifact] listArtifactsTree workDir resolved: ${workDir}`)
+  console.log(`[Artifact] listArtifactsTree: spaceId=${spaceId}, workDir=${workDir}`)
 
   if (!existsSync(workDir)) {
     console.log(`[Artifact] Directory does not exist: ${workDir}`)
-    return []
+    return { workspaceRoot: workDir, nodes: [] }
   }
 
   const nodes = await listArtifactsTreeCached(spaceId, workDir)
 
-  console.log(`[Artifact] listArtifactsTree result: ${nodes.length} root nodes`)
-  return nodes
+  console.log(`[Artifact] listArtifactsTree: ${nodes.length} root nodes`)
+  return { workspaceRoot: workDir, nodes }
 }
 
 /**
