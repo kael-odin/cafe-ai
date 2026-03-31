@@ -1,34 +1,34 @@
-/**
+﻿/**
  * zip-import-utils.ts
  *
  * Pure utility module for Digital Human bundle import.
  * Supports two input modes:
- *   1. ZIP file  → parseDigitalHumanZip(file)
- *   2. Folder    → parseDigitalHumanFolder(files)
+ *   1. ZIP file  鈫?parseDigitalHumanZip(file)
+ *   2. Folder    鈫?parseDigitalHumanFolder(files)
  *
- * Both converge on the same Layer 2 (structure) → Layer 3 (schema)
+ * Both converge on the same Layer 2 (structure) 鈫?Layer 3 (schema)
  * validation pipeline. Layer 4 (Zod) runs on the backend at install time.
  *
  * Bundle Format:
  *   my-digital-human/            (or .zip)
- *   ├── spec.yaml            ← required, the automation spec
- *   └── skills/              ← optional, bundled skills
- *       ├── skill-a/
- *       │   └── SKILL.md
- *       └── skill-b/
- *           ├── SKILL.md
- *           └── references/
- *               └── guide.md
+ *   鈹溾攢鈹€ spec.yaml            鈫?required, the automation spec
+ *   鈹斺攢鈹€ skills/              鈫?optional, bundled skills
+ *       鈹溾攢鈹€ skill-a/
+ *       鈹?  鈹斺攢鈹€ SKILL.md
+ *       鈹斺攢鈹€ skill-b/
+ *           鈹溾攢鈹€ SKILL.md
+ *           鈹斺攢鈹€ references/
+ *               鈹斺攢鈹€ guide.md
  *
  * Supports both flat (spec.yaml at root) and wrapped (single top-level
- * folder — macOS zip default). macOS metadata is silently ignored.
+ * folder 鈥?macOS zip default). macOS metadata is silently ignored.
  */
 
 import { parse as parseYaml } from 'yaml'
 
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Constants
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /** Maximum allowed ZIP file size in bytes (10 MB) */
 const MAX_ZIP_SIZE = 10 * 1024 * 1024
@@ -38,13 +38,13 @@ const MACOS_IGNORED = (path: string): boolean =>
   path.startsWith('__MACOSX/') ||
   path.split('/').some(seg => seg === '.DS_Store' || seg.startsWith('._'))
 
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Public types
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /** A single validation error with full context */
 export interface ZipValidationError {
-  /** Where the error occurred (e.g. "spec.yaml → type", "skills/my-skill/") */
+  /** Where the error occurred (e.g. "spec.yaml 鈫?type", "skills/my-skill/") */
   location: string
   /** What was expected */
   expected: string
@@ -88,14 +88,14 @@ export interface ZipParseResult {
   warnings: ZipValidationWarning[]
 }
 
-/** Parse outcome — either success or failure with detailed errors */
+/** Parse outcome 鈥?either success or failure with detailed errors */
 export type ZipParseOutcome =
   | { ok: true; result: ZipParseResult }
   | { ok: false; errors: ZipValidationError[] }
 
-// ─────────────────────────────────────────────────────────
-// Layer 1 — File validation (pre-extraction)
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Layer 1 鈥?File validation (pre-extraction)
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function validateFileLayer(file: File): ZipValidationError[] {
   const errors: ZipValidationError[] = []
@@ -115,7 +115,7 @@ function validateFileLayer(file: File): ZipValidationError[] {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
     errors.push({
       location: file.name,
-      expected: `≤ 10 MB`,
+      expected: `鈮?10 MB`,
       actual: `${sizeMB} MB`,
       suggestion: 'Reduce the archive size. Remove unnecessary files from the zip.',
     })
@@ -133,9 +133,9 @@ function validateFileLayer(file: File): ZipValidationError[] {
   return errors
 }
 
-// ─────────────────────────────────────────────────────────
-// Layer 2 — Structure validation (post-extraction)
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Layer 2 鈥?Structure validation (post-extraction)
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 interface StructureResult {
   /** Normalized file map with clean paths */
@@ -197,7 +197,7 @@ function validateStructureLayer(
     const prefix = Array.from(topDirs)[0] + '/'
     const allInPrefix = Object.keys(cleanFiles).every(p => p.startsWith(prefix))
     if (allInPrefix) {
-      // Wrapped format — strip the top-level folder
+      // Wrapped format 鈥?strip the top-level folder
       const stripped: Record<string, string> = {}
       for (const [path, content] of Object.entries(cleanFiles)) {
         const rest = path.slice(prefix.length)
@@ -262,7 +262,7 @@ function validateStructureLayer(
     if (!files['SKILL.md']) {
       warnings.push({
         location: `skills/${dirName}/`,
-        message: `Missing SKILL.md — this skill will be skipped. It will not affect the main installation.`,
+        message: `Missing SKILL.md 鈥?this skill will be skipped. It will not affect the main installation.`,
       })
       continue
     }
@@ -281,9 +281,9 @@ function validateStructureLayer(
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// Layer 3 — Schema validation (parsed YAML, pre-backend)
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Layer 3 鈥?Schema validation (parsed YAML, pre-backend)
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function validateSchemaLayer(
   specContent: string
@@ -323,14 +323,14 @@ function validateSchemaLayer(
     const typeStr = String(spec.type)
     let suggestion = ''
     if (typeStr === 'skill') {
-      suggestion = 'This is a Skill spec. Use "My Apps → Add Skill" to install Skills.'
+      suggestion = 'This is a Skill spec. Use "My Apps 鈫?Add Skill" to install Skills.'
     } else if (typeStr === 'mcp') {
-      suggestion = 'This is an MCP Server spec. Use "My Apps → Add MCP Server" to install MCP Servers.'
+      suggestion = 'This is an MCP Server spec. Use "My Apps 鈫?Add MCP Server" to install MCP Servers.'
     } else {
       suggestion = `Type "${typeStr}" is not supported for digital human import.`
     }
     errors.push({
-      location: 'spec.yaml → type',
+      location: 'spec.yaml 鈫?type',
       expected: 'automation',
       actual: typeStr,
       suggestion,
@@ -342,7 +342,7 @@ function validateSchemaLayer(
   for (const field of requiredFields) {
     if (spec[field] === undefined || spec[field] === null || spec[field] === '') {
       errors.push({
-        location: `spec.yaml → ${field}`,
+        location: `spec.yaml 鈫?${field}`,
         expected: 'Non-empty value',
         actual: spec[field] === undefined ? 'missing' : spec[field] === null ? 'null' : 'empty string',
         suggestion: `Add a "${field}" field to spec.yaml.`,
@@ -353,7 +353,7 @@ function validateSchemaLayer(
   // Field type checks
   if (spec.name !== undefined && typeof spec.name !== 'string') {
     errors.push({
-      location: 'spec.yaml → name',
+      location: 'spec.yaml 鈫?name',
       expected: 'string',
       actual: typeof spec.name,
       suggestion: 'The "name" field must be a string.',
@@ -362,7 +362,7 @@ function validateSchemaLayer(
 
   if (spec.description !== undefined && typeof spec.description !== 'string') {
     errors.push({
-      location: 'spec.yaml → description',
+      location: 'spec.yaml 鈫?description',
       expected: 'string',
       actual: typeof spec.description,
       suggestion: 'The "description" field must be a string.',
@@ -371,7 +371,7 @@ function validateSchemaLayer(
 
   if (spec.system_prompt !== undefined && typeof spec.system_prompt !== 'string') {
     errors.push({
-      location: 'spec.yaml → system_prompt',
+      location: 'spec.yaml 鈫?system_prompt',
       expected: 'string',
       actual: typeof spec.system_prompt,
       suggestion: 'The "system_prompt" field must be a string.',
@@ -380,7 +380,7 @@ function validateSchemaLayer(
 
   if (spec.subscriptions !== undefined && !Array.isArray(spec.subscriptions)) {
     errors.push({
-      location: 'spec.yaml → subscriptions',
+      location: 'spec.yaml 鈫?subscriptions',
       expected: 'array',
       actual: typeof spec.subscriptions,
       suggestion: 'The "subscriptions" field must be an array.',
@@ -389,7 +389,7 @@ function validateSchemaLayer(
 
   if (spec.config_schema !== undefined && !Array.isArray(spec.config_schema)) {
     errors.push({
-      location: 'spec.yaml → config_schema',
+      location: 'spec.yaml 鈫?config_schema',
       expected: 'array',
       actual: typeof spec.config_schema,
       suggestion: 'The "config_schema" field must be an array.',
@@ -398,7 +398,7 @@ function validateSchemaLayer(
 
   if (spec.permissions !== undefined && !Array.isArray(spec.permissions)) {
     errors.push({
-      location: 'spec.yaml → permissions',
+      location: 'spec.yaml 鈫?permissions',
       expected: 'array',
       actual: typeof spec.permissions,
       suggestion: 'The "permissions" field must be an array.',
@@ -410,26 +410,26 @@ function validateSchemaLayer(
   return { ok: true, parsed: spec }
 }
 
-// ─────────────────────────────────────────────────────────
-// Shared: Structure → Schema → Result pipeline
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Shared: Structure 鈫?Schema 鈫?Result pipeline
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /**
  * Run Layer 2 + 3 on a pre-built file map. Used by both zip and folder paths.
- * @param rawFiles – relative-path → text content map
- * @param sourceName – display name for error messages (file name or folder name)
+ * @param rawFiles 鈥?relative-path 鈫?text content map
+ * @param sourceName 鈥?display name for error messages (file name or folder name)
  */
 function validateAndBuildResult(
   rawFiles: Record<string, string>,
   sourceName: string
 ): ZipParseOutcome {
-  // Layer 2 — Structure validation
+  // Layer 2 鈥?Structure validation
   const structureResult = validateStructureLayer(rawFiles)
   if (!structureResult.ok) {
     return { ok: false, errors: structureResult.errors }
   }
 
-  // Layer 3 — Schema validation
+  // Layer 3 鈥?Schema validation
   const schemaResult = validateSchemaLayer(structureResult.result.specContent)
   if (!schemaResult.ok) {
     return { ok: false, errors: schemaResult.errors }
@@ -452,17 +452,17 @@ function validateAndBuildResult(
   }
 }
 
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Public API
-// ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /**
  * Parse and validate a ZIP file for digital human import.
- * Runs Layer 1 → 2 → 3 validation, failing fast at each layer.
+ * Runs Layer 1 鈫?2 鈫?3 validation, failing fast at each layer.
  * Returns either a success result with parsed data, or detailed errors.
  */
 export async function parseDigitalHumanZip(file: File): Promise<ZipParseOutcome> {
-  // Layer 1 — File validation
+  // Layer 1 鈥?File validation
   const fileErrors = validateFileLayer(file)
   if (fileErrors.length > 0) {
     return { ok: false, errors: fileErrors }
@@ -480,7 +480,7 @@ export async function parseDigitalHumanZip(file: File): Promise<ZipParseOutcome>
       errors: [{
         location: file.name,
         expected: 'Valid ZIP archive',
-        actual: 'Could not extract — file may be corrupted',
+        actual: 'Could not extract 鈥?file may be corrupted',
         suggestion: 'Re-create the ZIP archive. Make sure the file is not damaged.',
       }],
     }
@@ -499,10 +499,10 @@ export async function parseDigitalHumanZip(file: File): Promise<ZipParseOutcome>
 
 /**
  * Parse and validate a folder (Record<string, string>) for digital human import.
- * Skips Layer 1 (zip-specific checks), runs Layer 2 → 3 directly.
+ * Skips Layer 1 (zip-specific checks), runs Layer 2 鈫?3 directly.
  *
- * @param files – relative-path → text content (same format as zip extract output)
- * @param folderName – display name for the folder (used in preview)
+ * @param files 鈥?relative-path 鈫?text content (same format as zip extract output)
+ * @param folderName 鈥?display name for the folder (used in preview)
  */
 export async function parseDigitalHumanFolder(
   files: Record<string, string>,
