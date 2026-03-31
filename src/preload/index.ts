@@ -225,6 +225,7 @@ export interface CafeAPI {
   onUpdaterStatus: (callback: (data: unknown) => void) => () => void
 
   // Browser (embedded browser for Content Canvas)
+  getBrowserHomepage: () => Promise<IpcResponse>
   createBrowserView: (viewId: string, url?: string) => Promise<IpcResponse>
   destroyBrowserView: (viewId: string) => Promise<IpcResponse>
   showBrowserView: (viewId: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<IpcResponse>
@@ -561,6 +562,7 @@ const api: CafeAPI = {
   onUpdaterStatus: (callback) => createEventListener('updater:status', callback),
 
   // Browser (embedded browser for Content Canvas)
+  getBrowserHomepage: () => ipcRenderer.invoke('browser:get-homepage'),
   createBrowserView: (viewId, url) => ipcRenderer.invoke('browser:create', { viewId, url }),
   destroyBrowserView: (viewId) => ipcRenderer.invoke('browser:destroy', { viewId }),
   showBrowserView: (viewId, bounds) => ipcRenderer.invoke('browser:show', { viewId, bounds }),

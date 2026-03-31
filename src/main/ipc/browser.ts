@@ -6,7 +6,7 @@
  */
 
 import { ipcMain, BrowserWindow, Menu, shell, nativeTheme, MenuItemConstructorOptions } from 'electron'
-import { browserViewManager, CHROME_USER_AGENT, type BrowserViewBounds } from '../services/browser-view.service'
+import { browserViewManager, CHROME_USER_AGENT, getDefaultBrowserHomepage, type BrowserViewBounds } from '../services/browser-view.service'
 import { buildLoginLoadingPage, buildLoginErrorPage, loginPageBg } from '../services/browser-login-pages'
 
 /**
@@ -188,6 +188,13 @@ export function registerBrowserHandlers(mainWindow: BrowserWindow | null) {
       console.error('[Browser IPC] Stop failed:', error)
       return { success: false, error: (error as Error).message }
     }
+  })
+
+  /**
+   * Get default homepage URL (respects browser policy config)
+   */
+  ipcMain.handle('browser:get-homepage', () => {
+    return { success: true, data: getDefaultBrowserHomepage() }
   })
 
   // ============================================

@@ -16,6 +16,7 @@
  */
 
 import { BrowserView, BrowserWindow, screen } from 'electron'
+import { loadProductConfig } from './ai-sources/auth-loader'
 
 // ============================================
 // Types
@@ -32,6 +33,10 @@ export interface BrowserViewState {
   zoomLevel: number
   isDevToolsOpen: boolean
   error?: string
+  /** True when a navigation was blocked by browser policy. Used by renderer
+   *  to show the policy-block overlay and by applyBounds() to keep the
+   *  native BrowserView offscreen so the overlay is visible. */
+  blockedByPolicy?: boolean
 }
 
 export interface BrowserViewBounds {
@@ -57,6 +62,94 @@ export const CHROME_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 // ============================================
+// Browser Policy Enforcement
+// ============================================
+
+/**
+ * Match a hostname against a domain pattern.
+ *
+ * Supported patterns:
+ * - "*.example.com" → matches "example.com" and any subdomain (e.g. "app.example.com")
+ * - "example.com"   → exact match only
+ */
+function matchDomainPattern(hostname: string, pattern: string): boolean {
+  const lowerHost = hostname.toLowerCase()
+  const lowerPattern = pattern.toLowerCase()
+
+  if (lowerPattern.startsWith('*.')) {
+    const baseDomain = lowerPattern.slice(2) // "example.com"
+    return lowerHost === baseDomain || lowerHost.endsWith('.' + baseDomain)
+  }
+
+  return lowerHost === lowerPattern
+}
+
+/**
+ * Check whether a URL is permitted by the browser policy from product.json.
+ *
+ * - No policy configured → always allowed (open-source default).
+ * - Non-HTTP(S) URLs (about:blank, file://, etc.) → always allowed.
+ * - Allowlist mode → URL must match at least one pattern.
+ * - Blocklist mode → URL must NOT match any pattern.
+ */
+function isUrlAllowedByPolicy(url: string): boolean {
+  const policy = loadProductConfig().browserPolicy
+  if (!policy || policy.mode === 'unrestricted') return true
+
+  // Always permit non-HTTP(S) URLs (about:blank, data:, file://, etc.)
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return true
+
+  let hostname: string
+  try {
+    hostname = new URL(url).hostname
+  } catch {
+    return false // Invalid URL → block
+  }
+
+  const patterns =
+    policy.mode === 'allowlist' ? policy.allowlist || [] : policy.blocklist || []
+
+  const matchesAnyPattern = patterns.some((p) => matchDomainPattern(hostname, p))
+
+  if (policy.mode === 'allowlist') {
+    return matchesAnyPattern // Allowlist: must match a pattern
+  } else {
+    return !matchesAnyPattern // Blocklist: must NOT match any pattern
+  }
+}
+
+/**
+ * Build a user-friendly message when a URL is blocked by policy.
+ */
+function buildBlockedMessage(url: string): string {
+  const policy = loadProductConfig().browserPolicy
+  const mode = policy?.mode || 'unrestricted'
+  return `Navigation blocked by browser policy (${mode} mode): ${url}`
+}
+
+/**
+ * Get the default homepage URL for new browser tabs.
+ *
+ * Returns the homepage from browserPolicy if configured, otherwise falls back
+ * to a default URL (about:blank when policy is active, bing.com otherwise).
+ */
+export function getDefaultBrowserHomepage(): string {
+  const policy = loadProductConfig().browserPolicy
+
+  if (policy?.homepage) {
+    return policy.homepage
+  }
+
+  // When policy is active without a configured homepage, use about:blank
+  if (policy && policy.mode !== 'unrestricted') {
+    return 'about:blank'
+  }
+
+  // Default for open-source builds without policy
+  return 'https://www.bing.com'
+}
+
+// ============================================
 // BrowserView Manager
 // ============================================
 
@@ -72,6 +165,8 @@ class BrowserViewManager {
   private offscreenWindow: BrowserWindow | null = null
   // Track which views live on the offscreen window for correct cleanup.
   private offscreenViewIds: Set<string> = new Set()
+  // Track last bounds for each view (used for policy-block offscreen positioning)
+  private lastBounds: Map<string, BrowserViewBounds> = new Map()
 
   // Debounce timers for state change events
   // This prevents flooding the renderer with too many IPC messages during rapid navigation
@@ -308,7 +403,7 @@ class BrowserViewManager {
       height: Math.round(bounds.height),
     }
     console.log(`[BrowserView] Setting bounds:`, intBounds)
-    view.setBounds(intBounds)
+    this.applyBounds(viewId, intBounds)
 
     // Auto-resize with window (only width and height, not position)
     view.setAutoResize({
@@ -357,12 +452,14 @@ class BrowserViewManager {
     const view = this.views.get(viewId)
     if (!view) return false
 
-    view.setBounds({
+    const intBounds = {
       x: Math.round(bounds.x),
       y: Math.round(bounds.y),
       width: Math.round(bounds.width),
       height: Math.round(bounds.height),
-    })
+    }
+
+    this.applyBounds(viewId, intBounds)
 
     return true
   }
@@ -570,6 +667,7 @@ class BrowserViewManager {
     // Clean up maps
     this.views.delete(viewId)
     this.states.delete(viewId)
+    this.lastBounds.delete(viewId)
     this.offscreenViewIds.delete(viewId)
 
     if (this.activeViewId === viewId) {
@@ -707,22 +805,79 @@ class BrowserViewManager {
       return { action: 'deny' }
     })
 
-    // Handle external protocol links
+    // Handle navigation requests - enforce browser policy
     wc.on('will-navigate', (event, url) => {
-      // Allow http/https/file protocols, block others (like javascript:, data:, etc.)
+      // Always allow non-HTTP(S) protocols (about:blank, file://, etc.)
       if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file://')) {
+        return
+      }
+
+      // Check browser policy
+      if (!isUrlAllowedByPolicy(url)) {
         event.preventDefault()
+        console.log(`[BrowserView] will-navigate blocked by browser policy: ${url}`)
+        this.updateState(viewId, { error: buildBlockedMessage(url), blockedByPolicy: true, isLoading: false })
+        this.emitStateChangeImmediate(viewId)
+        return
+      }
+
+      // Clear policy block on successful navigation to allowed URL
+      const state = this.states.get(viewId)
+      if (state?.blockedByPolicy) {
+        this.updateState(viewId, { blockedByPolicy: false, error: undefined })
+      }
+    })
+
+    // Block server-side redirects (301/302) to disallowed domains
+    wc.on('will-redirect', (event, url) => {
+      if (!isUrlAllowedByPolicy(url)) {
+        event.preventDefault()
+        console.log(`[BrowserView] will-redirect blocked by browser policy: ${url}`)
+        this.updateState(viewId, { error: buildBlockedMessage(url), blockedByPolicy: true, isLoading: false })
+        this.emitStateChangeImmediate(viewId)
       }
     })
   }
 
   /**
-   * Update state
+   * Update state.
+   *
+   * When blockedByPolicy transitions, applyBounds() is called to move the
+   * BrowserView offscreen (blocked) or restore it to visible bounds (unblocked).
+   * This is the ONLY place that sets blockedByPolicy — all policy-block callers
+   * set error + blockedByPolicy together via this method.
    */
   private updateState(viewId: string, updates: Partial<BrowserViewState>) {
     const state = this.states.get(viewId)
-    if (state) {
-      Object.assign(state, updates)
+    if (!state) return
+
+    const wasPolicyBlocked = !!state.blockedByPolicy
+    Object.assign(state, updates)
+
+    // On policy-block transition, re-apply bounds to move view offscreen or restore it
+    if (wasPolicyBlocked !== !!state.blockedByPolicy) {
+      const bounds = this.lastBounds.get(viewId)
+      if (bounds && !this.offscreenViewIds.has(viewId)) {
+        this.applyBounds(viewId, bounds)
+      }
+    }
+  }
+
+  /**
+   * Single exit point for setBounds — arbitrates between tab-switch visibility
+   * and policy-block visibility. Always records lastBounds for later restore.
+   */
+  private applyBounds(viewId: string, bounds: BrowserViewBounds) {
+    const view = this.views.get(viewId)
+    const state = this.states.get(viewId)
+    if (!view) return
+
+    this.lastBounds.set(viewId, bounds)
+
+    if (state?.blockedByPolicy) {
+      view.setBounds({ x: -10000, y: -10000, width: 0, height: 0 })
+    } else {
+      view.setBounds(bounds)
     }
   }
 
