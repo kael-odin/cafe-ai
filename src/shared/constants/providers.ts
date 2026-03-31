@@ -1,7 +1,7 @@
-﻿/**
+/**
  * Built-in LLM Providers Configuration
  *
- * This module defines all built-in AI providers that Cafe supports out of the box.
+ * This module defines all built-in AI providers that Halo supports out of the box.
  * Users can select these providers and only need to enter their API key.
  *
  * Design Principles:
@@ -212,6 +212,7 @@ export const BUILTIN_PROVIDERS: BuiltinProvider[] = [
     apiUrl: 'https://api.minimaxi.com/v1',
     modelsUrl: 'https://api.minimaxi.com/v1/models',
     models: [
+      { id: 'MiniMax-M2.7', name: 'MiniMax M2.7' },
       { id: 'MiniMax-M2.1', name: 'MiniMax M2.1' },
       { id: 'MiniMax-M1', name: 'MiniMax M1' }
     ],

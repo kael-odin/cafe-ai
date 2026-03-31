@@ -1,5 +1,5 @@
-﻿// ============================================
-// Cafe Type Definitions
+// ============================================		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+// Halo Type Definitions
 // ============================================
 
 // Import values needed in this file's scope
@@ -119,9 +119,44 @@ export interface SystemConfig {
 // Agent behavior configuration
 export interface AgentConfig {
   maxTurns: number;         // Maximum tool call turns per message
-  promptProfile?: 'official' | 'Cafe';  // System prompt profile
+  promptProfile?: 'official' | 'halo';  // System prompt profile
   configDirMode?: 'halo' | 'cc' | 'custom';  // Claude CLI config directory mode
   customConfigDir?: string;  // Custom config dir path (when configDirMode === 'custom')
+}
+
+// CLI config types (used by CLIConfigSection)
+export type ConfigDirMode = 'halo' | 'cc' | 'custom';
+
+export interface CliConfigPaths {
+  haloDefault: string;
+  ccDefault: string;
+  current: string;
+  configDirMode: ConfigDirMode;
+  customConfigDir?: string;
+}
+
+export interface CliSkillEntry {
+  name: string;
+  ccPath: string;
+  haloPath: string;
+  exists: boolean;
+}
+
+export interface CliMcpEntry {
+  name: string;
+  ccConfig: Record<string, unknown>;
+  haloConfig?: unknown;
+  exists: boolean;
+}
+
+export type CliSkillAction = 'skip' | 'overwrite' | 'rename';
+export type CliMcpAction = 'skip' | 'overwrite';
+
+export interface CliMigrateResult {
+  name: string;
+  status: 'migrated' | 'skipped' | 'renamed' | 'merged' | 'error';
+  dest?: string;
+  error?: string;
 }
 
 // Remote access configuration
@@ -144,7 +179,7 @@ export interface McpStdioServerConfig {
   args?: string[];
   env?: Record<string, string>;
   timeout?: number;  // milliseconds
-  disabled?: boolean;  // Cafe extension: temporarily disable this server
+  disabled?: boolean;  // Halo extension: temporarily disable this server
 }
 
 // MCP HTTP server (REST API)
@@ -152,7 +187,7 @@ export interface McpHttpServerConfig {
   type: 'http';
   url: string;
   headers?: Record<string, string>;
-  disabled?: boolean;  // Cafe extension: temporarily disable this server
+  disabled?: boolean;  // Halo extension: temporarily disable this server
 }
 
 // MCP SSE server (Server-Sent Events)
@@ -160,7 +195,7 @@ export interface McpSseServerConfig {
   type: 'sse';
   url: string;
   headers?: Record<string, string>;
-  disabled?: boolean;  // Cafe extension: temporarily disable this server
+  disabled?: boolean;  // Halo extension: temporarily disable this server
 }
 
 // Union type for all MCP server configs
@@ -180,6 +215,8 @@ export interface McpServerStatus {
     version: string;
   };
   error?: string;
+  /** Short tool names provided by this server (without mcp__ prefix) */
+  tools?: string[];
 }
 
 export interface NotificationConfig {
@@ -188,12 +225,18 @@ export interface NotificationConfig {
 
 // Global layout preferences (panel sizes and visibility)
 export interface LayoutConfig {
-  sidebarOpen?: boolean;          // Whether conversation list sidebar is open
-  sidebarWidth?: number;          // Conversation list sidebar width (px)
-  artifactRailWidth?: number;     // Artifact rail panel width (px)
+  sidebarOpen?: boolean;                 // Whether conversation list sidebar is open
+  sidebarWidth?: number;                 // Conversation list sidebar width (px)
+  sidebarTopSectionHeight?: number;      // Height of the top conversation sidebar section (px)
+  artifactRailWidth?: number;            // Artifact rail panel width (px)
 }
 
-export interface CafeConfig {
+// Network configuration
+export interface NetworkConfig {
+  proxy?: string;  // Manual proxy URL (e.g. http://host:port, socks5://host:port). Empty = use system proxy.
+}
+
+export interface HaloConfig {
   api: ApiConfig;  // Legacy, kept for backward compatibility
   aiSources: AISourcesConfig;  // v2 format: { version: 2, currentId, sources: [] }
   permissions: PermissionConfig;
@@ -203,14 +246,14 @@ export interface CafeConfig {
   mcpServers: McpServersConfig;  // MCP servers configuration
   notifications?: NotificationConfig;  // Notification preferences
   notificationChannels?: NotificationChannelsConfig;  // External notification channels
+  wecomBot?: import('../../../shared/types/notification-channels').WecomBotConfig;  // WeCom Intelligent Bot
+  imChannels?: import('../../../shared/types/notification-channels').ImChannelsConfig;  // Global IM channel config
   agent?: AgentConfig;  // Agent behavior settings
   layout?: LayoutConfig;  // Global layout preferences (panel sizes and visibility)
   chat?: ChatConfig;  // Chat behavior preferences
+  network?: NetworkConfig;  // Network settings (proxy, etc.)
   isFirstLaunch: boolean;
 }
-
-// Legacy alias for backward compatibility
-export type CafeConfig = CafeConfig
 
 // ============================================
 // Space Types
@@ -385,6 +428,7 @@ export interface Artifact {
   name: string;
   type: ArtifactType;
   path: string;
+  relativePath: string;
   extension: string;
   icon: string;
   createdAt: string;
@@ -603,13 +647,13 @@ export type AgentEvent =
 // App State Types
 // ============================================
 
-export type AppView = 'splash' | 'gitBashSetup' | 'setup' | 'home' | 'space' | 'settings' | 'apps';
+export type AppView = 'splash' | 'gitBashSetup' | 'setup' | 'home' | 'space' | 'settings' | 'apps' | 'serverConnect' | 'serverList';
 
 export interface AppState {
   view: AppView;
   isLoading: boolean;
   error: string | null;
-  config: CafeConfig | null;
+  config: HaloConfig | null;
 }
 
 // ============================================
@@ -632,52 +676,8 @@ export interface ValidationResult {
   model?: string;
 }
 
-// ============================================
-// CLI Config Types (Claude CLI Integration)
-// ============================================
-
-// Config directory mode for Claude CLI integration
-export type ConfigDirMode = 'halo' | 'cc' | 'custom';
-
-// Paths for CLI config directories
-export interface CliConfigPaths {
-  haloDefault: string;
-  ccDefault: string;
-  current: string;
-  configDirMode: ConfigDirMode;
-  customConfigDir?: string;
-}
-
-// Skill entry found in Claude CLI installation
-export interface CliSkillEntry {
-  name: string;
-  ccPath: string;
-  haloPath: string;
-  exists: boolean;
-}
-
-// MCP server entry found in Claude CLI installation
-export interface CliMcpEntry {
-  name: string;
-  ccConfig: Record<string, unknown>;
-  haloConfig?: unknown;
-  exists: boolean;
-}
-
-// Migration actions for skills and MCP servers
-export type CliSkillAction = 'skip' | 'overwrite' | 'rename';
-export type CliMcpAction = 'skip' | 'overwrite';
-
-// Migration result for each item
-export interface CliMigrateResult {
-  name: string;
-  status: 'migrated' | 'skipped' | 'renamed' | 'merged' | 'error';
-  dest?: string;
-  error?: string;
-}
-
 // Default values
-export const DEFAULT_CONFIG: CafeConfig = {
+export const DEFAULT_CONFIG: HaloConfig = {
   api: {
     provider: 'anthropic',
     apiKey: '',
@@ -712,13 +712,13 @@ export const DEFAULT_CONFIG: CafeConfig = {
 
 // Helper functions hasAnyAISource and getCurrentModelName are now imported from shared module
 
-// Helper function wrapper for CafeConfig (uses v2 format)
-export function hasAnyConfiguredSource(config: CafeConfig): boolean {
+// Helper function wrapper for HaloConfig (uses v2 format)
+export function hasAnyConfiguredSource(config: HaloConfig): boolean {
   return hasAnyAISource(config.aiSources);
 }
 
-// Helper function wrapper for CafeConfig (uses v2 format)
-export function getConfigCurrentModelName(config: CafeConfig): string {
+// Helper function wrapper for HaloConfig (uses v2 format)
+export function getConfigCurrentModelName(config: HaloConfig): string {
   return getCurrentModelName(config.aiSources);
 }
 

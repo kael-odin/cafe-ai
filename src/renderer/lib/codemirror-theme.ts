@@ -1,11 +1,11 @@
-﻿/**
- * CodeMirror Theme for Cafe
+/**
+ * CodeMirror Theme for Halo
  *
- * Creates a theme that matches Cafe's CSS variable-based theme system.
+ * Creates a theme that matches Halo's CSS variable-based theme system.
  * The theme automatically adapts to light/dark mode via CSS variables.
  *
  * Design principles:
- * - Use Cafe CSS variables (--background, --foreground, etc.)
+ * - Use Halo CSS variables (--background, --foreground, etc.)
  * - Syntax colors complement the base theme
  * - Comfortable reading experience (proper contrast, spacing)
  * - Visual consistency with highlight.js syntax-theme.css
@@ -21,10 +21,10 @@ import { tags } from '@lezer/highlight'
 // ============================================
 
 /**
- * Base editor theme using Cafe CSS variables
+ * Base editor theme using Halo CSS variables
  * Uses CSS variables that automatically adapt to light/dark mode
  */
-export const CafeEditorTheme = EditorView.theme(
+export const haloEditorTheme = EditorView.theme(
   {
     // Main editor container
     '&': {
@@ -109,7 +109,7 @@ export const CafeEditorTheme = EditorView.theme(
       outline: '1px solid hsl(var(--primary) / 0.5)',
     },
 
-    // Search panel
+    // Search panel container
     '.cm-panels': {
       backgroundColor: 'hsl(var(--card))',
       borderBottom: '1px solid hsl(var(--border))',
@@ -119,6 +119,70 @@ export const CafeEditorTheme = EditorView.theme(
       borderBottom: '1px solid hsl(var(--border))',
     },
 
+    // Search panel layout
+    // Tailwind Preflight resets margin/padding/background on native elements,
+    // so we must fully specify layout here instead of relying on browser defaults.
+    '.cm-panel.cm-search': {
+      display: 'flex',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '4px',
+      padding: '6px 8px',
+      fontSize: '13px',
+    },
+
+    // Search panel labels (match case / regexp / by word)
+    '.cm-panel.cm-search label': {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '3px',
+      fontSize: '12px',
+      color: 'hsl(var(--muted-foreground))',
+      cursor: 'pointer',
+      userSelect: 'none',
+      whiteSpace: 'nowrap',
+    },
+
+    // Search panel checkboxes
+    '.cm-panel.cm-search input[type=checkbox]': {
+      margin: '0',
+      cursor: 'pointer',
+    },
+
+    // Close button (positioned absolute by CM baseTheme)
+    '.cm-panel.cm-search button[name=close]': {
+      position: 'absolute',
+      top: '6px',
+      right: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '20px',
+      height: '20px',
+      padding: '0',
+      margin: '0',
+      border: 'none',
+      borderRadius: '4px',
+      backgroundColor: 'transparent',
+      color: 'hsl(var(--muted-foreground))',
+      cursor: 'pointer',
+      fontSize: '16px',
+      lineHeight: '1',
+    },
+
+    '.cm-panel.cm-search button[name=close]:hover': {
+      backgroundColor: 'hsl(var(--muted))',
+      color: 'hsl(var(--foreground))',
+    },
+
+    // Replace row: break + fields flow onto a new flex line
+    '.cm-panel.cm-search br': {
+      width: '100%',
+      height: '0',
+      flexBasis: '100%',
+    },
+
+    // Search match highlights
     '.cm-searchMatch': {
       backgroundColor: 'hsl(48 96% 53% / 0.3)',
       outline: '1px solid hsl(48 96% 53% / 0.5)',
@@ -129,7 +193,7 @@ export const CafeEditorTheme = EditorView.theme(
       outline: '1px solid hsl(var(--primary))',
     },
 
-    // Search input
+    // Search text input
     '.cm-textfield': {
       backgroundColor: 'hsl(var(--input))',
       border: '1px solid hsl(var(--border))',
@@ -137,6 +201,7 @@ export const CafeEditorTheme = EditorView.theme(
       padding: '4px 8px',
       color: 'hsl(var(--foreground))',
       fontSize: '13px',
+      lineHeight: '1.4',
       outline: 'none',
     },
 
@@ -145,15 +210,22 @@ export const CafeEditorTheme = EditorView.theme(
       boxShadow: '0 0 0 2px hsl(var(--ring) / 0.2)',
     },
 
-    // Search buttons
+    // Search action buttons (next / previous / all / replace / replace all)
+    // appearance: none is required to disable native OS button chrome that
+    // Tailwind Preflight enables via -webkit-appearance: button.
     '.cm-button': {
+      WebkitAppearance: 'none',
+      appearance: 'none',
+      backgroundImage: 'none',
       backgroundColor: 'hsl(var(--secondary))',
       border: '1px solid hsl(var(--border))',
       borderRadius: '4px',
       padding: '4px 8px',
       color: 'hsl(var(--foreground))',
       fontSize: '12px',
+      lineHeight: '1.4',
       cursor: 'pointer',
+      whiteSpace: 'nowrap',
       transition: 'background-color 0.15s ease',
     },
 
@@ -207,7 +279,7 @@ export const CafeEditorTheme = EditorView.theme(
  * Hardcoded colors are from One Dark Pro palette, which works well in dark mode
  * and has acceptable contrast in light mode
  */
-export const CafeHighlightStyle = HighlightStyle.define([
+export const haloHighlightStyle = HighlightStyle.define([
   // Comments
   { tag: tags.comment, color: 'hsl(var(--muted-foreground) / 0.6)', fontStyle: 'italic' },
   { tag: tags.lineComment, color: 'hsl(var(--muted-foreground) / 0.6)', fontStyle: 'italic' },
@@ -306,21 +378,21 @@ export const CafeHighlightStyle = HighlightStyle.define([
 // ============================================
 
 /**
- * Complete Cafe theme for CodeMirror
+ * Complete Halo theme for CodeMirror
  * Combines editor styling and syntax highlighting
  */
-export const CafeTheme: Extension = [
-  CafeEditorTheme,
-  syntaxHighlighting(CafeHighlightStyle),
+export const haloTheme: Extension = [
+  haloEditorTheme,
+  syntaxHighlighting(haloHighlightStyle),
 ]
 
 /**
  * Light theme variant (same structure, CSS variables handle the colors)
- * The base CafeTheme already uses CSS variables, so it works for both
+ * The base haloTheme already uses CSS variables, so it works for both
  */
-export const CafeLightTheme = CafeTheme
+export const haloLightTheme = haloTheme
 
 /**
  * Dark theme variant
  */
-export const CafeDarkTheme = CafeTheme
+export const haloDarkTheme = haloTheme

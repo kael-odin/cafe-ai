@@ -54,6 +54,7 @@ export type AuthType = 'api-key' | 'oauth'
  * - openai: OpenAI Compatible API (supports any OpenAI-compatible endpoint)
  * - deepseek: DeepSeek API
  * - github-copilot: GitHub Copilot OAuth
+ * - claude: Claude.ai OAuth (Claude Pro/Max subscription)
  */
 export type BuiltinProviderId =
   | 'anthropic'
@@ -214,32 +215,6 @@ export interface AISourcesConfig {
   sources: AISource[]
 }
 
-/**
- * Type guard to check if config is v2 format
- */
-export function isAISourcesConfig(config: unknown): config is AISourcesConfig {
-  return (
-    typeof config === 'object' &&
-    config !== null &&
-    'version' in config &&
-    (config as any).version === 2 &&
-    'sources' in config &&
-    Array.isArray((config as any).sources)
-  )
-}
-
-/**
- * Type guard to check if config is legacy v1 format
- */
-export function isLegacyAISourcesConfig(config: unknown): config is LegacyAISourcesConfig {
-  return (
-    typeof config === 'object' &&
-    config !== null &&
-    'current' in config &&
-    typeof (config as any).current === 'string'
-  )
-}
-
 // ============================================================================
 // Legacy Types (For Backward Compatibility and Migration)
 // ============================================================================
@@ -300,6 +275,8 @@ export interface BackendRequestConfig {
   filterContent?: boolean
   /** AWS CodeWhisperer profile ARN (Kiro Desktop auth only) */
   profileArn?: string
+  /** Provider adapter ID — selects a registered adapter for request/response transformations */
+  adapterId?: string
 }
 
 // ============================================================================

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useSearchShortcuts Hook
  *
  * Manages keyboard shortcuts for search:
@@ -23,6 +23,10 @@ export function useSearchShortcuts({
     if (!enabled || !onSearch) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if the event was already handled by a focused component
+      // (e.g. CodeMirror's in-editor search)
+      if (e.defaultPrevented) return
+
       const isMac = typeof navigator !== 'undefined' &&
         navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
@@ -47,7 +51,7 @@ export function useSearchShortcuts({
       // which is why we recommend Cmd+K for global as the primary shortcut
       if (metaKey && (e.key === 'f' || e.key === 'F') && !e.shiftKey) {
         // Only handle in Electron mode to avoid browser Find conflict
-        if (typeof window !== 'undefined' && 'Cafe' in window) {
+        if (typeof window !== 'undefined' && 'halo' in window) {
           e.preventDefault()
           onSearch('conversation')
         }

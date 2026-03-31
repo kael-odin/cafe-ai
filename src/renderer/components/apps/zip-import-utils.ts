@@ -26,9 +26,9 @@
 
 import { parse as parseYaml } from 'yaml'
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Constants
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 /** Maximum allowed ZIP file size in bytes (10 MB) */
 const MAX_ZIP_SIZE = 10 * 1024 * 1024
@@ -38,9 +38,9 @@ const MACOS_IGNORED = (path: string): boolean =>
   path.startsWith('__MACOSX/') ||
   path.split('/').some(seg => seg === '.DS_Store' || seg.startsWith('._'))
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Public types
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 /** A single validation error with full context */
 export interface ZipValidationError {
@@ -93,9 +93,9 @@ export type ZipParseOutcome =
   | { ok: true; result: ZipParseResult }
   | { ok: false; errors: ZipValidationError[] }
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Layer 1 —File validation (pre-extraction)
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 function validateFileLayer(file: File): ZipValidationError[] {
   const errors: ZipValidationError[] = []
@@ -133,9 +133,9 @@ function validateFileLayer(file: File): ZipValidationError[] {
   return errors
 }
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Layer 2 —Structure validation (post-extraction)
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 interface StructureResult {
   /** Normalized file map with clean paths */
@@ -281,9 +281,9 @@ function validateStructureLayer(
   }
 }
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Layer 3 —Schema validation (parsed YAML, pre-backend)
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 function validateSchemaLayer(
   specContent: string
@@ -410,9 +410,9 @@ function validateSchemaLayer(
   return { ok: true, parsed: spec }
 }
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Shared: Structure →Schema →Result pipeline
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 /**
  * Run Layer 2 + 3 on a pre-built file map. Used by both zip and folder paths.
@@ -452,9 +452,9 @@ function validateAndBuildResult(
   }
 }
 
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 // Public API
-// ────────────────────────────────────────────────────────────鈹€
+// ────────────────────────────────────────────────────────────
 
 /**
  * Parse and validate a ZIP file for digital human import.
