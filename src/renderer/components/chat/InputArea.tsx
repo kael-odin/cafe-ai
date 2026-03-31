@@ -49,6 +49,7 @@ function getMentionMatch(value: string, cursorPosition: number): MentionMatch | 
 }
 
 function normalizePathLike(value: string): string {
+  if (!value) return ''
   return value.replace(/\\/g, '/').trim().toLowerCase()
 }
 
@@ -251,7 +252,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
     const normalizedPath = normalizePathLike(rawPath)
     // P1 fix: use string match instead of RegExp
     const target = mentionArtifacts.find(a => {
-      const rp = normalizePathLike(a.relativePath)
+      const rp = normalizePathLike(a.relativePath || '')
       return rp === normalizedPath || rp.endsWith('/' + normalizedPath)
     })
     if (!target) return false
@@ -371,7 +372,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
         const diff = score(a) - score(b)
         if (diff !== 0) return diff
         if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
-        return a.relativePath.localeCompare(b.relativePath)
+        return (a.relativePath || '').localeCompare(b.relativePath || '')
       })
       .slice(0, 50)
   }, [mentionArtifacts, mentionMatch, mentionMenuOpen])

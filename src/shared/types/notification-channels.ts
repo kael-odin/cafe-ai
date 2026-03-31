@@ -111,6 +111,37 @@ export interface NotificationChannelsConfig {
 }
 
 // ============================================
+// WeCom Bot Config (Bidirectional)
+// ============================================
+
+/**
+ * WeCom Intelligent Bot configuration for bidirectional messaging.
+ * Connects to WeCom's AI Bot WebSocket API for real-time communication.
+ */
+export interface WecomBotConfig {
+  enabled: boolean
+  /** Bot ID from WeCom admin console (aib-xxx format) */
+  botId: string
+  /** Bot secret from WeCom admin console */
+  secret: string
+  /** WebSocket URL (default: wss://openws.work.weixin.qq.com) */
+  wsUrl?: string
+}
+
+// ============================================
+// IM Channels Config (Global)
+// ============================================
+
+/**
+ * Global IM channel configuration.
+ * Settings that apply across all bidirectional IM channels.
+ */
+export interface ImChannelsConfig {
+  /** Default digital human (App) ID for routing inbound IM messages */
+  defaultAppId?: string
+}
+
+// ============================================
 // Output Notify Config (for App Spec)
 // ============================================
 

@@ -148,6 +148,11 @@ export interface CafeAPI {
   listArtifacts: (spaceId: string) => Promise<IpcResponse>
   listArtifactsTree: (spaceId: string) => Promise<IpcResponse>
   loadArtifactChildren: (spaceId: string, dirPath: string) => Promise<IpcResponse>
+  deleteArtifact: (spaceId: string, targetPath: string) => Promise<IpcResponse>
+  renameArtifact: (spaceId: string, oldPath: string, newName: string) => Promise<IpcResponse>
+  moveArtifact: (spaceId: string, oldPath: string, newParentPath: string) => Promise<IpcResponse>
+  createArtifactFile: (spaceId: string, parentPath: string, name: string, content: string) => Promise<IpcResponse>
+  createArtifactFolder: (spaceId: string, parentPath: string, name: string) => Promise<IpcResponse>
   initArtifactWatcher: (spaceId: string) => Promise<IpcResponse>
   onArtifactChanged: (callback: (data: {
     type: 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir'
@@ -198,6 +203,10 @@ export interface CafeAPI {
   getAutoLaunch: () => Promise<IpcResponse>
   setAutoLaunch: (enabled: boolean) => Promise<IpcResponse>
   openLogFolder: () => Promise<IpcResponse>
+
+  // WeCom Bot
+  getWecomBotStatus: () => Promise<IpcResponse>
+  reconnectWecomBot: () => Promise<IpcResponse>
 
   // Window
   setTitleBarOverlay: (options: { color: string; symbolColor: string }) => Promise<IpcResponse>
@@ -509,6 +518,11 @@ const api: CafeAPI = {
   listArtifacts: (spaceId) => ipcRenderer.invoke('artifact:list', spaceId),
   listArtifactsTree: (spaceId) => ipcRenderer.invoke('artifact:list-tree', spaceId),
   loadArtifactChildren: (spaceId, dirPath) => ipcRenderer.invoke('artifact:load-children', spaceId, dirPath),
+  deleteArtifact: (spaceId, targetPath) => ipcRenderer.invoke('artifact:delete', spaceId, targetPath),
+  renameArtifact: (spaceId, oldPath, newName) => ipcRenderer.invoke('artifact:rename', spaceId, oldPath, newName),
+  moveArtifact: (spaceId, oldPath, newParentPath) => ipcRenderer.invoke('artifact:move', spaceId, oldPath, newParentPath),
+  createArtifactFile: (spaceId, parentPath, name, content) => ipcRenderer.invoke('artifact:create-file', spaceId, parentPath, name, content),
+  createArtifactFolder: (spaceId, parentPath, name) => ipcRenderer.invoke('artifact:create-folder', spaceId, parentPath, name),
   initArtifactWatcher: (spaceId) => ipcRenderer.invoke('artifact:init-watcher', spaceId),
   onArtifactChanged: (callback) => createEventListener('artifact:changed', callback as (data: unknown) => void),
   onArtifactTreeUpdate: (callback) => createEventListener('artifact:tree-update', callback as (data: unknown) => void),
@@ -539,6 +553,10 @@ const api: CafeAPI = {
   getAutoLaunch: () => ipcRenderer.invoke('system:get-auto-launch'),
   setAutoLaunch: (enabled) => ipcRenderer.invoke('system:set-auto-launch', enabled),
   openLogFolder: () => ipcRenderer.invoke('system:open-log-folder'),
+
+  // WeCom Bot
+  getWecomBotStatus: () => ipcRenderer.invoke('wecom-bot:status'),
+  reconnectWecomBot: () => ipcRenderer.invoke('wecom-bot:reconnect'),
 
   // Window
   setTitleBarOverlay: (options) => ipcRenderer.invoke('window:set-title-bar-overlay', options),

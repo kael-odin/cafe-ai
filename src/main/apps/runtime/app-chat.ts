@@ -88,6 +88,19 @@ export function getAppChatConversationId(appId: string): string {
 }
 
 /**
+ * Build a unique session key for an IM chat session.
+ * Used for tracking bidirectional IM conversations across digital humans.
+ */
+export function buildImSessionKey(
+  appId: string,
+  channel: string,
+  chatType: 'direct' | 'group',
+  chatId: string
+): string {
+  return `app-chat:${appId}:${channel}:${chatType}:${chatId}`
+}
+
+/**
  * Scoped browser contexts for app chat sessions.
  * Each app chat gets its own context so activeViewId is isolated
  * from the user's browser and other concurrent sessions.

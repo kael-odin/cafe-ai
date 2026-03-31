@@ -104,6 +104,8 @@ export interface ProductConfig {
   name: string
   version: string
   authProviders: AuthProviderConfig[]
+  /** Data folder name for user data storage (default: 'cafe') */
+  dataFolderName?: string
   /** Update configuration (optional, defaults to GitHub if not specified) */
   updateConfig?: UpdateConfig
   /** Browser network access policy (optional, unrestricted when omitted) */
@@ -196,6 +198,17 @@ export function loadProductConfig(): ProductConfig {
   }
 
   return productConfig
+}
+
+export const DEFAULT_DATA_FOLDER_NAME = 'cafe'
+
+/**
+ * Get the data folder name from product.json configuration.
+ * Returns the configured dataFolderName or 'cafe' as default.
+ * Safe to call at any point after Electron app module is available.
+ */
+export function getDataFolderName(): string {
+  return loadProductConfig().dataFolderName || DEFAULT_DATA_FOLDER_NAME
 }
 
 /**

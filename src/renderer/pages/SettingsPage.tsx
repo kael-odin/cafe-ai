@@ -23,6 +23,7 @@ import {
   RemoteAccessSection,
   AboutSection,
   NotificationChannelsSection,
+  MessageChannelsSection,
   RegistrySection,
   RecommendSection
 } from '../components/settings'
@@ -95,8 +96,8 @@ export function SettingsPage() {
                 <AISourcesSection config={config as CafeConfig} setConfig={setConfig} />
               </section>
 
-              {/* Notification Channels Section */}
-              <NotificationChannelsSection config={config} setConfig={setConfig} />
+              {/* Message Channels Section */}
+              <MessageChannelsSection config={config} setConfig={setConfig} />
 
               {/* App Store Registry Section */}
               <RegistrySection />

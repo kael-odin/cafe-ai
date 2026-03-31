@@ -20,5 +20,6 @@ export { AboutSection } from './AboutSection'
 export { RecommendSection } from './RecommendSection'
 export { AdvancedSection } from './AdvancedSection'
 export { NotificationChannelsSection } from './NotificationChannelsSection'
+export { MessageChannelsSection } from './MessageChannelsSection'
 export { RegistrySection } from './RegistrySection'
 

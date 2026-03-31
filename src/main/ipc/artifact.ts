@@ -15,7 +15,12 @@ import {
   initArtifactWatcher,
   readArtifactContent,
   saveArtifactContent,
-  detectFileType
+  detectFileType,
+  createFile,
+  createFolder,
+  trashArtifact,
+  renameArtifact,
+  moveArtifact
 } from '../services/artifact.service'
 
 // Register all artifact handlers
@@ -129,6 +134,61 @@ export function registerArtifactHandlers(): void {
       return { success: true, data: fileTypeInfo }
     } catch (error) {
       console.error('[IPC] artifact:detect-file-type error:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Delete file or folder (move to trash)
+  ipcMain.handle('artifact:delete', async (_event, spaceId: string, targetPath: string) => {
+    try {
+      await trashArtifact(spaceId, targetPath)
+      return { success: true }
+    } catch (error) {
+      console.error('[IPC] artifact:delete error:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Rename file or folder
+  ipcMain.handle('artifact:rename', async (_event, spaceId: string, oldPath: string, newName: string) => {
+    try {
+      await renameArtifact(spaceId, oldPath, newName)
+      return { success: true }
+    } catch (error) {
+      console.error('[IPC] artifact:rename error:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Move file or folder to a new parent directory
+  ipcMain.handle('artifact:move', async (_event, spaceId: string, oldPath: string, newParentPath: string) => {
+    try {
+      const resolvedPath = await moveArtifact(spaceId, oldPath, newParentPath)
+      return { success: true, data: { path: resolvedPath } }
+    } catch (error) {
+      console.error('[IPC] artifact:move error:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Create file
+  ipcMain.handle('artifact:create-file', async (_event, spaceId: string, parentPath: string, name: string, content: string = '') => {
+    try {
+      const resolvedPath = await createFile(spaceId, parentPath, name, content)
+      return { success: true, data: { path: resolvedPath } }
+    } catch (error) {
+      console.error('[IPC] artifact:create-file error:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Create folder
+  ipcMain.handle('artifact:create-folder', async (_event, spaceId: string, parentPath: string, name: string) => {
+    try {
+      const resolvedPath = await createFolder(spaceId, parentPath, name)
+      return { success: true, data: { path: resolvedPath } }
+    } catch (error) {
+      console.error('[IPC] artifact:create-folder error:', error)
       return { success: false, error: (error as Error).message }
     }
   })

@@ -8,8 +8,10 @@
  * - Integration with artifact-cache.service for file watching
  */
 
-import { statSync, existsSync, realpathSync, readFileSync, writeFileSync, openSync, readSync, closeSync } from 'fs'
-import { join, extname, basename, sep } from 'path'
+import { statSync, existsSync, realpathSync, readFileSync, writeFileSync, openSync, readSync, closeSync, renameSync, mkdirSync } from 'fs'
+import { join, extname, basename, sep, dirname } from 'path'
+import { shell } from 'electron'
+import { promises as fsAsync } from 'fs'
 import { getTempSpacePath } from './config.service'
 import { getSpace } from './space.service'
 import {
@@ -31,6 +33,7 @@ export interface Artifact {
   name: string
   type: 'file' | 'folder'
   path: string
+  relativePath: string
   extension: string
   icon: string
   createdAt: string
@@ -77,6 +80,7 @@ export async function listArtifacts(spaceId: string): Promise<Artifact[]> {
     name: ca.name,
     type: ca.type,
     path: ca.path,
+    relativePath: ca.relativePath,
     extension: ca.extension,
     icon: ca.icon,
     createdAt: ca.createdAt,
@@ -688,4 +692,125 @@ export function saveArtifactContent(filePath: string, content: string): void {
     console.error(`[Artifact] Failed to save file: ${filePath}`, error)
     throw new Error(`Failed to save file: ${(error as Error).message}`)
   }
+}
+
+// ============================================
+// File Operations (Create, Delete, Rename, Move)
+// ============================================
+
+/**
+ * Create a new file in the workspace.
+ * Backend constructs the full path via path.join — frontend never concatenates paths.
+ * Returns the resolved absolute path for the frontend to update its tree state.
+ */
+export async function createFile(spaceId: string, parentPath: string, name: string, content: string = ''): Promise<string> {
+  const workDir = getWorkingDir(spaceId)
+  const resolvedParent = parentPath || workDir
+  const fullPath = join(resolvedParent, name)
+  console.log(`[Artifact] createFile: spaceId=${spaceId}, parent=${resolvedParent}, name=${name}, fullPath=${fullPath}`)
+  validatePathInWorkspace(spaceId, fullPath, { allowNew: true })
+  await fsAsync.mkdir(dirname(fullPath), { recursive: true })
+  await fsAsync.writeFile(fullPath, content, 'utf-8')
+  console.log(`[Artifact] createFile success: ${fullPath}`)
+  return fullPath
+}
+
+/**
+ * Create a new folder in the workspace.
+ * Backend constructs the full path via path.join — frontend never concatenates paths.
+ * Returns the resolved absolute path for the frontend to update its tree state.
+ */
+export async function createFolder(spaceId: string, parentPath: string, name: string): Promise<string> {
+  const workDir = getWorkingDir(spaceId)
+  const resolvedParent = parentPath || workDir
+  const fullPath = join(resolvedParent, name)
+  console.log(`[Artifact] createFolder: spaceId=${spaceId}, parent=${resolvedParent}, name=${name}, fullPath=${fullPath}`)
+  validatePathInWorkspace(spaceId, fullPath, { allowNew: true })
+  await fsAsync.mkdir(fullPath, { recursive: true })
+  console.log(`[Artifact] createFolder success: ${fullPath}`)
+  return fullPath
+}
+
+/**
+ * Validate that a path is within the workspace to prevent path traversal attacks
+ */
+function validatePathInWorkspace(spaceId: string, targetPath: string, opts?: { allowNew?: boolean }): void {
+  const workDir = getWorkingDir(spaceId)
+
+  // For new paths that don't exist yet, validate the parent directory
+  const pathToCheck = opts?.allowNew && !existsSync(targetPath)
+    ? dirname(targetPath)
+    : targetPath
+
+  // Parent must exist
+  if (!existsSync(pathToCheck)) {
+    throw new Error(`Path does not exist: ${pathToCheck}`)
+  }
+
+  try {
+    const realPath = realpathSync(pathToCheck)
+    const realWorkDir = realpathSync(workDir)
+    const realWorkDirWithSep = realWorkDir.endsWith(sep) ? realWorkDir : realWorkDir + sep
+    if (realPath !== realWorkDir && !realPath.startsWith(realWorkDirWithSep)) {
+      throw new Error('Access denied: path is outside workspace')
+    }
+  } catch (error) {
+    if ((error as Error).message === 'Access denied: path is outside workspace') {
+      throw error
+    }
+    throw new Error(`Failed to validate path: ${(error as Error).message}`)
+  }
+}
+
+/**
+ * Move a file or folder to trash
+ */
+export async function trashArtifact(spaceId: string, targetPath: string): Promise<void> {
+  console.log(`[Artifact] trashArtifact: spaceId=${spaceId}, path=${targetPath}`)
+  validatePathInWorkspace(spaceId, targetPath)
+  await shell.trashItem(targetPath)
+  console.log(`[Artifact] trashArtifact success: ${targetPath}`)
+}
+
+/**
+ * Rename a file or folder in the workspace
+ */
+export async function renameArtifact(spaceId: string, oldPath: string, newName: string): Promise<void> {
+  console.log(`[Artifact] renameArtifact: spaceId=${spaceId}, oldPath=${oldPath}, newName=${newName}`)
+  validatePathInWorkspace(spaceId, oldPath)
+
+  const newFullPath = join(dirname(oldPath), newName)
+  // Validate new path also stays within workspace
+  validatePathInWorkspace(spaceId, newFullPath, { allowNew: true })
+
+  if (existsSync(newFullPath)) {
+    throw new Error('File or folder already exists')
+  }
+
+  await fsAsync.rename(oldPath, newFullPath)
+  console.log(`[Artifact] renameArtifact success: ${oldPath} -> ${newFullPath}`)
+}
+
+/**
+ * Move a file or folder within the workspace.
+ * Backend constructs the destination path via path.join — frontend sends the target parent directory.
+ * Returns the resolved new path for the frontend to update its tree state.
+ */
+export async function moveArtifact(spaceId: string, oldPath: string, newParentPath: string): Promise<string> {
+  const workDir = getWorkingDir(spaceId)
+  const resolvedParent = newParentPath || workDir
+  const newPath = join(resolvedParent, basename(oldPath))
+  console.log(`[Artifact] moveArtifact: spaceId=${spaceId}, oldPath=${oldPath}, newParent=${resolvedParent}, newPath=${newPath}`)
+  validatePathInWorkspace(spaceId, oldPath)
+  validatePathInWorkspace(spaceId, newPath, { allowNew: true })
+
+  await fsAsync.mkdir(dirname(newPath), { recursive: true })
+
+  if (existsSync(newPath)) {
+    throw new Error('Target already exists')
+  }
+
+  await fsAsync.rename(oldPath, newPath)
+  console.log(`[Artifact] moveArtifact success: ${oldPath} -> ${newPath}`)
+  return newPath
 }

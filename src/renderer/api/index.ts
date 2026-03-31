@@ -528,6 +528,46 @@ export const api = {
     return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/children`, { dirPath })
   },
 
+  // Delete file or folder
+  deleteArtifact: async (spaceId: string, targetPath: string): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.deleteArtifact(spaceId, targetPath)
+    }
+    return httpRequest('DELETE', `/api/spaces/${spaceId}/artifacts`, { path: targetPath })
+  },
+
+  // Rename file or folder
+  renameArtifact: async (spaceId: string, oldPath: string, newName: string): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.renameArtifact(spaceId, oldPath, newName)
+    }
+    return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/rename`, { oldPath, newName })
+  },
+
+  // Move file or folder
+  moveArtifact: async (spaceId: string, oldPath: string, newParentPath: string): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.moveArtifact(spaceId, oldPath, newParentPath)
+    }
+    return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/move`, { oldPath, newParentPath })
+  },
+
+  // Create file
+  createArtifactFile: async (spaceId: string, parentPath: string, name: string, content: string = ''): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.createArtifactFile(spaceId, parentPath, name, content)
+    }
+    return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/file`, { parentPath, name, content })
+  },
+
+  // Create folder
+  createArtifactFolder: async (spaceId: string, parentPath: string, name: string): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.createArtifactFolder(spaceId, parentPath, name)
+    }
+    return httpRequest('POST', `/api/spaces/${spaceId}/artifacts/folder`, { parentPath, name })
+  },
+
   // Initialize file watcher for a space
   initArtifactWatcher: async (spaceId: string): Promise<ApiResponse> => {
     if (isElectron()) {
@@ -743,6 +783,21 @@ export const api = {
       return { success: false, error: 'Only available in desktop app' }
     }
     return window.Cafe.openLogFolder()
+  },
+
+  // ===== WeCom Bot (Electron only) =====
+  getWecomBotStatus: async (): Promise<ApiResponse> => {
+    if (!isElectron()) {
+      return { success: false, error: 'Only available in desktop app' }
+    }
+    return window.Cafe.getWecomBotStatus()
+  },
+
+  reconnectWecomBot: async (): Promise<ApiResponse> => {
+    if (!isElectron()) {
+      return { success: false, error: 'Only available in desktop app' }
+    }
+    return window.Cafe.reconnectWecomBot()
   },
 
   // ===== Window (Electron only) =====
