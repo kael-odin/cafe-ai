@@ -9,11 +9,13 @@
 export * from './types'
 export { warmupInterceptor } from './warmup'
 export { preflightInterceptor } from './preflight'
+export { imageBudgetInterceptor } from './image-budget'
 
 import type { AnthropicRequest } from '../types'
 import type { RequestInterceptor, InterceptorContext } from './types'
 import { warmupInterceptor } from './warmup'
 import { preflightInterceptor } from './preflight'
+import { imageBudgetInterceptor } from './image-budget'
 
 /**
  * Default interceptor chain - order matters!
@@ -22,10 +24,12 @@ import { preflightInterceptor } from './preflight'
  * Chain order rationale:
  *   1. warmup — exact string match ("Warmup"), cheapest check
  *   2. preflight — tools.length check + system prompt match, short-circuits CC SDK internal calls
+ *   3. image-budget — prevents API 6MB limit exceed by evicting oldest images
  */
 const defaultInterceptors: RequestInterceptor[] = [
   warmupInterceptor,
   preflightInterceptor,
+  imageBudgetInterceptor,
 ]
 
 /**
