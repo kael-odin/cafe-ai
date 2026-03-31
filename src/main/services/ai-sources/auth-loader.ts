@@ -171,9 +171,13 @@ function getProductConfigPath(): string {
  * Load product.json configuration
  */
 export function loadProductConfig(): ProductConfig {
-  if (productConfig) return productConfig
+  if (productConfig) {
+    console.log('[AuthLoader] loadProductConfig returning cached config, providers:', productConfig.authProviders.map(p => p.type).join(', '))
+    return productConfig
+  }
 
   const configPath = getProductConfigPath()
+  console.log('[AuthLoader] Loading product.json from:', configPath)
 
   try {
     if (existsSync(configPath)) {
@@ -358,7 +362,9 @@ export function loadAuthProviders(): LoadedProvider[] {
  */
 export function getEnabledAuthProviderConfigs(): AuthProviderConfig[] {
   const config = loadProductConfig()
-  return config.authProviders.filter(p => p.enabled)
+  const enabled = config.authProviders.filter(p => p.enabled)
+  console.log('[AuthLoader] getEnabledAuthProviderConfigs called, returning:', enabled.map(p => p.type).join(', '))
+  return enabled
 }
 
 /**
