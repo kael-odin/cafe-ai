@@ -294,6 +294,7 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
         if (result.success) {
           console.log('[ServerConnect] QR auth successful')
           completeConnection(url, code, name)
+          setIsConnecting(false) // Reset connection state after success
         } else {
           setError(result.error || t('Invalid access code'))
           setIsConnecting(false)

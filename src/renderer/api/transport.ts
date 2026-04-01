@@ -300,11 +300,14 @@ export function connectWebSocket(): void {
         }
 
         // Start foreground service to keep WebSocket alive in background (Capacitor only)
-        // NOTE: Temporarily disabled due to plugin bridge issues
-        // TODO: Fix Capacitor plugin registration for foreground service
         if (isCapacitor()) {
-          console.log('[Transport] Foreground service disabled (plugin not available)')
-          // WebSocket will still work, but may disconnect in background
+          import('./foreground-service')
+            .then(({ startForegroundService }) => {
+              startForegroundService('Cafe', 'Connected to desktop')
+                .then(() => console.log('[Transport] Foreground service started'))
+                .catch((err) => console.warn('[Transport] Foreground service failed:', err))
+            })
+            .catch((err) => console.warn('[Transport] Failed to import foreground-service:', err))
         }
 
         return
