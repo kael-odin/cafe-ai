@@ -4,6 +4,7 @@
 
 import { create } from 'zustand'
 import { api } from '../api'
+import { isCapacitor } from '../api/transport'
 import type { CafeConfig, AppView, McpServerStatus } from '../types'
 import { hasAnyAISource } from '../types'
 
@@ -258,7 +259,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         // Determine initial view based on config
         // Show setup if first launch or no AI source configured (OAuth or Custom API)
-        if (config.isFirstLaunch || !hasAnyAISource(config.aiSources)) {
+        // Capacitor: skip setup - server connection is handled separately
+        if (isCapacitor()) {
+          console.log('[Store] Capacitor mode: config loaded, showing home')
+          set({ view: 'home' })
+        } else if (config.isFirstLaunch || !hasAnyAISource(config.aiSources)) {
           console.log('[Store] First launch or no AI source, showing setup')
           set({ view: 'setup' })
         } else {
@@ -268,13 +273,24 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       } else {
         console.error('[Store] Failed to load config:', response.error)
-        set({ error: response.error || 'Failed to load configuration' })
-        set({ view: 'setup' })
+        // Capacitor: config load failure means server connection lost → go to server list
+        if (isCapacitor()) {
+          console.log('[Store] Capacitor mode: config load failed, showing server list')
+          set({ view: 'serverList' })
+        } else {
+          set({ error: response.error || 'Failed to load configuration' })
+          set({ view: 'setup' })
+        }
       }
     } catch (error) {
       console.error('[Store] Failed to initialize:', error)
-      set({ error: 'Failed to initialize application' })
-      set({ view: 'setup' })
+      if (isCapacitor()) {
+        console.log('[Store] Capacitor mode: init error, showing server list')
+        set({ view: 'serverList' })
+      } else {
+        set({ error: 'Failed to initialize application' })
+        set({ view: 'setup' })
+      }
     } finally {
       set({ isLoading: false })
       console.log('[Store] initialize() completed')
