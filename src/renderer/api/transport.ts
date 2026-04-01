@@ -165,7 +165,8 @@ export function clearAuthToken(): void {
 export async function httpRequest<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   path: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  timeout: number = 15000 // 15 seconds timeout by default
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   const token = getAuthToken()
   const baseUrl = getRemoteServerUrl()
@@ -178,14 +179,24 @@ export async function httpRequest<T>(
   console.log(`[HTTP] ${method} ${path} - token: ${token ? 'present' : 'missing'}`)
 
   try {
+    // Create AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+      console.warn(`[HTTP] ${method} ${path} - request timeout after ${timeout}ms`)
+    }, timeout)
+
     const response = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     // Handle 401 - token expired or invalid
     if (response.status === 401) {
@@ -214,10 +225,14 @@ export async function httpRequest<T>(
 
     return data
   } catch (error) {
-    console.error(`[HTTP] ${method} ${path} - exception:`, error)
+    const errorMessage = error instanceof Error 
+      ? (error.name === 'AbortError' ? `Request timeout after ${timeout}ms` : error.message)
+      : 'Network error'
+    
+    console.error(`[HTTP] ${method} ${path} - exception:`, errorMessage)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error'
+      error: errorMessage
     }
   }
 }

@@ -591,20 +591,27 @@ export default function App() {
   // Handle server addition from ServerConnect (Capacitor)
   const handleServerAdded = useCallback(async (info: ServerAddedInfo) => {
     console.log(`[App] Server added: ${info.name} (${info.url})`)
-    // Persist to server store
-    const entry = useServerStore.getState().addServer({
-      name: info.name,
-      url: info.url,
-      token: info.token,
-    })
-    // Clear the pending URL now that it's persisted
-    clearPendingServerUrl()
-    // Sync auth token
-    setAuthToken(info.token)
-    // Initialize the app
-    await initialize()
-    await initializeOnboarding()
-  }, [initialize, initializeOnboarding])
+    
+    try {
+      // Persist to server store
+      const entry = useServerStore.getState().addServer({
+        name: info.name,
+        url: info.url,
+        token: info.token,
+      })
+      // Clear the pending URL now that it's persisted
+      clearPendingServerUrl()
+      // Sync auth token
+      setAuthToken(info.token)
+      // Initialize the app
+      await initialize()
+      await initializeOnboarding()
+    } catch (error) {
+      console.error('[App] Failed to initialize after server connection:', error)
+      // On error, go to server list so user can retry
+      setView('serverList')
+    }
+  }, [initialize, initializeOnboarding, setView])
 
   // Handle server selection from ServerList (Capacitor)
   const handleServerSelected = useCallback(async (server: ServerEntry) => {
