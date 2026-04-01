@@ -122,6 +122,10 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease
 
+      - name: Rename APK with version
+        working-directory: android/app/build/outputs/apk/release
+        run: mv app-release.apk Cafe-${{ github.ref_name }}.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -148,7 +152,12 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          find release-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.apk" -o -name "*.blockmap" -o -name "latest*.yml" \) -exec cp {} release/ \;
+          # Copy all release files
+          find release-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.apk" \) -exec cp {} release/ \;
+          # Copy blockmap and latest*.yml for auto-update
+          find release-artifacts -type f \( -name "*.blockmap" -o -name "latest*.yml" \) -exec cp {} release/ \;
+          # List all files for verification
+          echo "Release files:"
           ls -la release/
 
       - name: Get version from tag
@@ -165,14 +174,17 @@ jobs:
             ### Downloads
             | Platform | File |
             |----------|------|
-            | Windows | `Cafe Setup ${{ steps.get_version.outputs.VERSION }}.exe` |
+            | Windows | `Cafe-Setup-${{ steps.get_version.outputs.VERSION }}.exe` |
             | macOS (Intel) | `Cafe-${{ steps.get_version.outputs.VERSION }}-x64.dmg` |
             | macOS (Apple Silicon) | `Cafe-${{ steps.get_version.outputs.VERSION }}-arm64.dmg` |
             | Linux | `Cafe-${{ steps.get_version.outputs.VERSION }}.AppImage` |
             | Android | `Cafe-${{ steps.get_version.outputs.VERSION }}.apk` |
 
-            ### What's Changed
-            See [CHANGELOG.md](./CHANGELOG.md) for details.
+            ### Installation
+            - **Windows**: Download and run the `.exe` installer
+            - **macOS**: Download the `.dmg` file, drag to Applications
+            - **Linux**: Download the `.AppImage` file, make executable, and run
+            - **Android**: Download the `.apk` file and install (may need to enable "Install from unknown sources")
           files: release/*
           draft: false
           prerelease: false
