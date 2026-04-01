@@ -2,10 +2,11 @@
  * Cafe - Main App Component
  */
 
-import { useEffect, useRef, Suspense, lazy } from 'react'
+import { useEffect, useRef, Suspense, lazy, useCallback } from 'react'
 import { useAppStore } from './stores/app.store'
 import { useChatStore } from './stores/chat.store'
 import { useOnboardingStore } from './stores/onboarding.store'
+import { useServerStore } from './stores/server.store'
 import { initAIBrowserStoreListeners } from './stores/ai-browser.store'
 import { initPerfStoreListeners } from './stores/perf.store'
 import { useSpaceStore } from './stores/space.store'
@@ -23,7 +24,10 @@ import { NotificationToast } from './components/notification/NotificationToast'
 import { useNotificationStore } from './stores/notification.store'
 import { api } from './api'
 import { useTranslation } from './i18n'
+import { clearPendingServerUrl, setAuthToken } from './api/transport'
 import type { AgentEventBase, Thought, ToolCall, CafeConfig, AgentErrorType, Question } from './types'
+import type { ServerEntry } from './stores/server.store'
+import type { ServerAddedInfo } from './pages/ServerConnectPage'
 import type { SessionInitInfo } from './types/slash-command'
 import { hasAnyAISource } from './types'
 
@@ -33,6 +37,8 @@ const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.H
 const SpacePage = lazy(() => import('./pages/SpacePage').then(m => ({ default: m.SpacePage })))
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const AppsPage = lazy(() => import('./pages/AppsPage').then(m => ({ default: m.AppsPage })))
+const ServerConnectPage = lazy(() => import('./pages/ServerConnectPage').then(m => ({ default: m.ServerConnectPage })))
+const ServerListPage = lazy(() => import('./pages/ServerListPage').then(m => ({ default: m.ServerListPage })))
 
 // Page loading fallback - minimal spinner that matches app style
 function PageLoader() {
@@ -547,6 +553,42 @@ export default function App() {
     }
   }
 
+  // Handle server addition from ServerConnect (Capacitor)
+  const handleServerAdded = useCallback(async (info: ServerAddedInfo) => {
+    console.log(`[App] Server added: ${info.name} (${info.url})`)
+    // Persist to server store
+    const entry = useServerStore.getState().addServer({
+      name: info.name,
+      url: info.url,
+      token: info.token,
+    })
+    // Clear the pending URL now that it's persisted
+    clearPendingServerUrl()
+    // Sync auth token
+    setAuthToken(info.token)
+    // Initialize the app
+    await initialize()
+    await initializeOnboarding()
+  }, [initialize, initializeOnboarding])
+
+  // Handle server selection from ServerList (Capacitor)
+  const handleServerSelected = useCallback(async (server: ServerEntry) => {
+    console.log(`[App] Server selected: ${server.name} (${server.url})`)
+    await initialize()
+    await initializeOnboarding()
+  }, [initialize, initializeOnboarding])
+
+  // Handle "Add Device" from ServerList (Capacitor)
+  const handleAddServer = useCallback(() => {
+    setView('serverConnect')
+  }, [setView])
+
+  // Handle back from ServerConnect to ServerList (Capacitor)
+  const handleServerConnectBack = useCallback(() => {
+    api.clearServerUrl() // Clear pending URL
+    setView('serverList')
+  }, [setView])
+
   // Render based on current view
   // Heavy pages (HomePage, SpacePage, SettingsPage) are lazy-loaded for better initial performance
   const renderView = () => {
@@ -557,6 +599,24 @@ export default function App() {
         return <GitBashSetup onComplete={handleGitBashSetupComplete} />
       case 'setup':
         return <SetupFlow />
+      case 'serverConnect':
+        return (
+          <Suspense fallback={<PageLoader />}>
+            <ServerConnectPage
+              onServerAdded={handleServerAdded}
+              onBack={useServerStore.getState().servers.length > 0 ? handleServerConnectBack : undefined}
+            />
+          </Suspense>
+        )
+      case 'serverList':
+        return (
+          <Suspense fallback={<PageLoader />}>
+            <ServerListPage
+              onServerSelected={handleServerSelected}
+              onAddServer={handleAddServer}
+            />
+          </Suspense>
+        )
       case 'home':
         return (
           <Suspense fallback={<PageLoader />}>

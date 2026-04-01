@@ -299,6 +299,32 @@ export function onApiConfigChange(handler: ApiConfigChangeHandler): () => void {
   }
 }
 
+// ============================================================================
+// Network Config Change Notification (Callback Pattern)
+// ============================================================================
+// When network config changes (proxy), subscribers are notified.
+// This allows proxy-fetch to keep an in-memory cache instead of reading
+// config.json on every request.
+// ============================================================================
+
+type NetworkConfigChangeHandler = (proxy: string | undefined) => void
+const networkConfigChangeHandlers: NetworkConfigChangeHandler[] = []
+
+/**
+ * Register a callback to be notified when network config (proxy) changes.
+ * Called synchronously inside saveConfig so the cache is hot before the
+ * next proxyFetch() call.
+ *
+ * @returns Unsubscribe function
+ */
+export function onNetworkConfigChange(handler: NetworkConfigChangeHandler): () => void {
+  networkConfigChangeHandlers.push(handler)
+  return () => {
+    const idx = networkConfigChangeHandlers.indexOf(handler)
+    if (idx >= 0) networkConfigChangeHandlers.splice(idx, 1)
+  }
+}
+
 // Types (shared with renderer)
 interface CafeConfig {
   api: {
@@ -363,6 +389,10 @@ interface CafeConfig {
     }>
     cacheTtlMs: number
     autoCheckUpdates: boolean
+  }
+  // Network configuration (proxy settings)
+  network?: {
+    proxy?: string  // Manual proxy URL (e.g. http://host:port, socks5://host:port). Empty = use system proxy.
   }
 }
 
@@ -833,6 +863,19 @@ export function saveConfig(config: Partial<CafeConfig>): CafeConfig {
   // layout: shallow merge (panel sizes and visibility)
   if (config.layout !== undefined) {
     newConfig.layout = { ...currentConfig.layout, ...config.layout }
+  }
+  // network: shallow merge (proxy, future fields)
+  if (config.network !== undefined) {
+    newConfig.network = { ...currentConfig.network, ...config.network }
+    // Notify synchronously — proxy-fetch updates its in-memory cache immediately
+    if (networkConfigChangeHandlers.length > 0) {
+      const proxy = newConfig.network?.proxy
+      networkConfigChangeHandlers.forEach(handler => {
+        try { handler(proxy) } catch (e) {
+          console.error('[Config] Error in network config change handler:', e)
+        }
+      })
+    }
   }
 
   const configPath = getConfigPath()

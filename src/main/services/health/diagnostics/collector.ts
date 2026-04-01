@@ -10,9 +10,10 @@ import { freemem, totalmem } from 'os'
 import type { DiagnosticReport } from '../types'
 import { getConfig, getCafeDir } from '../../config.service'
 import { getHealthState } from '../orchestrator'
-import { getRegistryStats } from '../process-guardian'
+import { getRegistryStats, getOrphanProcesses } from '../process-guardian'
 import { getRecentEvents } from '../health-checker'
 import { sanitizeReport } from './sanitizer'
+import { cleanupOrphans } from '../process-guardian/cleaner'
 
 /**
  * Collect full diagnostic report
@@ -22,6 +23,21 @@ export async function collectDiagnosticReport(): Promise<DiagnosticReport> {
   const healthState = getHealthState()
   const registryStats = getRegistryStats()
   const recentEvents = getRecentEvents()
+  
+  // Check for orphan processes and clean them up
+  const orphanProcesses = getOrphanProcesses()
+  let orphansCleaned = 0
+  
+  if (orphanProcesses.length > 0) {
+    console.log(`[Diagnostics] Found ${orphanProcesses.length} orphan processes, attempting cleanup...`)
+    try {
+      const cleanupResult = await cleanupOrphans()
+      orphansCleaned = cleanupResult.cleaned
+      console.log(`[Diagnostics] Cleaned up ${orphansCleaned} orphan processes`)
+    } catch (error) {
+      console.error('[Diagnostics] Failed to cleanup orphan processes:', error)
+    }
+  }
 
   // Get AI source info (sanitized)
   const aiSources = config.aiSources
@@ -68,8 +84,7 @@ export async function collectDiagnosticReport(): Promise<DiagnosticReport> {
     processes: {
       registered: registryStats.totalProcesses,
       orphansFound: registryStats.orphanProcesses,
-      // Note: Startup checks disabled - orphan cleanup handled by process-guardian cleaner
-      orphansCleaned: 0
+      orphansCleaned
     },
 
     health: {
