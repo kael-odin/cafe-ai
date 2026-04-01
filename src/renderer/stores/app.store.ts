@@ -263,9 +263,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         // Determine initial view based on config
         // Show setup if first launch or no AI source configured (OAuth or Custom API)
-        // Capacitor: skip setup - server connection is handled separately
-        if (isCapacitor()) {
-          console.log('[Store] Capacitor mode: config loaded, showing home')
+        // Capacitor/Remote: skip setup - server connection is handled separately, API should be configured on desktop
+        if (isCapacitor() || api.isRemoteMode()) {
+          console.log('[Store] Capacitor/Remote mode: config loaded, showing home')
           set({ view: 'home' })
         } else if (config.isFirstLaunch || !hasAnyAISource(config.aiSources)) {
           console.log('[Store] First launch or no AI source, showing setup')

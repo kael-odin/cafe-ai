@@ -208,9 +208,10 @@ export async function httpRequest<T>(
         // Do NOT reload — there is no server-rendered login page
         window.dispatchEvent(new CustomEvent('halo:auth-expired'))
       } else {
-        // Remote browser: reload → server shows login page
-        document.cookie = 'halo_authenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-        window.location.reload()
+        // Remote browser: dispatch event instead of reload to avoid infinite loop
+        // The server has already authenticated the user via the login endpoint
+        console.warn('[HTTP] Remote mode: auth token invalid, dispatching auth-expired event')
+        window.dispatchEvent(new CustomEvent('halo:auth-expired'))
       }
 
       return { success: false, error: 'Token expired, please login again' }
