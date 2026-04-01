@@ -162,6 +162,8 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
     setError(null)
     setIsConnecting(true)
     console.log('[ServerConnect] Authenticating...')
+    console.log('[ServerConnect] Server URL:', serverUrl)
+    console.log('[ServerConnect] API Server URL:', api.getServerUrl())
 
     try {
       const result = await api.login(code)
@@ -176,7 +178,8 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
       }
     } catch (err) {
       console.error('[ServerConnect] Auth error:', err)
-      setError(t('Authentication failed'))
+      const errorMsg = err instanceof Error ? err.message : 'Authentication failed'
+      setError(t('Authentication failed') + `: ${errorMsg}`)
     } finally {
       setIsConnecting(false)
     }
@@ -242,8 +245,10 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
       const withoutProto = text.replace('cafe://', 'http://')
       try {
         const parsed = new URL(withoutProto)
-        code = parsed.searchParams.get('code')
+        // Support both 'code' and 'token' parameters for compatibility
+        code = parsed.searchParams.get('code') || parsed.searchParams.get('token')
         parsed.searchParams.delete('code')
+        parsed.searchParams.delete('token')
         url = parsed.origin + parsed.pathname.replace(/\/$/, '')
       } catch {
         setError(t('Invalid QR code'))
@@ -253,8 +258,10 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
     } else if (text.startsWith('http://') || text.startsWith('https://')) {
       try {
         const parsed = new URL(text)
-        code = parsed.searchParams.get('code')
+        // Support both 'code' and 'token' parameters for compatibility
+        code = parsed.searchParams.get('code') || parsed.searchParams.get('token')
         parsed.searchParams.delete('code')
+        parsed.searchParams.delete('token')
         url = parsed.origin + parsed.pathname.replace(/\/$/, '')
       } catch {
         setError(t('Invalid QR code'))
