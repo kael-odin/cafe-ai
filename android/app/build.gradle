@@ -22,10 +22,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    
+    // Signing configuration for release builds
+    signingConfigs {
+        release {
+            // Use environment variables if available, otherwise use debug keystore
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: '../debug.keystore')
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: 'android'
+            keyAlias System.getenv("KEY_ALIAS") ?: 'androiddebugkey'
+            keyPassword System.getenv("KEY_PASSWORD") ?: 'android'
+        }
+    }
+    
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
