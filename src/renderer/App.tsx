@@ -119,6 +119,31 @@ export default function App() {
   // - Push: Listen for event (normal startup flow)
   // - Timeout: Fallback protection if something goes wrong
   useEffect(() => {
+    // Capacitor mode: skip Electron bootstrap flow entirely.
+    // Initialization is triggered after the user selects a server from the list.
+    if (isCapacitor()) {
+      // Hydrate server store first — this pushes active URL + token to transport
+      useServerStore.getState().hydrate()
+      const savedUrl = api.restoreServerUrl()
+      const hasToken = api.isAuthenticated()
+      if (savedUrl && hasToken) {
+        // Has saved connection — try to initialize immediately
+        console.log('[App] Capacitor: saved connection found, initializing...')
+        initialize().then(() => initializeOnboarding())
+      } else {
+        // No saved connection — check if we have servers in the list
+        const { servers } = useServerStore.getState()
+        if (servers.length > 0) {
+          console.log('[App] Capacitor: servers exist but no active, showing server list')
+          setView('serverList')
+        } else {
+          console.log('[App] Capacitor: no servers, showing ServerConnect')
+          setView('serverConnect')
+        }
+      }
+      return
+    }
+
     let initialized = false
     const startTime = Date.now()
     console.log('[App] Mounted, initializing with Pull+Push pattern...')
@@ -133,30 +158,6 @@ export default function App() {
       await initialize()
       // Initialize onboarding after app config is loaded
       await initializeOnboarding()
-    }
-
-    // Capacitor mobile app: check for saved servers first
-    if (isCapacitor()) {
-      // Hydrate server store first — this pushes active URL + token to transport
-      useServerStore.getState().hydrate()
-      const savedUrl = api.restoreServerUrl()
-
-      if (savedUrl) {
-        console.log('[App] Capacitor: restored server URL:', savedUrl)
-        // Continue with normal initialization
-        doInit('query')
-      } else {
-        // No saved server URL — check if we have any servers stored
-        const { servers } = useServerStore.getState()
-        if (servers.length > 0) {
-          console.log('[App] Capacitor: have servers, showing ServerList')
-          setView('serverList')
-        } else {
-          console.log('[App] Capacitor: no servers, showing ServerConnect')
-          setView('serverConnect')
-        }
-      }
-      return
     }
 
     // 1. Pull: Query current status immediately
@@ -201,7 +202,7 @@ export default function App() {
       unsubscribe()
       clearTimeout(fallbackTimeout)
     }
-  }, [initialize, initializeOnboarding, completeDeferredGitBashCheck])
+  }, [initialize, initializeOnboarding, completeDeferredGitBashCheck, setView])
 
   // Theme switching
   useEffect(() => {
