@@ -318,11 +318,10 @@ export function connectWebSocket(): void {
         if (isCapacitor()) {
           import('./foreground-service')
             .then(({ startForegroundService }) => {
+              // startForegroundService returns boolean and never throws
               startForegroundService('Cafe', 'Connected to desktop')
-                .then(() => console.log('[Transport] Foreground service started'))
-                .catch((err) => console.warn('[Transport] Foreground service failed:', err))
             })
-            .catch((err) => console.warn('[Transport] Failed to import foreground-service:', err))
+            .catch(() => { /* ignore import errors */ })
         }
 
         return
@@ -382,9 +381,9 @@ export function disconnectWebSocket(): void {
 
   // Stop foreground service when intentionally disconnecting (Capacitor only)
   if (isCapacitor()) {
-    import('./foreground-service').then(({ stopForegroundService }) => {
-      stopForegroundService()
-    }).catch(() => { /* plugin not available */ })
+    import('./foreground-service')
+      .then(({ stopForegroundService }) => stopForegroundService())
+      .catch(() => { /* ignore */ })
   }
 }
 

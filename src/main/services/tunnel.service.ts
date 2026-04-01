@@ -4,7 +4,7 @@
  */
 
 import { ChildProcess, spawn } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 import { registerProcess, unregisterProcess, getCurrentInstanceId } from './health'
 
 // Tunnel state
@@ -26,6 +26,9 @@ const state: TunnelState = {
 type StatusCallback = (status: TunnelState) => void
 let statusCallback: StatusCallback | null = null
 
+// Minimum valid binary size (Windows ~60MB, others ~30MB)
+const MIN_BINARY_SIZE = 30 * 1024 * 1024 // 30 MB
+
 /**
  * Get the correct binary path (handles asar unpacking)
  */
@@ -39,6 +42,25 @@ async function getBinaryPath(): Promise<string> {
   }
 
   return binPath
+}
+
+/**
+ * Validate binary file exists and has reasonable size
+ */
+function validateBinary(binPath: string): { valid: boolean; reason?: string } {
+  if (!existsSync(binPath)) {
+    return { valid: false, reason: 'Binary file not found' }
+  }
+
+  try {
+    const stats = statSync(binPath)
+    if (stats.size < MIN_BINARY_SIZE) {
+      return { valid: false, reason: `Binary file too small (${Math.round(stats.size / 1024 / 1024)}MB), expected at least 30MB` }
+    }
+    return { valid: true }
+  } catch (err) {
+    return { valid: false, reason: `Cannot stat binary: ${err}` }
+  }
 }
 
 /**
@@ -65,10 +87,28 @@ export async function startTunnel(localPort: number): Promise<string> {
       console.log('[Tunnel] Starting cloudflared...')
       console.log('[Tunnel] Binary at:', binPath)
 
-      // Install binary if needed
-      if (!existsSync(binPath)) {
-        console.log('[Tunnel] Installing binary...')
-        await cloudflared.install(binPath)
+      // Validate binary exists and is valid
+      const validation = validateBinary(binPath)
+      if (!validation.valid) {
+        console.log('[Tunnel] Binary invalid:', validation.reason)
+        console.log('[Tunnel] Attempting to reinstall binary...')
+        try {
+          await cloudflared.install(binPath)
+          // Re-validate after install
+          const reValidation = validateBinary(binPath)
+          if (!reValidation.valid) {
+            throw new Error(`Binary still invalid after reinstall: ${reValidation.reason}`)
+          }
+          console.log('[Tunnel] Binary reinstalled successfully')
+        } catch (installErr) {
+          const errMsg = `Failed to install cloudflared binary: ${installErr}`
+          console.error('[Tunnel]', errMsg)
+          state.status = 'error'
+          state.error = errMsg
+          notifyStatus()
+          reject(new Error(errMsg))
+          return
+        }
       }
 
       // Spawn cloudflared directly with quick tunnel args
