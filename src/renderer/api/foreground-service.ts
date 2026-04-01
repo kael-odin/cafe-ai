@@ -29,6 +29,14 @@ async function getPlugin(): Promise<ForegroundServicePlugin | null> {
   try {
     const { registerPlugin } = await import('@capacitor/core')
     _plugin = registerPlugin<ForegroundServicePlugin>('ForegroundService')
+    
+    // Verify plugin methods are available
+    if (!_plugin || typeof _plugin.start !== 'function' || typeof _plugin.stop !== 'function') {
+      console.warn('[ForegroundService] Plugin registered but methods not available')
+      _plugin = null
+      return null
+    }
+    
     return _plugin
   } catch (err) {
     console.warn('[ForegroundService] Plugin not available:', err)
@@ -43,14 +51,19 @@ async function getPlugin(): Promise<ForegroundServicePlugin | null> {
 export async function startForegroundService(title: string, body: string): Promise<void> {
   if (_started) return
   const plugin = await getPlugin()
-  if (!plugin) return
+  if (!plugin) {
+    console.warn('[ForegroundService] Plugin not available, skipping foreground service')
+    return
+  }
 
   try {
-    await plugin.start({ title, body })
+    const result = await plugin.start({ title, body })
     _started = true
-    console.log('[ForegroundService] Started')
+    console.log('[ForegroundService] Started successfully')
+    return result
   } catch (err) {
     console.warn('[ForegroundService] Failed to start:', err)
+    // Don't throw - foreground service is optional, app can still work without it
   }
 }
 
@@ -61,14 +74,20 @@ export async function startForegroundService(title: string, body: string): Promi
 export async function stopForegroundService(): Promise<void> {
   if (!_started) return
   const plugin = await getPlugin()
-  if (!plugin) return
+  if (!plugin) {
+    _started = false
+    return
+  }
 
   try {
-    await plugin.stop()
+    const result = await plugin.stop()
     _started = false
-    console.log('[ForegroundService] Stopped')
+    console.log('[ForegroundService] Stopped successfully')
+    return result
   } catch (err) {
     console.warn('[ForegroundService] Failed to stop:', err)
+    _started = false
+    // Don't throw - foreground service is optional
   }
 }
 
