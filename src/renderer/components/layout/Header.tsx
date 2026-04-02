@@ -50,6 +50,13 @@ export function Header({ left, right, className = '' }: HeaderProps) {
       : 'pl-4 pr-36'   // Electron Windows/Linux: 140px right for titleBarOverlay buttons
     : 'pl-4 pr-4'      // Browser/Mobile: normal padding
 
+  const mobileSafePadding = !isInElectron
+    ? {
+        paddingLeft: 'max(env(safe-area-inset-left), 1rem)',
+        paddingRight: 'max(env(safe-area-inset-right), 1rem)',
+      }
+    : undefined
+
   // Header height: 40px, trafficLightPosition.y should be 40/2 - 7 = 13
   return (
     <header
@@ -59,6 +66,7 @@ export function Header({ left, right, className = '' }: HeaderProps) {
         ${platformPadding}
         ${className}
       `.trim().replace(/\s+/g, ' ')}
+      style={mobileSafePadding}
     >
       {/* Left side: Interactive elements need no-drag to allow clicks */}
       <div className="relative z-10 flex items-center gap-2 sm:gap-3 min-w-0">

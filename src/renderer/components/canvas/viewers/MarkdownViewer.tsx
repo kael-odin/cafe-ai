@@ -9,14 +9,33 @@
  * - Window maximize for fullscreen viewing
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Copy, Check, Code, Eye, ExternalLink, Pencil } from 'lucide-react'
-import { Streamdown } from 'streamdown'
+import { Streamdown, type Components } from 'streamdown'
 import 'streamdown/styles.css'
 import { useCodePlugin } from '../../../lib/streamdown-plugins'
 import { api } from '../../../api'
 import type { CanvasTab } from '../../../stores/canvas.store'
 import { useTranslation } from '../../../i18n'
+
+const STREAMDOWN_CONTROLS = { code: true } as const
+
+const MARKDOWN_VIEWER_COMPONENTS: Components = {
+  table({ children }) {
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full">{children}</table>
+      </div>
+    )
+  },
+  a({ href, children }: { href?: string; children?: React.ReactNode }) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    )
+  },
+}
 
 /**
  * Resolve relative image paths to Cafe-file:// protocol URLs
@@ -65,12 +84,22 @@ interface MarkdownViewerProps {
   onEditRequest?: () => void
 }
 
-export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownViewerProps) {
+export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownViewerProps): JSX.Element {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
+  const scrollRafRef = useRef<number | null>(null)
   const [viewMode, setViewMode] = useState<'rendered' | 'source'>('rendered')
   const [copied, setCopied] = useState(false)
-  const codePlugin = useCodePlugin()
+  const content = tab.content ?? ''
+  const needsCodeHighlight = useMemo(
+    () => content.includes('```') || content.includes('<code'),
+    [content]
+  )
+  const codePlugin = useCodePlugin(needsCodeHighlight)
+  const plugins = useMemo(
+    () => (codePlugin ? { code: codePlugin } : undefined),
+    [codePlugin]
+  )
 
   // Get the base directory of the markdown file for resolving relative paths
   const normalizedPath = tab.path ? tab.path.replace(/\\/g, '/') : ''
@@ -81,20 +110,34 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
     if (containerRef.current && tab.scrollPosition !== undefined) {
       containerRef.current.scrollTop = tab.scrollPosition
     }
-  }, [tab.id, viewMode])
+  }, [tab.id, tab.scrollPosition, viewMode])
 
   // Save scroll position
   const handleScroll = useCallback(() => {
-    if (containerRef.current && onScrollChange) {
-      onScrollChange(containerRef.current.scrollTop)
-    }
+    if (!containerRef.current || !onScrollChange) return
+    if (scrollRafRef.current != null) return
+
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null
+      if (containerRef.current) {
+        onScrollChange(containerRef.current.scrollTop)
+      }
+    })
   }, [onScrollChange])
 
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current != null) {
+        cancelAnimationFrame(scrollRafRef.current)
+      }
+    }
+  }, [])
+
   // Copy content
-  const handleCopy = async () => {
-    if (!tab.content) return
+  const handleCopy = async (): Promise<void> => {
+    if (!content) return
     try {
-      await navigator.clipboard.writeText(tab.content)
+      await navigator.clipboard.writeText(content)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -103,7 +146,7 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
   }
 
   // Open with external application
-  const handleOpenExternal = async () => {
+  const handleOpenExternal = async (): Promise<void> => {
     if (!tab.path) return
     try {
       await api.openArtifact(tab.path)
@@ -112,22 +155,21 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
     }
   }
 
-  const content = tab.content || ''
   const canOpenExternal = !api.isRemoteMode() && tab.path
 
   return (
     <div className="relative flex flex-col h-full bg-background">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50 gap-3">
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
-          <div className="flex items-center rounded-md bg-secondary/50 p-0.5">
+          <div className="flex items-center rounded-xl p-0.5 surface-subtle">
             <button
               onClick={() => setViewMode('rendered')}
               className={`
-                flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors
+                flex items-center gap-1.5 px-2.5 py-1.5 rounded-[0.7rem] text-xs transition-colors
                 ${viewMode === 'rendered'
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
                   : 'text-muted-foreground hover:text-foreground'
                 }
               `}
@@ -138,9 +180,9 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
             <button
               onClick={() => setViewMode('source')}
               className={`
-                flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors
+                flex items-center gap-1.5 px-2.5 py-1.5 rounded-[0.7rem] text-xs transition-colors
                 ${viewMode === 'source'
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
                   : 'text-muted-foreground hover:text-foreground'
                 }
               `}
@@ -156,7 +198,7 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
           {onEditRequest && (
             <button
               onClick={onEditRequest}
-              className="p-1.5 rounded hover:bg-secondary transition-colors"
+              className="p-1.5 rounded-xl surface-subtle hover:bg-secondary transition-colors"
               title={t('Edit')}
             >
               <Pencil className="w-4 h-4 text-muted-foreground" />
@@ -165,8 +207,8 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
 
           {/* Copy button */}
           <button
-            onClick={handleCopy}
-            className="p-1.5 rounded hover:bg-secondary transition-colors"
+            onClick={() => { void handleCopy() }}
+            className="p-1.5 rounded-xl surface-subtle hover:bg-secondary transition-colors"
             title={t('Copy')}
           >
             {copied ? (
@@ -179,8 +221,8 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
           {/* Open with external app */}
           {canOpenExternal && (
             <button
-              onClick={handleOpenExternal}
-              className="p-1.5 rounded hover:bg-secondary transition-colors"
+              onClick={() => { void handleOpenExternal() }}
+              className="p-1.5 rounded-xl surface-subtle hover:bg-secondary transition-colors"
               title={t('Open in external application')}
             >
               <ExternalLink className="w-4 h-4 text-muted-foreground" />
@@ -196,30 +238,15 @@ export function MarkdownViewer({ tab, onScrollChange, onEditRequest }: MarkdownV
         className="flex-1 overflow-auto"
       >
         {viewMode === 'rendered' ? (
-          <div className="prose prose-invert max-w-none p-6 sm:p-8">
+          <div className="prose prose-invert max-w-none p-6 sm:p-8 markdown-content">
             <Streamdown
               mode="static"
-              controls={{ code: true }}
-              plugins={codePlugin ? { code: codePlugin } : undefined}
+              controls={STREAMDOWN_CONTROLS}
+              plugins={plugins}
               components={{
-                // Style tables
-                table({ children }) {
-                  return (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full">{children}</table>
-                    </div>
-                  )
-                },
-                // Links - add target="_blank" (styling from tailwind.config.cjs)
-                a({ href, children }: any) {
-                  return (
-                    <a href={href} target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  )
-                },
+                ...MARKDOWN_VIEWER_COMPONENTS,
                 // Style images - resolve relative paths using Cafe-file:// protocol
-                img({ src, alt }: any) {
+                img({ src, alt }: { src?: string; alt?: string }) {
                   return (
                     <img
                       src={resolveImageSrc(src, basePath)}

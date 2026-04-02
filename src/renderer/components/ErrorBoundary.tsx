@@ -29,25 +29,25 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // Log for debugging
     console.error('[ErrorBoundary] Caught error:', error)
     console.error('[ErrorBoundary] Component stack:', info.componentStack)
 
     this.setState({
-      errorInfo: info.componentStack || null
+      errorInfo: info.componentStack ?? null
     })
   }
 
-  private handleReload = () => {
+  private handleReload = (): void => {
     window.location.reload()
   }
 
-  render() {
+  render(): ReactNode {
     if (this.state.hasError) {
       const { error, errorInfo } = this.state
-      const errorMessage = error?.message || 'Unknown error'
-      const errorStack = error?.stack || ''
+      const errorMessage = error?.message ?? 'Unknown error'
+      const errorStack = error?.stack ?? ''
 
       return (
         <div className="h-full w-full flex flex-col items-center justify-center bg-background p-8 overflow-auto">
@@ -85,7 +85,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {/* Help text */}
             <p className="text-muted-foreground/60 text-xs text-center mt-6">
               If the problem persists, please report at{' '}
-              <span className="text-primary">github.com/kael-odin/cafe/issues</span>
+              <span className="text-primary">github.com/kael-odin/cafe-ai/issues</span>
             </p>
           </div>
         </div>

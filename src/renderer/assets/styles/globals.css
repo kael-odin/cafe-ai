@@ -785,14 +785,13 @@ body {
 .message-user {
   background: linear-gradient(135deg, hsl(var(--primary) / 0.34), hsl(var(--accent) / 0.16));
   border: 1px solid hsl(var(--primary) / 0.36);
-  box-shadow: 0 10px 30px hsl(var(--primary) / 0.12);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 18px hsl(var(--primary) / 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  contain: layout style paint;
 }
 
 .message-user:hover {
-  box-shadow: 0 16px 36px hsl(var(--primary) / 0.18);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 20px hsl(var(--primary) / 0.12);
 }
 
 .light .message-user {
@@ -804,13 +803,13 @@ body {
 .message-assistant {
   background: linear-gradient(180deg, hsl(var(--card) / 0.92), hsl(var(--card) / 0.82));
   border: 1px solid hsl(var(--border) / 0.9);
-  box-shadow: 0 12px 28px hsl(0 0% 0% / 0.12), inset 0 1px 0 hsl(0 0% 100% / 0.05);
-  backdrop-filter: blur(16px);
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px hsl(0 0% 0% / 0.08), inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  contain: layout style paint;
 }
 
 .message-assistant:hover {
-  box-shadow: 0 16px 32px hsl(0 0% 0% / 0.16);
+  box-shadow: 0 12px 22px hsl(0 0% 0% / 0.1);
   border-color: hsl(var(--primary) / 0.24);
 }
 
@@ -819,11 +818,42 @@ body {
     radial-gradient(circle at top right, hsl(var(--accent) / 0.06), transparent 24%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(223 27% 95% / 0.96));
   border-color: hsl(226 18% 84% / 0.92);
-  box-shadow: 0 14px 28px hsl(226 24% 72% / 0.14), inset 0 1px 0 hsl(0 0% 100% / 0.9);
+  box-shadow: 0 10px 22px hsl(226 24% 72% / 0.12), inset 0 1px 0 hsl(0 0% 100% / 0.9);
 }
 
 .light .message-assistant:hover {
-  box-shadow: 0 18px 32px hsl(226 24% 72% / 0.18);
+  box-shadow: 0 12px 24px hsl(226 24% 72% / 0.14);
+}
+
+.message-scroll-shell {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 180px;
+}
+
+.app-chat-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.thought-shell {
+  contain: layout style paint;
+}
+
+.thought-header {
+  contain: layout style;
+}
+
+.thought-scroll-panel {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 280px;
+}
+
+.markdown-content {
+  contain: style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 160px;
 }
 
 /* Streaming message style */
@@ -1373,12 +1403,13 @@ body {
 
 .hero-logo-float {
   position: relative;
-  width: 116px;
-  height: 116px;
+  width: 144px;
+  height: 136px;
   display: flex;
   align-items: center;
   justify-content: center;
   transform: translate(0, 0);
+  overflow: visible;
 }
 
 .hero-logo-float::before {
@@ -1389,6 +1420,15 @@ body {
   background: radial-gradient(circle, hsl(var(--primary) / 0.14), transparent 68%);
   filter: blur(16px);
   pointer-events: none;
+}
+
+.hero-logo-front-petal {
+  z-index: 40;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 26px;
+  opacity: 0.82;
 }
 
 .hero-logo-image {
@@ -1475,6 +1515,45 @@ body {
 .choice-card-soft:hover {
   background: hsl(var(--secondary) / 0.45);
   border-color: hsl(var(--primary) / 0.24);
+}
+
+.subsection-soft-panel {
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border) / 0.62);
+  background:
+    radial-gradient(circle at top right, hsl(var(--accent) / 0.05), transparent 26%),
+    linear-gradient(180deg, hsl(var(--secondary) / 0.5), hsl(var(--secondary) / 0.32));
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04);
+}
+
+.light .subsection-soft-panel {
+  border-color: hsl(226 18% 84% / 0.82);
+  background:
+    radial-gradient(circle at top right, hsl(var(--accent) / 0.08), transparent 26%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.92), hsl(223 27% 95% / 0.86));
+}
+
+.store-card-soft {
+  border: 1px solid hsl(var(--border) / 0.8);
+  background:
+    radial-gradient(circle at top right, hsl(var(--accent) / 0.06), transparent 28%),
+    linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.84));
+  box-shadow: 0 14px 28px hsl(232 34% 5% / 0.1);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.store-card-soft:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 0.34);
+  box-shadow: 0 18px 34px hsl(232 34% 5% / 0.14);
+}
+
+.light .store-card-soft {
+  border-color: hsl(226 18% 84% / 0.9);
+  background:
+    radial-gradient(circle at top right, hsl(var(--accent) / 0.08), transparent 28%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.98), hsl(223 27% 95% / 0.95));
+  box-shadow: 0 14px 28px hsl(226 22% 72% / 0.14);
 }
 
 /* Conversation history panel styles */

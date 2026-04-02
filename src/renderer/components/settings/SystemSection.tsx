@@ -18,14 +18,14 @@ interface SystemSectionProps {
   setConfig: (config: CafeConfig) => void
 }
 
-export function SystemSection({ config, setConfig }: SystemSectionProps) {
+export function SystemSection({ config, setConfig }: SystemSectionProps): JSX.Element {
   const { t } = useTranslation()
 
   // System settings state
-  const [autoLaunch, setAutoLaunch] = useState(config?.system?.autoLaunch || false)
-  const [taskCompleteNotify, setTaskCompleteNotify] = useState(config?.notifications?.taskComplete || false)
+  const [autoLaunch, setAutoLaunch] = useState(config ? config.system.autoLaunch : false)
+  const [taskCompleteNotify, setTaskCompleteNotify] = useState(config?.notifications?.taskComplete ?? false)
   // Proxy settings state
-  const [proxyInput, setProxyInput] = useState(config?.network?.proxy || '')
+  const [proxyInput, setProxyInput] = useState(config?.network?.proxy ?? '')
   const [proxyError, setProxyError] = useState<string | null>(null)
   const [proxySaved, setProxySaved] = useState(false)
   // Health diagnostics state
@@ -42,10 +42,10 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
   // Load system settings
   useEffect(() => {
-    loadSystemSettings()
+    void loadSystemSettings()
   }, [])
 
-  const loadSystemSettings = async () => {
+  const loadSystemSettings = async (): Promise<void> => {
     try {
       const autoLaunchRes = await api.getAutoLaunch()
       if (autoLaunchRes.success) {
@@ -57,7 +57,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Handle auto launch change
-  const handleAutoLaunchChange = async (enabled: boolean) => {
+  const handleAutoLaunchChange = async (enabled: boolean): Promise<void> => {
     setAutoLaunch(enabled)
     try {
       await api.setAutoLaunch(enabled)
@@ -68,7 +68,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Handle notification toggle
-  const handleTaskNotifyChange = async (enabled: boolean) => {
+  const handleTaskNotifyChange = async (enabled: boolean): Promise<void> => {
     setTaskCompleteNotify(enabled)
     try {
       const updatedConfig = {
@@ -84,7 +84,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Handle proxy save
-  const handleProxySave = async () => {
+  const handleProxySave = async (): Promise<void> => {
     const value = proxyInput.trim()
 
     // Validate URL format if non-empty
@@ -118,7 +118,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Handle run diagnostics
-  const handleRunDiagnostics = async () => {
+  const handleRunDiagnostics = async (): Promise<void> => {
     setIsRunningDiagnostics(true)
     setRecoveryResult(null)
     try {
@@ -142,7 +142,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Handle recovery action
-  const handleRecovery = async (strategyId: string) => {
+  const handleRecovery = async (strategyId: string): Promise<void> => {
     setIsRecovering(strategyId)
     setRecoveryResult(null)
     try {
@@ -153,10 +153,10 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
           message: result.data.message
         })
         if (result.data.success) {
-          setTimeout(handleRunDiagnostics, 1000)
+          setTimeout(() => { void handleRunDiagnostics() }, 1000)
         }
       }
-    } catch (error) {
+    } catch {
       setRecoveryResult({
         success: false,
         message: t('Recovery failed')
@@ -167,7 +167,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Copy report to clipboard
-  const handleCopyReport = async () => {
+  const handleCopyReport = async (): Promise<void> => {
     try {
       const result = await api.generateHealthReportText()
       if (result.success && result.data) {
@@ -181,7 +181,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   }
 
   // Export report to file
-  const handleExportReport = async () => {
+  const handleExportReport = async (): Promise<void> => {
     try {
       const result = await api.exportHealthReport()
       if (result.success && result.data?.path) {
@@ -213,7 +213,8 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   return (
     <>
       {/* Permissions Section */}
-      <section id="permissions" className="panel-glass section-frame rounded-[1.5rem] p-6">
+      <section id="permissions" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
+        <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-6" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium">{t('Permissions')}</h2>
           <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-500">
@@ -247,7 +248,8 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
       </section>
 
       {/* System Section */}
-      <section id="system" className="panel-glass section-frame rounded-[1.5rem] p-6">
+      <section id="system" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
+        <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
         <h2 className="text-lg font-medium mb-4">{t('System')}</h2>
 
         <div className="space-y-4">
@@ -271,7 +273,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
               <input
                 type="checkbox"
                 checked={autoLaunch}
-                onChange={(e) => handleAutoLaunchChange(e.target.checked)}
+                onChange={(e) => { void handleAutoLaunchChange(e.target.checked) }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
@@ -296,7 +298,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
               <input
                 type="checkbox"
                 checked={taskCompleteNotify}
-                onChange={(e) => handleTaskNotifyChange(e.target.checked)}
+                onChange={(e) => { void handleTaskNotifyChange(e.target.checked) }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
@@ -325,13 +327,17 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                   setProxyInput(e.target.value)
                   setProxyError(null)
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && handleProxySave()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void handleProxySave()
+                  }
+                }}
                 placeholder="http://127.0.0.1:1087"
                 className="form-input-soft flex-1 px-3 py-1.5 text-sm font-mono"
               />
               <button
-                onClick={handleProxySave}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors shrink-0"
+                onClick={() => { void handleProxySave() }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors shrink-0"
               >
                 {proxySaved ? (
                   <CheckCircle className="w-3.5 h-3.5" />
@@ -357,10 +363,10 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                 {t('Open log folder for troubleshooting')}
               </p>
             </div>
-            <button
-              onClick={() => api.openLogFolder()}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm surface-subtle hover:bg-secondary rounded-xl transition-colors"
-              >
+              <button
+                onClick={() => { void api.openLogFolder() }}
+                 className="flex items-center gap-2 px-3 py-2 text-sm surface-subtle hover:bg-secondary rounded-xl transition-colors"
+               >
               <FolderOpen className="w-4 h-4" />
               {t('Open Folder')}
             </button>
@@ -376,9 +382,9 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                 </p>
               </div>
               <button
-                onClick={handleRunDiagnostics}
+                onClick={() => { void handleRunDiagnostics() }}
                 disabled={isRunningDiagnostics}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50"
               >
                 {isRunningDiagnostics ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -394,7 +400,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
               <div className="mt-4 space-y-3">
                 {/* Health Status Summary */}
                 <div
-                  className={`p-4 rounded-xl ${getHealthStatusStyle('healthy').bg} cursor-pointer border border-border/40`}
+                  className={`p-4 rounded-xl subsection-soft-panel cursor-pointer ${getHealthStatusStyle('healthy').bg}`}
                   onClick={() => setDiagnosticsExpanded(!diagnosticsExpanded)}
                 >
                   <div className="flex items-center justify-between">
@@ -428,7 +434,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                 {diagnosticsExpanded && (
                   <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
                     {/* System Info */}
-                    <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+                    <div className="subsection-soft-panel p-3 space-y-2">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('System Info')}</p>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between">
@@ -451,7 +457,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                     </div>
 
                     {/* Health Metrics */}
-                    <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+                    <div className="subsection-soft-panel p-3 space-y-2">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Health Metrics')}</p>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between">
@@ -479,7 +485,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Process Status (from PPID scan) */}
                     {healthCheckResult && (
-                      <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+                      <div className="subsection-soft-panel p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Process Status')}</p>
                         <div className="space-y-2">
                           {/* Claude processes */}
@@ -522,7 +528,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Service Status (HTTP probes) */}
                     {healthCheckResult && (
-                      <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+                      <div className="subsection-soft-panel p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Service Status')}</p>
                         <div className="space-y-2">
                           {/* OpenAI Router */}
@@ -619,7 +625,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                     )}
 
                     {/* Recovery Actions */}
-                    <div className="bg-muted/30 rounded-xl p-3 space-y-3">
+                    <div className="subsection-soft-panel p-3 space-y-3">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Recovery Actions')}</p>
 
                       {recoveryResult && (
@@ -631,9 +637,9 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                       <div className="flex flex-wrap gap-2">
                         {/* S2: Reset Agent Engine */}
                         <button
-                          onClick={() => handleRecovery('S2')}
+                          onClick={() => { void handleRecovery('S2') }}
                           disabled={isRecovering !== null}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-2 text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl transition-colors disabled:opacity-50"
                           title={t('Kill all AI sessions and restart - fixes most issues')}
                         >
                           {isRecovering === 'S2' ? (
@@ -646,9 +652,9 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                         {/* S3: Restart App */}
                         <button
-                          onClick={() => handleRecovery('S3')}
+                          onClick={() => { void handleRecovery('S3') }}
                           disabled={isRecovering !== null}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-2 text-sm bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors disabled:opacity-50"
                           title={t('Restart the entire application')}
                         >
                           {isRecovering === 'S3' ? (
@@ -664,14 +670,14 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                     {/* Export Actions */}
                     <div className="flex items-center gap-2 pt-2">
                       <button
-                        onClick={handleCopyReport}
+                        onClick={() => { void handleCopyReport() }}
                         className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         {reportCopied ? t('Copied!') : t('Copy Report')}
                       </button>
                       <button
-                        onClick={handleExportReport}
+                        onClick={() => { void handleExportReport() }}
                         className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <FileText className="w-3.5 h-3.5" />

@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, Loader2, Key } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
+import { CafeLogo } from '../brand/CafeLogo'
 import type { RegistrySource } from '../../../shared/store/store-types'
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   'claude-skills': 'Claude Skills',
 }
 
-export function RegistrySection() {
+export function RegistrySection(): JSX.Element {
   const { t } = useTranslation()
 
   // State
@@ -42,9 +43,9 @@ export function RegistrySection() {
       if (result.success && result.data) {
         setRegistries(result.data as RegistrySource[])
       } else {
-        setError(result.error || t('Failed to load registries'))
+        setError(result.error ?? t('Failed to load registries'))
       }
-    } catch (err) {
+    } catch {
       setError(t('Failed to load registries'))
     } finally {
       setLoading(false)
@@ -52,7 +53,7 @@ export function RegistrySection() {
   }, [t])
 
   useEffect(() => {
-    loadRegistries()
+    void loadRegistries()
   }, [loadRegistries])
 
   // Add registry
@@ -87,7 +88,7 @@ export function RegistrySection() {
         setShowAddForm(false)
         await loadRegistries()
       } else {
-        setAddError(result.error || t('Failed to add registry'))
+        setAddError(result.error ?? t('Failed to add registry'))
       }
     } catch {
       setAddError(t('Failed to add registry'))
@@ -104,7 +105,7 @@ export function RegistrySection() {
       if (result.success) {
         await loadRegistries()
       } else {
-        setError(result.error || t('Failed to remove registry'))
+        setError(result.error ?? t('Failed to remove registry'))
       }
     } catch {
       setError(t('Failed to remove registry'))
@@ -121,7 +122,7 @@ export function RegistrySection() {
           prev.map((r) => (r.id === registryId ? { ...r, enabled } : r))
         )
       } else {
-        setError(result.error || t('Failed to update registry'))
+        setError(result.error ?? t('Failed to update registry'))
       }
     } catch {
       setError(t('Failed to update registry'))
@@ -135,7 +136,7 @@ export function RegistrySection() {
     try {
       const result = await api.storeUpdateRegistryAdapterConfig(registryId, { apiKey })
       if (!result.success) {
-        setError(result.error || t('Failed to save API key'))
+        setError(result.error ?? t('Failed to save API key'))
       } else {
         // Clear editing state on success
         setApiKeyEditing(prev => {
@@ -153,15 +154,19 @@ export function RegistrySection() {
 
   const BUILTIN_IDS = new Set(['official', 'mcp-official', 'smithery', 'claude-skills'])
   const isBuiltin = (registry: RegistrySource) =>
-    registry.isDefault || BUILTIN_IDS.has(registry.id)
+    (registry.isDefault ?? false) || BUILTIN_IDS.has(registry.id)
 
   return (
-    <section id="app-store" className="panel-glass rounded-[1.5rem] p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-medium">{t('App Store')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+    <section id="app-store" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-6" />
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('App Store')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
           {t('Manage registry sources for discovering and installing apps')}
-        </p>
+          </p>
+        </div>
       </div>
 
       {/* Error message */}
@@ -180,9 +185,12 @@ export function RegistrySection() {
       ) : (
         <>
           {/* Registry list */}
-          <div className="space-y-0 divide-y divide-border rounded-xl border border-border/70 overflow-hidden bg-background/10">
-            {registries.map((registry) => (
-              <div key={registry.id} className="px-4 py-3">
+          <div className="space-y-3">
+            {registries.map((registry) => {
+              const hasApiKeyDraft = Object.prototype.hasOwnProperty.call(apiKeyEditing, registry.id)
+
+              return (
+              <div key={registry.id} className="subsection-soft-panel px-4 py-3 rounded-[1rem]">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -209,7 +217,7 @@ export function RegistrySection() {
                       <input
                         type="checkbox"
                         checked={registry.enabled}
-                        onChange={() => handleToggle(registry.id, !registry.enabled)}
+                        onChange={() => { void handleToggle(registry.id, !registry.enabled) }}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
@@ -225,8 +233,8 @@ export function RegistrySection() {
                     {!isBuiltin(registry) && (
                       <button
                         type="button"
-                        onClick={() => handleRemove(registry.id)}
-                        className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                        onClick={() => { void handleRemove(registry.id) }}
+                        className="p-1.5 text-muted-foreground hover:text-destructive rounded-xl surface-subtle transition-colors"
                         title={t('Remove registry')}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -237,39 +245,35 @@ export function RegistrySection() {
 
                 {/* Smithery API key row */}
                 {registry.sourceType === 'smithery' && (
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-2 subsection-soft-panel p-3 rounded-xl">
                     <Key className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                     <input
                       type="password"
-                      value={
-                        apiKeyEditing[registry.id] !== undefined
-                          ? apiKeyEditing[registry.id]
-                          : ((registry.adapterConfig?.apiKey as string) ?? '')
-                      }
+                      value={hasApiKeyDraft ? apiKeyEditing[registry.id] : ((registry.adapterConfig?.apiKey as string | undefined) ?? '')}
                       onChange={e =>
                         setApiKeyEditing(prev => ({ ...prev, [registry.id]: e.target.value }))
                       }
                       placeholder={t('Smithery API key (optional)')}
-                      className="flex-1 px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="form-input-soft flex-1 px-2.5 py-1.5 text-xs"
                     />
-                    {apiKeyEditing[registry.id] !== undefined && (
+                    {hasApiKeyDraft && (
                       <button
                         type="button"
-                        onClick={() => handleSaveApiKey(registry.id)}
-                        disabled={apiKeySaving[registry.id]}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        onClick={() => { void handleSaveApiKey(registry.id) }}
+                        disabled={apiKeySaving[registry.id] ?? false}
+                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50"
                       >
-                        {apiKeySaving[registry.id] && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {(apiKeySaving[registry.id] ?? false) && <Loader2 className="w-3 h-3 animate-spin" />}
                         {t('Save')}
                       </button>
                     )}
                   </div>
                 )}
               </div>
-            ))}
+            )})}
 
             {registries.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              <div className="subsection-soft-panel px-4 py-6 text-center text-sm text-muted-foreground rounded-[1rem]">
                 {t('No registries configured')}
               </div>
             )}
@@ -277,7 +281,7 @@ export function RegistrySection() {
 
           {/* Add Registry Form */}
           {showAddForm && (
-            <div className="mt-4 p-4 border border-border rounded-lg space-y-3">
+            <div className="mt-4 p-4 subsection-soft-panel rounded-[1rem] space-y-3">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">
                   {t('Name')}
@@ -288,7 +292,7 @@ export function RegistrySection() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder={t('Registry name')}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="form-input-soft w-full px-3 py-2 text-sm"
                 />
               </div>
               <div className="space-y-1">
@@ -301,7 +305,7 @@ export function RegistrySection() {
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
                   placeholder={t('https://example.com/registry')}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="form-input-soft w-full px-3 py-2 text-sm"
                 />
               </div>
 
@@ -312,9 +316,9 @@ export function RegistrySection() {
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={handleAdd}
+                  onClick={() => { void handleAdd() }}
                   disabled={adding}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {adding && <Loader2 className="w-4 h-4 animate-spin" />}
                   {adding ? t('Adding...') : t('Add')}
@@ -327,7 +331,7 @@ export function RegistrySection() {
                     setNewUrl('')
                     setAddError(null)
                   }}
-                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                  className="px-3 py-2 text-sm text-muted-foreground surface-subtle hover:text-foreground rounded-xl transition-colors"
                 >
                   {t('Cancel')}
                 </button>
@@ -340,7 +344,7 @@ export function RegistrySection() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="mt-4 flex items-center gap-2 px-3 py-1.5 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              className="mt-4 flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors"
             >
               <Plus className="w-4 h-4" />
               {t('Add Registry')}

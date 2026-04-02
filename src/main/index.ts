@@ -30,7 +30,7 @@ log.transports.file.maxSize = 5 * 1024 * 1024 // 5MB per file, auto-rotate
 // listener cannot stop electron-log's listener from firing and showing the dialog.
 log.errorHandler.startCatching({
   onError({ error }) {
-    if (error?.message?.includes('EPIPE')) {
+    if (error.message.includes('EPIPE')) {
       log.warn('[Main] Ignored EPIPE error (broken pipe)')
       return false
     }
@@ -54,9 +54,10 @@ import { mkdirSync } from 'fs'
 // Some Windows GPU configurations cause the GPU process to crash, resulting in a white/blank screen
 // Using both disableHardwareAcceleration() and disable-gpu switch for maximum compatibility
 if (process.platform === 'win32') {
-  const localAppData = process.env.LOCALAPPDATA || process.env.TEMP || process.cwd()
-  const sessionDataPath = join(localAppData, 'Cafe', 'session-data')
-  const userDataPath = join(localAppData, 'Cafe', 'user-data')
+  const localAppData = process.env.LOCALAPPDATA ?? process.env.TEMP ?? process.cwd()
+  const runtimeScope = isDev ? `dev-${process.pid}` : 'prod'
+  const sessionDataPath = join(localAppData, 'Cafe', runtimeScope, 'session-data')
+  const userDataPath = join(localAppData, 'Cafe', runtimeScope, 'user-data')
   const diskCachePath = join(sessionDataPath, 'Cache')
   const gpuCachePath = join(sessionDataPath, 'GPUCache')
 
@@ -126,7 +127,7 @@ app.on('second-instance', () => {
 
   // On macOS, also show in dock
   if (process.platform === 'darwin') {
-    app.dock?.show()
+    void app.dock.show()
   }
 })
 
@@ -209,7 +210,7 @@ function createAppMenu(): void {
               { type: 'separator' as const },
               {
                 label: 'Check for Updates...',
-                click: () => manualCheckForUpdates()
+                click: () => { void manualCheckForUpdates() }
               },
               { type: 'separator' as const },
               { role: 'services' as const },
@@ -281,16 +282,14 @@ function createAppMenu(): void {
           ? [
               {
                 label: 'Check for Updates...',
-                click: () => manualCheckForUpdates()
+                click: () => { void manualCheckForUpdates() }
               },
               { type: 'separator' as const }
             ]
           : []),
         {
           label: 'Learn More',
-          click: async () => {
-            await open('https://github.com/kael-odin/cafe')
-          }
+          click: () => { void open('https://github.com/kael-odin/cafe-ai') }
         }
       ]
     }
@@ -333,17 +332,19 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    console.log('[Main] ready-to-show event fired')
-    mainWindow?.maximize()
-    mainWindow?.show()
+    console.info('[Main] ready-to-show event fired')
+    mainWindow.maximize()
+    mainWindow.show()
   })
 
   // Fix PATH after page loads (avoid blocking startup)
-  mainWindow.webContents.on('did-finish-load', async () => {
+  mainWindow.webContents.on('did-finish-load', () => {
     if (process.platform !== 'win32') {
-      // Dynamic import for ESM-only fix-path module
-      const { default: fixPath } = await import('fix-path')
-      fixPath()
+      void (async () => {
+        // Dynamic import for ESM-only fix-path module
+        const { default: fixPath } = await import('fix-path')
+        fixPath()
+      })()
     }
   })
 
@@ -376,15 +377,15 @@ function createWindow(): void {
   setMainWindow(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    open(details.url)
+    void open(details.url)
     return { action: 'deny' }
   })
 
   // Load the renderer
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
   // Open DevTools in development (skip during E2E to avoid viewport interference)
@@ -394,7 +395,7 @@ function createWindow(): void {
 }
 
 // Initialize application
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cafe.app')
 
@@ -450,7 +451,7 @@ app.whenReady().then(async () => {
     // On macOS, re-show the window when clicking dock icon
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
-      app.dock?.show()
+      void app.dock.show()
     } else if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }

@@ -11,11 +11,11 @@ interface InterruptedBubbleProps {
   className?: string
 }
 
-export function InterruptedBubble({ error, onContinue, className = '' }: InterruptedBubbleProps) {
+export function InterruptedBubble({ error, onContinue, className = '' }: InterruptedBubbleProps): JSX.Element {
   const { t } = useTranslation()
 
   return (
-    <div className={`flex justify-start animate-fade-in ${className}`}>
+    <div className={`flex justify-start message-scroll-shell ${className}`}>
       <div className="w-[85%]">
         <div className="rounded-2xl px-4 py-3 bg-amber-500/10 border border-amber-500/30">
           {/* Header with icon and message */}
@@ -28,7 +28,7 @@ export function InterruptedBubble({ error, onContinue, className = '' }: Interru
 
           {/* Description */}
           <p className="mt-2 text-sm text-amber-600/80 dark:text-amber-400/80">
-            {error || t('The response was interrupted unexpectedly. You can continue the conversation.')}
+            {error ?? t('The response was interrupted unexpectedly. You can continue the conversation.')}
           </p>
 
           {/* Action button */}
@@ -40,7 +40,7 @@ export function InterruptedBubble({ error, onContinue, className = '' }: Interru
                   inline-flex items-center gap-1.5 px-3 py-1.5
                   text-sm font-medium text-amber-700 dark:text-amber-300
                   bg-amber-500/20 hover:bg-amber-500/30
-                  rounded-lg transition-colors
+                  rounded-xl transition-colors
                 "
               >
                 <MessageSquare size={14} />

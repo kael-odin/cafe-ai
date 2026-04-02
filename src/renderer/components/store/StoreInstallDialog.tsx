@@ -9,6 +9,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { useSpaceStore } from '../../stores/space.store'
 import { useAppsPageStore } from '../../stores/apps-page.store'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation, getCurrentLanguage } from '../../i18n'
 import { resolveSpecI18n } from '../../utils/spec-i18n'
 import type { StoreAppDetail, StoreInstallProgress } from '../../../shared/store/store-types'
@@ -25,9 +26,10 @@ interface StoreInstallDialogProps {
   showGlobalOption?: boolean
 }
 
-export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOption }: StoreInstallDialogProps) {
+export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOption }: StoreInstallDialogProps): JSX.Element {
   const { t } = useTranslation()
   const installFromStore = useAppsPageStore(state => state.installFromStore)
+  const locale = getCurrentLanguage()
 
   // Spaces
   const currentSpace = useSpaceStore(state => state.currentSpace)
@@ -43,7 +45,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
 
   // For MCP/Skill (showGlobalOption=true), default to global; otherwise default to current/first space
   const [selectedSpaceId, setSelectedSpaceId] = useState(
-    showGlobalOption ? GLOBAL_SCOPE : (currentSpace?.id ?? allSpaces[0]?.id ?? '')
+    showGlobalOption ? GLOBAL_SCOPE : (currentSpace ? currentSpace.id : (allSpaces[0]?.id ?? ''))
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +53,14 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
 
   // Dynamic config form state — use resolved schema for translated display text;
   // field.key and field.required are preserved unchanged by resolveSpecI18n.
-  const configSchema = resolveSpecI18n(detail.spec, getCurrentLanguage()).config_schema ?? []
+  const resolvedSpec = useMemo(
+    () => resolveSpecI18n(detail.spec, locale),
+    [detail.spec, locale]
+  )
+  const configSchema = useMemo(
+    () => resolvedSpec.config_schema ?? [],
+    [resolvedSpec]
+  )
   const [configValues, setConfigValues] = useState<Record<string, unknown>>(() => {
     const initial: Record<string, unknown> = {}
     for (const field of configSchema) {
@@ -136,13 +145,14 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/70 flex-shrink-0 bg-background/20 backdrop-blur-sm">
           <div className="flex items-center gap-2 min-w-0">
+            <CafeLogo size={30} animated={false} />
             {detail.entry.icon && (
               <span className="text-base w-9 h-9 rounded-xl bg-background/35 flex items-center justify-center">{detail.entry.icon}</span>
             )}
             <div>
               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Install')}</div>
               <h2 className="text-sm font-semibold truncate">
-              {t('Install')} {resolveSpecI18n(detail.spec, getCurrentLanguage()).name}
+              {t('Install')} {resolvedSpec.name}
               </h2>
             </div>
           </div>
@@ -157,7 +167,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
         {/* Body */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1 relative z-10">
           {/* Scope selector */}
-          <div className="space-y-2">
+          <div className="space-y-2 subsection-soft-panel p-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('Install to')}
             </h3>
@@ -183,7 +193,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
 
           {/* Config schema form fields */}
           {configSchema.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3 subsection-soft-panel p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('Configuration')}
               </h3>
@@ -212,7 +222,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
                 <span>{progress.filesComplete}/{progress.filesTotal}</span>
               )}
             </div>
-            <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden subsection-soft-panel">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-300"
                 style={{ width: `${progress.percent}%` }}
@@ -230,7 +240,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
             {t('Cancel')}
           </button>
           <button
-            onClick={handleInstall}
+            onClick={() => { void handleInstall() }}
             disabled={loading || !selectedSpaceId}
             className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
@@ -253,7 +263,7 @@ interface ConfigFieldProps {
   onChange: (value: unknown) => void
 }
 
-function ConfigField({ field, value, onChange }: ConfigFieldProps) {
+function ConfigField({ field, value, onChange }: ConfigFieldProps): JSX.Element {
   const { t } = useTranslation()
 
   const inputClasses = 'form-input-soft w-full px-3 py-2.5 text-sm placeholder:text-muted-foreground/50'
@@ -280,7 +290,7 @@ function ConfigField({ field, value, onChange }: ConfigFieldProps) {
 
     case 'select':
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 choice-card-soft p-3">
           <label className="text-sm text-foreground">
             {field.label}
             {field.required && <span className="text-red-400 ml-0.5">*</span>}
@@ -305,7 +315,7 @@ function ConfigField({ field, value, onChange }: ConfigFieldProps) {
 
     case 'number':
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 choice-card-soft p-3">
           <label className="text-sm text-foreground">
             {field.label}
             {field.required && <span className="text-red-400 ml-0.5">*</span>}
@@ -325,7 +335,7 @@ function ConfigField({ field, value, onChange }: ConfigFieldProps) {
 
     case 'text':
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 choice-card-soft p-3">
           <label className="text-sm text-foreground">
             {field.label}
             {field.required && <span className="text-red-400 ml-0.5">*</span>}
@@ -346,7 +356,7 @@ function ConfigField({ field, value, onChange }: ConfigFieldProps) {
     default:
       // string, url, email — render as text input
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 choice-card-soft p-3">
           <label className="text-sm text-foreground">
             {field.label}
             {field.required && <span className="text-red-400 ml-0.5">*</span>}

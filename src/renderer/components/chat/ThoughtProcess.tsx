@@ -68,7 +68,7 @@ function getActionSummaryData(thoughts: Thought[]): { key: string; params?: Reco
         case 'TodoWrite': return { key: 'Updating tasks...' }
         case 'Task':
           if (input?.subagent_type === 'web-searcher') {
-            return { key: 'Searching {{query}}...', params: { query: extractSearchTerm(input?.prompt) } }
+            return { key: 'Searching {{query}}...', params: { query: extractSearchTerm(input.prompt) } }
           }
           return { key: 'Executing {{task}}...', params: { task: extractSearchTerm(input?.description) } }
         case 'NotebookEdit': return { key: 'Editing {{file}}...', params: { file: extractFileName(input?.notebook_path) } }
@@ -87,7 +87,7 @@ function getActionSummaryData(thoughts: Thought[]): { key: string; params?: Reco
 // Extract filename from path (e.g., "/foo/bar/config.json" -> "config.json")
 function extractFileName(path: unknown): string {
   if (typeof path !== 'string' || !path) return 'file'
-  const name = path.split(/[/\\]/).pop() || path
+  const name = path.split(/[/\\]/).pop() ?? path
   return truncateText(name, 20)
 }
 
@@ -149,7 +149,7 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
       displayContent = '...'
     } else {
       // Tool ready - show friendly format
-      displayContent = getToolFriendlyFormat(thought.toolName || '', thought.toolInput)
+      displayContent = getToolFriendlyFormat(thought.toolName ?? '', thought.toolInput)
     }
     needsTruncate = displayContent.length > maxPreviewLength
   } else if (thought.type === 'thinking') {
@@ -157,7 +157,7 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
     displayContent = thought.content || (isStreaming ? '...' : '')
     needsTruncate = displayContent.length > maxPreviewLength
   } else if (thought.type === 'tool_result') {
-    displayContent = (thought.toolOutput || '').substring(0, 200)
+    displayContent = (thought.toolOutput ?? '').substring(0, 200)
     needsTruncate = displayContent.length > maxPreviewLength
   } else {
     displayContent = thought.content || ''
@@ -175,7 +175,7 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
     if (thought.type !== 'tool_use') return null
     if (!isToolReady) return { label: t('Generating'), color: 'text-amber-400', icon: 'loading' }
     if (hasToolResult) {
-      return thought.toolResult!.isError
+      return thought.toolResult.isError
         ? { label: t('Hint'), color: 'text-amber-500', icon: 'warning' }
         : { label: t('Done'), color: 'text-green-400', icon: 'success' }
     }
@@ -185,14 +185,14 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
 
 
   return (
-    <div className="flex gap-3 group animate-fade-in">
+    <div className="flex gap-3 group">
       {/* Timeline line */}
       <div className="flex flex-col items-center">
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-          thought.isError || thought.toolResult?.isError ? 'bg-amber-500/20' : isStreaming ? 'bg-primary/20' : 'bg-primary/10'
-        } ${thought.toolResult?.isError ? 'text-amber-500' : color}`}>
-          {hasToolResult ? (
-            thought.toolResult!.isError ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
+            thought.isError || thought.toolResult?.isError ? 'bg-amber-500/20' : isStreaming ? 'bg-primary/20' : 'bg-primary/10'
+          } ${thought.toolResult?.isError ? 'text-amber-500' : color}`}>
+            {hasToolResult ? (
+            thought.toolResult.isError ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />
           ) : (
             <Icon size={14} />
           )}
@@ -227,7 +227,7 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
             })}
           </span>
           {/* Duration - hidden on mobile */}
-          {thought.duration && (
+          {thought.duration != null && (
             <span className="hidden sm:inline text-xs text-muted-foreground/40">
               ({(thought.duration / 1000).toFixed(1)}s)
             </span>
@@ -258,10 +258,10 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
           </div>
 
           {/* Actions - right aligned, compact buttons */}
-          {((thought.type === 'tool_use' && isToolReady && thought.toolInput && Object.keys(thought.toolInput).length > 0) || hasToolResult) && (
+          {((thought.type === 'tool_use' && isToolReady && thought.toolInput != null && Object.keys(thought.toolInput).length > 0) || hasToolResult) && (
             <div className="flex items-center gap-0.5 shrink-0 text-[9px]">
               {/* Raw JSON button */}
-              {thought.type === 'tool_use' && isToolReady && thought.toolInput && Object.keys(thought.toolInput).length > 0 && (
+              {thought.type === 'tool_use' && isToolReady && thought.toolInput != null && Object.keys(thought.toolInput).length > 0 && (
                 <button
                   onClick={() => setShowRawJson(!showRawJson)}
                   className={`
@@ -278,7 +278,7 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
               )}
 
               {/* Show/Hide result button */}
-              {hasToolResult && thought.toolResult!.output && (
+              {hasToolResult && thought.toolResult.output && (
                 <button
                   onClick={() => setShowResult(!showResult)}
                   className="flex items-center gap-0.5 px-1 py-px rounded text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors"
@@ -300,12 +300,12 @@ const ThoughtItem = memo(function ThoughtItem({ thought, isLast }: { thought: Th
         )}
 
         {/* Tool result display (merged under tool_use) - Smart rendering */}
-        {hasToolResult && showResult && thought.toolResult!.output && (
-          <ToolResultViewer
-            toolName={thought.toolName || ''}
+          {hasToolResult && showResult && thought.toolResult.output && (
+            <ToolResultViewer
+            toolName={thought.toolName ?? ''}
             toolInput={thought.toolInput}
-            output={thought.toolResult!.output}
-            isError={thought.toolResult!.isError}
+            output={thought.toolResult.output}
+            isError={thought.toolResult.isError}
           />
         )}
       </div>
@@ -340,7 +340,7 @@ function LazyThoughtItem({
   )
 }
 
-export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
+export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps): JSX.Element | null {
   // Start collapsed, but auto-expand when streaming starts
   const [isExpanded, setIsExpanded] = useState(false)
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false)
@@ -367,11 +367,9 @@ export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
   // Calculate elapsed time from first thought's timestamp
   // This is more reliable than tracking component mount time
   const startTime = useMemo(() => {
-    if (thoughts.length > 0) {
-      return new Date(thoughts[0].timestamp).getTime()
-    }
-    return null
-  }, [thoughts.length > 0 ? thoughts[0]?.timestamp : null])
+    if (thoughts.length === 0) return null
+    return new Date(thoughts[0].timestamp).getTime()
+  }, [thoughts])
 
   // Get latest todo data (only render one TodoCard at bottom)
   const latestTodos = useMemo(() => {
@@ -382,7 +380,7 @@ export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
     if (todoThoughts.length === 0) return null
 
     const latest = todoThoughts[todoThoughts.length - 1]
-    return parseTodoInput(latest.toolInput!)
+    return latest.toolInput ? parseTodoInput(latest.toolInput) : null
   }, [thoughts])
 
   // Filter thoughts for display (exclude TodoWrite, tool_result, and result)
@@ -418,10 +416,10 @@ export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
   const hasDisplayContent = displayThoughts.length > 0
 
   return (
-    <div className="animate-fade-in mb-4">
+    <div className="animate-fade-in mb-4 message-scroll-shell">
       <div
         className={`
-          relative rounded-xl border overflow-hidden transition-all duration-300
+          relative rounded-xl border overflow-hidden transition-[border-color,background-color,box-shadow] duration-200 thought-shell
           ${isThinking
             ? 'border-primary/40 bg-primary/5'
             : errorCount > 0
@@ -433,7 +431,7 @@ export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
         {/* Header */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors thought-header"
         >
           {/* Status indicator */}
           {isThinking ? (
@@ -478,7 +476,7 @@ export function ThoughtProcess({ thoughts, isThinking }: ThoughtProcessProps) {
               <div
                 ref={contentRef}
                 onScroll={handleScroll}
-                className={`px-4 pt-3 ${isMaximized ? 'max-h-[80vh]' : 'max-h-[300px]'} overflow-auto scrollbar-overlay transition-all duration-200`}
+                className={`px-4 pt-3 ${isMaximized ? 'max-h-[80vh]' : 'max-h-[300px]'} overflow-auto scrollbar-overlay transition-[max-height] duration-200 thought-scroll-panel`}
               >
                 {displayThoughts.map((thought, index) => {
                   const isLast = index === displayThoughts.length - 1 && !latestTodos && !isThinking

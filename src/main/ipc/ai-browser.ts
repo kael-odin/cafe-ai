@@ -13,35 +13,30 @@
 
 import { ipcMain, BrowserWindow } from 'electron'
 import { onMainWindowChange } from '../services/window.service'
+import {
+  AI_BROWSER_SYSTEM_PROMPT,
+  cleanupAIBrowser,
+  initializeAIBrowser,
+  isAIBrowserTool,
+  setActiveBrowserView,
+} from '../services/ai-browser'
 
-// Lazy-loaded module references
-let aiBrowserModule: typeof import('../services/ai-browser') | null = null
 let mainWindowRef: BrowserWindow | null = null
 let initialized = false
 
 /**
- * Ensure AI Browser module is loaded and initialized
- * Called on first use of any AI Browser functionality
+ * Ensure AI Browser is initialized only when first used.
+ *
+ * The service module is already part of the main bundle because other runtime
+ * entry points import it statically. Keeping IPC initialization lazy still
+ * avoids boot-time setup work without triggering Vite's mixed import warning.
  */
-async function ensureInitialized(): Promise<typeof import('../services/ai-browser')> {
-  if (!aiBrowserModule) {
-    console.log('[AI Browser IPC] Lazy loading AI Browser module...')
-    const start = performance.now()
-
-    // Dynamic import to defer module loading
-    aiBrowserModule = await import('../services/ai-browser')
-
-    const duration = performance.now() - start
-    console.log(`[AI Browser IPC] Module loaded in ${duration.toFixed(1)}ms`)
-  }
-
+async function ensureInitialized(): Promise<void> {
   if (!initialized && mainWindowRef) {
     console.log('[AI Browser IPC] Initializing AI Browser...')
-    aiBrowserModule.initializeAIBrowser(mainWindowRef)
+    initializeAIBrowser(mainWindowRef)
     initialized = true
   }
-
-  return aiBrowserModule
 }
 
 /**
@@ -68,8 +63,8 @@ export function registerAIBrowserHandlers(): void {
    */
   ipcMain.handle('ai-browser:get-system-prompt', async () => {
     try {
-      const module = await ensureInitialized()
-      return { success: true, data: module.AI_BROWSER_SYSTEM_PROMPT }
+      await ensureInitialized()
+      return { success: true, data: AI_BROWSER_SYSTEM_PROMPT }
     } catch (error) {
       console.error('[AI Browser IPC] Get system prompt failed:', error)
       return { success: false, error: (error as Error).message }
@@ -81,8 +76,8 @@ export function registerAIBrowserHandlers(): void {
    */
   ipcMain.handle('ai-browser:is-browser-tool', async (_event, { toolName }: { toolName: string }) => {
     try {
-      const module = await ensureInitialized()
-      return { success: true, data: module.isAIBrowserTool(toolName) }
+      await ensureInitialized()
+      return { success: true, data: isAIBrowserTool(toolName) }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }
@@ -97,8 +92,8 @@ export function registerAIBrowserHandlers(): void {
    */
   ipcMain.handle('ai-browser:set-active-view', async (_event, { viewId }: { viewId: string }) => {
     try {
-      const module = await ensureInitialized()
-      module.setActiveBrowserView(viewId)
+      await ensureInitialized()
+      setActiveBrowserView(viewId)
       return { success: true }
     } catch (error) {
       console.error('[AI Browser IPC] Set active view failed:', error)
@@ -113,14 +108,12 @@ export function registerAIBrowserHandlers(): void {
  * Cleanup AI Browser resources
  */
 export function cleanupAIBrowserHandlers(): void {
-  // Only cleanup if module was actually loaded
-  if (aiBrowserModule && initialized) {
-    aiBrowserModule.cleanupAIBrowser()
+  if (initialized) {
+    cleanupAIBrowser()
     console.log('[AI Browser IPC] Module cleaned up')
   }
 
   // Reset state
-  aiBrowserModule = null
   mainWindowRef = null
   initialized = false
 

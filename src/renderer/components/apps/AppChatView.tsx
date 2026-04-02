@@ -15,7 +15,7 @@
  *   AskUserQuestionCard, ThoughtProcess, etc.) for feature parity.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { Loader2, AlertCircle, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useChatStore } from '../../stores/chat.store'
@@ -48,7 +48,43 @@ function getConversationId(appId: string): string {
 
 type LoadState = 'loading' | 'loaded' | 'error' | 'empty'
 
-export function AppChatView({ appId, spaceId }: AppChatViewProps) {
+const PersistedMessages = memo(function PersistedMessages({ messages }: { messages: Message[] }): JSX.Element {
+  return (
+    <>
+      {messages.map((message) => {
+        const hasInlineThoughts = Array.isArray(message.thoughts) && message.thoughts.length > 0
+
+        if (message.role === 'assistant' && hasInlineThoughts) {
+          return (
+            <div key={message.id} className="flex justify-start pb-4 message-scroll-shell">
+              <div className="w-[85%]">
+                <CollapsedThoughtProcess
+                  thoughts={message.thoughts as Thought[]}
+                  defaultExpanded={false}
+                />
+                {message.content && (
+                  <MessageItem
+                    message={message}
+                    hideThoughts
+                    isInContainer
+                  />
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div key={message.id} className="pb-4 message-scroll-shell">
+            <MessageItem message={message} />
+          </div>
+        )
+      })}
+    </>
+  )
+}, (prevProps, nextProps) => prevProps.messages === nextProps.messages)
+
+export function AppChatView({ appId, spaceId }: AppChatViewProps): JSX.Element {
   const { t } = useTranslation()
   const conversationId = getConversationId(appId)
 
@@ -81,14 +117,20 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
       .filter(t => t.type === 'tool_use' && t.toolName && isBrowserTool(t.toolName))
       .map(t => ({
         id: t.id,
-        name: t.toolName!,
+        name: t.toolName ?? 'browser',
         // Determine status from merged toolResult (set by backend via agent:thought-delta)
         status: t.toolResult
           ? (t.toolResult.isError ? 'error' as const : 'success' as const)
           : 'running' as const,
-        input: t.toolInput || {},
+        input: t.toolInput ?? {},
       }))
   }, [thoughts])
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }, [])
 
   // ── Load persisted chat messages on mount ──
   useEffect(() => {
@@ -102,7 +144,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
         if (cancelled) return
 
         if (res.success && res.data) {
-          const msgs = (res.data as Message[]) ?? []
+          const msgs = res.data as Message[]
           setMessages(msgs)
           setLoadState(msgs.length > 0 ? 'loaded' : 'empty')
         } else {
@@ -116,7 +158,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
       }
     }
 
-    loadMessages()
+    void loadMessages()
     return () => { cancelled = true }
   }, [appId, spaceId])
 
@@ -126,12 +168,12 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
   useEffect(() => {
     if (prevIsGeneratingRef.current && !isGenerating) {
       // Generation just completed — reload messages from JSONL
-      api.appChatMessages(appId, spaceId).then(res => {
-        if (res.success && res.data) {
-          const msgs = (res.data as Message[]) ?? []
-          setMessages(msgs)
-          setLoadState(msgs.length > 0 ? 'loaded' : 'empty')
-        }
+      void api.appChatMessages(appId, spaceId).then(res => {
+          if (res.success && res.data) {
+            const msgs = res.data as Message[]
+            setMessages(msgs)
+            setLoadState(msgs.length > 0 ? 'loaded' : 'empty')
+          }
       }).catch(err => {
         console.error('[AppChatView] Failed to reload messages after completion:', err)
       })
@@ -142,12 +184,9 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
   // ── Auto-scroll to bottom when streaming ──
   useEffect(() => {
     if (isStreaming || isThinking) {
-      const el = scrollRef.current
-      if (el) {
-        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-      }
+      requestAnimationFrame(() => scrollToBottom('auto'))
     }
-  }, [streamingContent, thoughts.length, isStreaming, isThinking, pendingQuestion])
+  }, [streamingContent, thoughts.length, isStreaming, isThinking, pendingQuestion, scrollToBottom])
 
   // ── Clear chat ──
   const handleClearChat = useCallback(async () => {
@@ -168,7 +207,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
   const handleSend = useCallback(async (content: string, images?: ImageAttachment[], thinkingEnabled?: boolean) => {
     // Reset session state before sending to clear any stale thoughts/content
     // from a previous conversation (mirrors normal chat's sendMessage behavior)
-    resetSession(conversationId)
+    void resetSession(conversationId)
 
     try {
       // Map ImageAttachment[] to API format { type, media_type, data }
@@ -196,13 +235,11 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
       setLoadState('loaded')
 
       // Scroll to bottom after sending
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-      })
+      requestAnimationFrame(() => scrollToBottom('smooth'))
     } catch (err) {
       console.error('[AppChatView] Send error:', err)
     }
-  }, [appId, spaceId, conversationId, resetSession])
+  }, [appId, spaceId, conversationId, resetSession, scrollToBottom])
 
   // ── Stop generation ──
   const handleStop = useCallback(async () => {
@@ -215,7 +252,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
 
   // ── Answer question from AskUserQuestionCard ──
   const handleAnswerQuestion = useCallback((answers: Record<string, string>) => {
-    answerQuestion(conversationId, answers)
+    void answerQuestion(conversationId, answers)
   }, [conversationId, answerQuestion])
 
   // ── Loading state ──
@@ -230,8 +267,8 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
         </div>
         <div className="shrink-0 p-4">
           <InputArea
-            onSend={handleSend}
-            onStop={handleStop}
+            onSend={(content, images, thinkingEnabled) => { void handleSend(content, images, thinkingEnabled) }}
+            onStop={() => { void handleStop() }}
             isGenerating={false}
             placeholder={t('Chat with this App...')}
             isCompact
@@ -254,8 +291,8 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
         </div>
         <div className="shrink-0 p-4">
           <InputArea
-            onSend={handleSend}
-            onStop={handleStop}
+            onSend={(content, images, thinkingEnabled) => { void handleSend(content, images, thinkingEnabled) }}
+            onStop={() => { void handleStop() }}
             isGenerating={false}
             placeholder={t('Chat with this App...')}
             isCompact
@@ -269,9 +306,9 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
   const hasStreamingContent = isGenerating && (streamingContent || thoughts.length > 0 || isThinking)
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Message area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto app-chat-scroll">
         <div className="max-w-3xl mx-auto py-6 px-4">
           {/* Empty state hint */}
           {loadState === 'empty' && !hasStreamingContent && (
@@ -281,42 +318,11 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
           )}
 
           {/* Persisted messages */}
-          {messages.map((message) => {
-            const hasInlineThoughts = Array.isArray(message.thoughts) && message.thoughts.length > 0
-
-            if (message.role === 'assistant' && hasInlineThoughts) {
-              return (
-                <div key={message.id} className="flex justify-start pb-4">
-                  <div className="w-[85%]">
-                    <CollapsedThoughtProcess
-                      thoughts={message.thoughts as Thought[]}
-                      defaultExpanded={false}
-                    />
-                    {/* Only render the message bubble if there is text content.
-                        Assistant events with only tool_use/thinking blocks have empty content —
-                        rendering MessageItem for those would produce empty visible bubbles. */}
-                    {message.content && (
-                      <MessageItem
-                        message={message}
-                        hideThoughts
-                        isInContainer
-                      />
-                    )}
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <div key={message.id} className="pb-4">
-                <MessageItem message={message} />
-              </div>
-            )
-          })}
+          <PersistedMessages messages={messages} />
 
           {/* Live streaming content */}
           {hasStreamingContent && (
-            <div className="flex justify-start pb-4 animate-fade-in">
+            <div className="flex justify-start pb-4 message-scroll-shell">
               <div className="w-[85%]">
                 {/* Real-time thought process */}
                 {(thoughts.length > 0 || isThinking) && (
@@ -361,7 +367,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
 
           {/* Generic error */}
           {!isGenerating && error && errorType !== 'interrupted' && (
-            <div className="flex justify-start animate-fade-in pb-4">
+            <div className="flex justify-start pb-4 message-scroll-shell">
               <div className="w-[85%]">
                 <div className="rounded-2xl px-4 py-3 bg-destructive/10 border border-destructive/30">
                   <div className="flex items-center gap-2 text-destructive">
@@ -388,7 +394,7 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
         {messages.length > 0 && !isGenerating && (
           <div className="flex justify-end mb-2">
             <button
-              onClick={handleClearChat}
+              onClick={() => { void handleClearChat() }}
               className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors rounded"
               title={t('Clear chat history')}
             >
@@ -398,8 +404,8 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps) {
           </div>
         )}
         <InputArea
-          onSend={handleSend}
-          onStop={handleStop}
+          onSend={(content, images, thinkingEnabled) => { void handleSend(content, images, thinkingEnabled) }}
+          onStop={() => { void handleStop() }}
           isGenerating={isGenerating}
           placeholder={t('Chat with this App...')}
           isCompact

@@ -64,7 +64,7 @@ interface StreamingRevision {
   thoughts: Thought[]
   isThinking: boolean
   textBlockVersion: number
-  streamingBrowserToolCalls: { id: string; name: string; status: 'running' | 'success'; input: any }[]
+  streamingBrowserToolCalls: { id: string; name: string; status: 'running' | 'success' | 'error'; input: Record<string, unknown> }[]
   pendingQuestion: PendingQuestion | null
   onAnswerQuestion?: (answers: Record<string, string>) => void
 }
@@ -74,9 +74,10 @@ function StreamingFooterContent({ revisionRef }: { revisionRef: React.RefObject<
   // Data is read from the ref (always fresh); this selector just triggers the re-render.
   useChatStore(s => s.sessions.get(s.getCurrentSpaceState().currentConversationId ?? ''))
 
-  const rev = revisionRef.current!
+  const rev = revisionRef.current
+  if (!rev) return null
   return (
-    <div className="flex justify-start animate-fade-in pb-4">
+    <div className="flex justify-start pb-4 message-scroll-shell">
       <div className="w-[85%] relative">
         {/* Real-time thought process at top */}
         {(rev.thoughts.length > 0 || rev.isThinking) && (
@@ -141,11 +142,9 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
   // LazyCollapsedThoughtProcess to CollapsedThoughtProcess — this ref ensures the
   // new CollapsedThoughtProcess mounts with defaultExpanded=true so the panel stays open.
   const expandedThoughtIds = useRef(new Set<string>())
-  const { loadMessageThoughts, currentSpaceId, currentConversationId } = useChatStore(s => ({
-    loadMessageThoughts: s.loadMessageThoughts,
-    currentSpaceId: s.currentSpaceId,
-    currentConversationId: s.getCurrentSpaceState().currentConversationId,
-  }))
+  const loadMessageThoughts = useChatStore(s => s.loadMessageThoughts)
+  const currentSpaceId = useChatStore(s => s.currentSpaceId)
+  const currentConversationId = useChatStore(s => s.getCurrentSpaceState().currentConversationId)
 
   // Expose scroll control to parent (ChatView)
   useImperativeHandle(ref, () => ({
@@ -195,12 +194,12 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
       .filter(t => t.type === 'tool_use' && t.toolName && isBrowserTool(t.toolName))
       .map(t => ({
         id: t.id,
-        name: t.toolName!,
+        name: t.toolName ?? 'browser',
         // Determine status from merged toolResult (set by backend via agent:thought-delta)
         status: t.toolResult
           ? (t.toolResult.isError ? 'error' as const : 'success' as const)
           : 'running' as const,
-        input: t.toolInput || {},
+        input: t.toolInput ?? {},
       }))
   }, [thoughts])
 
@@ -216,6 +215,8 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'auto' })
   }, [])
 
+  const lastStreamingScrollAtRef = useRef(0)
+
   // --- Native DOM auto-scroll (replaces Virtuoso followOutput) ---
 
   // 1. Mount scroll: wait for Virtuoso to finish initial layout, then snap to bottom.
@@ -228,6 +229,11 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
   // 2. Streaming scroll: follow content growth while AI is generating
   useEffect(() => {
     if (!isAtBottomRef.current || !isGenerating) return
+
+    const now = Date.now()
+    if (now - lastStreamingScrollAtRef.current < 80) return
+    lastStreamingScrollAtRef.current = now
+
     requestAnimationFrame(scrollToEnd)
   }, [streamingContent, thoughts.length, isThinking, isGenerating, pendingQuestion, scrollToEnd])
 
@@ -255,8 +261,9 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
     if (message.role === 'assistant' && (hasInlineThoughts || hasSeparatedThoughts)) {
       return (
         <div className={`flex justify-start pb-4 ${contentWidthClass}`}>
+          
           {/* Fixed width container - prevents width jumping when content changes */}
-          <div className="w-[85%]">
+          <div className="w-[85%] message-scroll-shell">
             {/* Collapsed thought process above the message */}
             {hasInlineThoughts ? (
               <CollapsedThoughtProcess
@@ -265,7 +272,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
               />
             ) : (
               <LazyCollapsedThoughtProcess
-                thoughtsSummary={message.thoughtsSummary!}
+                thoughtsSummary={message.thoughtsSummary}
                 onLoadThoughts={
                   currentSpaceId && currentConversationId
                     ? () => {
@@ -283,7 +290,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
       )
     }
     return (
-      <div className={`pb-4 ${contentWidthClass}`}>
+      <div className={`pb-4 ${contentWidthClass} message-scroll-shell`}>
         <MessageItem message={message} previousCost={previousCost} />
       </div>
     )
@@ -307,7 +314,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
   // Footer: stable callback — only depends on low-frequency values
   // High-frequency streaming updates are handled by StreamingFooterContent internally
   const Footer = useCallback(() => {
-    const hasFooterContent = isGenerating || (!isGenerating && error) || compactInfo
+    const hasFooterContent = isGenerating || error != null || compactInfo != null
     if (!hasFooterContent) return <div className="pb-6" />
 
     return (
@@ -318,12 +325,12 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
         {/* Error message - shown when generation fails (not during generation) */}
         {/* Interrupted errors get special friendly UI, other errors show standard error bubble */}
         {!isGenerating && error && errorType === 'interrupted' && (
-          <div className="pb-4">
+          <div className="pb-4 message-scroll-shell">
             <InterruptedBubble error={error} onContinue={onContinueRef.current} />
           </div>
         )}
         {!isGenerating && error && errorType !== 'interrupted' && (
-          <div className="flex justify-start animate-fade-in pb-4">
+          <div className="flex justify-start pb-4 message-scroll-shell">
             <div className="w-[85%]">
               <div className="rounded-2xl px-4 py-3 bg-destructive/10 border border-destructive/30">
                 <div className="flex items-center gap-2 text-destructive">
@@ -342,7 +349,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(funct
 
         {/* Compact notice - shown when context was compressed (runtime notification) */}
         {compactInfo && (
-          <div className="pb-4">
+          <div className="pb-4 message-scroll-shell">
             <CompactNotice trigger={compactInfo.trigger} preTokens={compactInfo.preTokens} />
           </div>
         )}

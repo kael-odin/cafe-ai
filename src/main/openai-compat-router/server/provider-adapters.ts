@@ -87,7 +87,7 @@ const openRouterAdapter: ProviderAdapter = {
 
   getExtraHeaders(): Record<string, string> {
     return {
-      'HTTP-Referer': 'https://github.com/kael-odin/cafe',
+      'HTTP-Referer': 'https://github.com/kael-odin/cafe-ai',
       'X-Title': 'Cafe'
     }
   }

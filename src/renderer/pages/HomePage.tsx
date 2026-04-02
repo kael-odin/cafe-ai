@@ -253,6 +253,7 @@ export function HomePage() {
             <div className="flex flex-col gap-3 text-xs text-muted-foreground md:items-end">
               <div className="hero-logo-float self-start md:self-auto">
                 <CafeLogo size={112} />
+                <span className="sakura-petal sakura-petal-sm sakura-float-a hero-logo-front-petal" />
               </div>
               <div className="flex items-center gap-3">
               <div className="pill-stat rounded-2xl px-4 py-3 min-w-[120px]">

@@ -51,15 +51,15 @@ function persistLayout(update: Partial<LayoutConfig>) {
   )
 }
 
-export function SpacePage() {
+export function SpacePage(): JSX.Element {
   const { t } = useTranslation()
-  const [showArtifactRail, setShowArtifactRail] = useState(false)
 
   // Precise selectors — only subscribe to what SpacePage needs for layout orchestration
   const setView = useAppStore(state => state.setView)
   const mockBashMode = useAppStore(state => state.mockBashMode)
   const gitBashInstallProgress = useAppStore(state => state.gitBashInstallProgress)
   const startGitBashInstall = useAppStore(state => state.startGitBashInstall)
+  const appIsLoading = useAppStore(state => state.isLoading)
   const sidebarOpenConfig = useAppStore(state => state.config?.layout?.sidebarOpen)
   const artifactRailWidthConfig = useAppStore(state => state.config?.layout?.artifactRailWidth)
 
@@ -229,17 +229,6 @@ export function SpacePage() {
     initSpace()
   }, [currentSpace?.id]) // Only re-run when space ID changes
 
-  useEffect(() => {
-    if (!currentSpace) return
-    if (!currentSpace.isTemp) {
-      setShowArtifactRail(true)
-      return
-    }
-    setShowArtifactRail(false)
-    const timer = setTimeout(() => setShowArtifactRail(true), 420)
-    return () => clearTimeout(timer)
-  }, [currentSpace?.id, currentSpace?.isTemp])
-
   // Toggle conversation list sidebar with global persistence
   const handleToggleConversationList = useCallback(() => {
     const newValue = !showConversationList
@@ -394,7 +383,7 @@ export function SpacePage() {
       )}
 
       {/* Git Bash Warning Banner - Windows only, when in mock mode */}
-      {mockBashMode && !isCanvasMaximized && (
+      {mockBashMode && !appIsLoading && !isCanvasMaximized && (
         <GitBashWarningBanner
           installProgress={gitBashInstallProgress}
           onInstall={startGitBashInstall}
@@ -481,7 +470,7 @@ export function SpacePage() {
 
         {/* Artifact rail - auto-collapses when maximized via useEffect above */}
         {/* Smart collapse: collapses when canvas is open, respects user preference */}
-        {!isMobile && showArtifactRail && (
+        {!isMobile && (
           <ArtifactRail
             externalExpanded={effectiveRailExpanded}
             onExpandedChange={setRailExpanded}
@@ -492,13 +481,19 @@ export function SpacePage() {
       </div>
 
       {/* Mobile Canvas Overlay */}
-      {isMobile && isCanvasOpen && (
+        {isMobile && isCanvasOpen && (
           <div className="fixed inset-0 z-50 flex flex-col bg-background animate-slide-in-right-full">
             {/* Mobile Canvas Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/70 bg-card/80 backdrop-blur-sm">
+          <div
+            className="flex items-center justify-between px-3 py-2 border-b border-border/70 bg-card/80 backdrop-blur-sm"
+            style={{
+              paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
+              paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
+            }}
+          >
             <button
               onClick={() => setCanvasOpen(false)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-colors surface-subtle"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-colors surface-subtle"
             >
               <MessageSquare className="w-4 h-4" />
               <span>{t('Return to conversation')}</span>

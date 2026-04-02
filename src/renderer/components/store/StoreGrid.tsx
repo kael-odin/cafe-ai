@@ -8,10 +8,11 @@
 
 import { useAppsPageStore } from '../../stores/apps-page.store'
 import { StoreCard } from './StoreCard'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
-import { Package, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
-export function StoreGrid() {
+export function StoreGrid(): JSX.Element {
   const { t } = useTranslation()
   const storeApps = useAppsPageStore(state => state.storeApps)
   const storeHasMore = useAppsPageStore(state => state.storeHasMore)
@@ -22,9 +23,7 @@ export function StoreGrid() {
   if (storeApps.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center">
-        <div className="w-16 h-16 rounded-[1.5rem] panel-glass flex items-center justify-center">
-          <Package className="w-7 h-7 text-primary" />
-        </div>
+        <CafeLogo size={72} />
         <div>
           <p className="text-lg font-semibold text-foreground">
             {t('No apps found')}
@@ -33,6 +32,11 @@ export function StoreGrid() {
             {t('Try adjusting your search or filters')}
           </p>
           <p className="text-xs text-muted-foreground/80 mt-2">{t('没有找到合适的应用时，可以先切换分类，或用中英文关键词尝试搜索')}</p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
+          <span className="pill-stat rounded-full px-3 py-1.5">{t('Search')}</span>
+          <span className="pill-stat rounded-full px-3 py-1.5">{t('Filter')}</span>
+          <span className="pill-stat rounded-full px-3 py-1.5">{t('Explore')}</span>
         </div>
       </div>
     )
@@ -45,16 +49,16 @@ export function StoreGrid() {
           <StoreCard
             key={entry.slug}
             entry={entry}
-            onClick={() => selectStoreApp(entry.slug)}
+            onClick={() => { void selectStoreApp(entry.slug) }}
           />
         ))}
       </div>
       {storeHasMore && (
         <div className="flex justify-center pb-6">
           <button
-            onClick={loadMoreStoreApps}
+            onClick={() => { void loadMoreStoreApps() }}
             disabled={storeLoading}
-            className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 panel-glass"
+            className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 panel-glass surface-subtle"
           >
             {storeLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

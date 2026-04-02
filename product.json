@@ -1,11 +1,11 @@
 {
   "$schema": "./product.schema.json",
   "name": "Cafe",
-  "version": "2.0.10",
+  "version": "2.1.0",
   "updateConfig": {
     "provider": "github",
     "owner": "kael-odin",
-    "repo": "cafe"
+    "repo": "cafe-ai"
   },
   "authProviders": [
     {

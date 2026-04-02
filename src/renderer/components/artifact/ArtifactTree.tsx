@@ -55,6 +55,7 @@ function isDimmed(name: string): boolean {
 
 interface ArtifactTreeProps {
   spaceId: string
+  onReady?: () => void
 }
 
 // Fixed offsets for tree height calculation (in pixels)
@@ -152,7 +153,7 @@ function mergeChildren(
 // ArtifactTree component
 // ============================================
 
-export function ArtifactTree({ spaceId }: ArtifactTreeProps) {
+export function ArtifactTree({ spaceId, onReady }: ArtifactTreeProps): JSX.Element | null {
   const { t } = useTranslation()
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set())
   const treeHeight = useTreeHeight()
@@ -563,8 +564,14 @@ export function ArtifactTree({ spaceId }: ArtifactTreeProps) {
 
   // Load on mount and when space changes
   useEffect(() => {
-    loadTree()
+    void loadTree()
   }, [loadTree])
+
+  useEffect(() => {
+    if (hasLoaded) {
+      onReady?.()
+    }
+  }, [hasLoaded, onReady])
 
   // Cleanup all pending timeouts on unmount
   useEffect(() => {

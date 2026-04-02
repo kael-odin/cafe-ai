@@ -9,8 +9,8 @@
  * - ~8x faster first-paint on large documents
  */
 
-import { memo } from 'react'
-import { Streamdown } from 'streamdown'
+import { memo, useMemo } from 'react'
+import { Streamdown, type Components } from 'streamdown'
 import 'streamdown/styles.css'
 import { useCodePlugin } from '../../lib/streamdown-plugins'
 
@@ -21,8 +21,10 @@ interface MarkdownRendererProps {
   mode?: 'streaming' | 'static'
 }
 
+const STREAMDOWN_CONTROLS = { code: true } as const
+
 // Custom components for markdown elements
-const components = {
+const components: Components = {
 
   // Paragraphs
   p: ({ children }: { children?: React.ReactNode }) => (
@@ -118,8 +120,16 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
   className = '',
   mode = 'static',
-}: MarkdownRendererProps) {
-  const codePlugin = useCodePlugin()
+}: MarkdownRendererProps): JSX.Element | null {
+  const needsCodeHighlight = useMemo(
+    () => content.includes('```') || content.includes('<code'),
+    [content]
+  )
+  const codePlugin = useCodePlugin(needsCodeHighlight)
+  const plugins = useMemo(
+    () => (codePlugin ? { code: codePlugin } : undefined),
+    [codePlugin]
+  )
 
   if (!content) return null
 
@@ -127,12 +137,16 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     <div className={`markdown-content overflow-x-auto ${className}`}>
       <Streamdown
         mode={mode}
-        components={components as any}
-        controls={{ code: true }}
-        plugins={codePlugin ? { code: codePlugin } : undefined}
+        components={components}
+        controls={STREAMDOWN_CONTROLS}
+        plugins={plugins}
       >
         {content}
       </Streamdown>
     </div>
   )
-})
+}, (prevProps, nextProps) => (
+  prevProps.content === nextProps.content
+  && prevProps.className === nextProps.className
+  && prevProps.mode === nextProps.mode
+))

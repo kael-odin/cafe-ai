@@ -113,6 +113,7 @@ export function ArtifactRail({
   const [isLoading, setIsLoading] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [canRenderContent, setCanRenderContent] = useState(false)
+  const [shellReady, setShellReady] = useState(false)
   const [width, setWidth] = useState(initialWidth != null ? clampWidth(initialWidth) : DEFAULT_WIDTH)
   const widthRef = useRef(width)
   const [isDragging, setIsDragging] = useState(false)
@@ -307,8 +308,15 @@ export function ArtifactRail({
     } finally {
       setIsLoading(false)
       setHasLoadedOnce(true)
+      if (viewMode === 'card') {
+        setShellReady(true)
+      }
     }
-  }, [spaceId])
+  }, [spaceId, viewMode])
+
+  const handleTreeReady = useCallback(() => {
+    setShellReady(true)
+  }, [])
 
   // Load artifacts on mount and when space changes
   useEffect(() => {
@@ -316,16 +324,16 @@ export function ArtifactRail({
     void loadArtifacts()
   }, [canRenderContent, loadArtifacts])
 
-  // Delay first content mount slightly to avoid a flash of the rail loading box
+  // Mount content immediately. ArtifactTree already suppresses its own first-load
+  // placeholder, so adding another delayed mount here only creates a visible shell
+  // flash before the tree/card content is ready.
   useEffect(() => {
-    if (!currentSpace?.isTemp) {
-      setCanRenderContent(true)
-      return
-    }
-    setCanRenderContent(false)
-    const timer = setTimeout(() => setCanRenderContent(true), 420)
-    return () => clearTimeout(timer)
+    setCanRenderContent(true)
   }, [spaceId, currentSpace?.isTemp])
+
+  useEffect(() => {
+    setShellReady(!isTemp)
+  }, [isTemp, spaceId])
 
   // Refresh artifacts when generation completes (debounced)
   useEffect(() => {
@@ -411,7 +419,7 @@ export function ArtifactRail({
         {!canRenderContent ? (
           <div className="h-full" />
         ) : viewMode === 'tree' ? (
-          <ArtifactTree spaceId={spaceId} />
+          <ArtifactTree spaceId={spaceId} onReady={handleTreeReady} />
         ) : (
           <div className="h-full overflow-auto p-2">
           {!hasLoadedOnce && isLoading ? (
@@ -593,11 +601,15 @@ export function ArtifactRail({
   return (
     <div
       ref={railRef}
-      className="h-full flex-shrink-0 border-l border-border/70 panel-glass section-frame flex flex-col relative overflow-hidden"
+      className="h-full flex-shrink-0 border-l border-border/70 panel-glass section-frame flex flex-col relative overflow-hidden transition-opacity duration-150"
       style={{
-        width: displayWidth,
+        width: isTemp && !shellReady ? 0 : displayWidth,
+        opacity: isTemp && !shellReady ? 0 : 1,
+        pointerEvents: isTemp && !shellReady ? 'none' : 'auto',
         // Disable transition when: dragging OR Canvas is open (prevent layout flicker)
-        transition: (isDragging || isCanvasOpen) ? 'none' : 'width 0.2s ease'
+        transition: (isDragging || isCanvasOpen)
+          ? 'opacity 0.15s ease'
+          : 'width 0.2s ease, opacity 0.15s ease'
       }}
     >
       {/* Drag handle - only show when expanded */}

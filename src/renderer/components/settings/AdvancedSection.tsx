@@ -3,25 +3,31 @@
  * Developer-level settings: prompt profile, max turns
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
 import type { CafeConfig } from '../../types'
 import { CLIConfigSection } from './CLIConfigSection'
+import { CafeLogo } from '../brand/CafeLogo'
 
 interface AdvancedSectionProps {
   config: CafeConfig | null
   setConfig: (config: CafeConfig) => void
 }
 
-export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
+export function AdvancedSection({ config, setConfig }: AdvancedSectionProps): JSX.Element {
   const { t } = useTranslation()
 
   const [maxTurns, setMaxTurnsState] = useState(config?.agent?.maxTurns ?? 50)
   const [promptProfile, setPromptProfileState] = useState<'official' | 'Cafe'>(
     config?.agent?.promptProfile ?? 'Cafe'
   )
+
+  useEffect(() => {
+    setMaxTurnsState(config?.agent?.maxTurns ?? 50)
+    setPromptProfileState(config?.agent?.promptProfile ?? 'Cafe')
+  }, [config?.agent?.maxTurns, config?.agent?.promptProfile])
 
   const handleMaxTurnsChange = async (value: number) => {
     const clamped = Math.max(10, Math.min(9999, value))
@@ -55,12 +61,18 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
   }
 
   return (
-    <section id="advanced" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+    <section id="advanced" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-a right-6 top-5" />
-      <h2 className="text-lg font-medium mb-4">{t('Advanced')}</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('Advanced')}</h2>
+          <p className="text-sm text-muted-foreground">{t('Control deeper agent behavior, prompt strategy, and CLI integration settings.')}</p>
+        </div>
+      </div>
 
       {/* Warning banner */}
-      <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-5 text-sm text-amber-600 dark:text-amber-400">
+      <div className="flex items-start gap-2 info-banner-soft bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-5 text-sm text-amber-600 dark:text-amber-400">
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
         <span>{t('Changes here affect all AI agent behavior. New settings take effect on the next conversation.')}</span>
       </div>
@@ -83,7 +95,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
                 name="promptProfile"
                 value="official"
                 checked={promptProfile === 'official'}
-                onChange={() => handlePromptProfileChange('official')}
+                onChange={() => { void handlePromptProfileChange('official') }}
                 className="mt-0.5 accent-primary"
               />
               <div>
@@ -99,7 +111,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
                 name="promptProfile"
                 value="Cafe"
                 checked={promptProfile === 'Cafe'}
-                onChange={() => handlePromptProfileChange('Cafe')}
+                onChange={() => { void handlePromptProfileChange('Cafe') }}
                 className="mt-0.5 accent-primary"
               />
               <div>
@@ -140,7 +152,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
             onBlur={(e) => {
               const val = parseInt(e.target.value, 10)
               if (!isNaN(val)) {
-                handleMaxTurnsChange(val)
+                void handleMaxTurnsChange(val)
               }
             }}
             className="form-input-soft w-24 px-3 py-1.5 text-sm text-right"

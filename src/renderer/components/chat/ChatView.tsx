@@ -336,6 +336,7 @@ export function ChatView({ isCompact = false }: ChatViewProps): JSX.Element {
   const displayIsThinking = isMockThinking || isThinking
   const displayIsStreaming = isStreaming  // Only real streaming (not mock)
   const hasMessages = displayMessages.length > 0 || displayStreamingContent || displayIsThinking
+  const showCafeInstantEmptyState = Boolean(currentSpace?.isTemp) && !currentConversation && !hasMessages
 
   const prevCompactRef = useRef(isCompact)
 
@@ -368,7 +369,7 @@ export function ChatView({ isCompact = false }: ChatViewProps): JSX.Element {
             ${isCompact ? 'px-3' : 'px-4'}
           `}
         >
-          {isLoadingConversation ? (
+          {isLoadingConversation && !showCafeInstantEmptyState ? (
             <LoadingState />
           ) : !hasMessages ? (
             <EmptyState isTemp={currentSpace?.isTemp ?? false} isCompact={isCompact} />

@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n'
 import { api } from '../../api'
 
 /** GitHub repository URL */
-const GITHUB_URL = 'https://github.com/kael-odin/cafe'
+const GITHUB_URL = 'https://github.com/kael-odin/cafe-ai'
 
 /** Share text templates */
 const SHARE_TEXT_EN = 'Cafe - An open-source AI assistant with browser automation. Create AI digital humans to automate tasks.'
@@ -25,7 +25,7 @@ const PLATFORM_INFO: Record<Exclude<SharePlatform, null>, { nameKey: string; col
   bilibili: { nameKey: 'Bilibili', color: '#00a1d6' }
 }
 
-export function RecommendSection() {
+export function RecommendSection(): JSX.Element {
   const { t, i18n } = useTranslation()
 
   // Copy state for main button
@@ -37,7 +37,7 @@ export function RecommendSection() {
 
   // Get localized share text
   const getShareText = useCallback(() => {
-    const isZh = i18n.language?.startsWith('zh')
+    const isZh = i18n.language.startsWith('zh')
     return isZh ? SHARE_TEXT_ZH : SHARE_TEXT_EN
   }, [i18n.language])
 
@@ -126,7 +126,7 @@ export function RecommendSection() {
         <div className="flex flex-wrap gap-3 mb-4">
           {/* Star on GitHub */}
           <button
-            onClick={handleStarGitHub}
+            onClick={() => { void handleStarGitHub() }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#24292f] hover:bg-[#32383f] text-white rounded-xl text-sm font-medium transition-colors"
           >
             <Star className="w-4 h-4" />
@@ -135,8 +135,8 @@ export function RecommendSection() {
 
           {/* Copy Link */}
           <button
-            onClick={handleCopyLink}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-xl text-sm font-medium transition-colors"
+            onClick={() => { void handleCopyLink() }}
+            className="inline-flex items-center gap-2 px-4 py-2 surface-subtle hover:bg-secondary rounded-xl text-sm font-medium transition-colors"
           >
             {copied ? (
               <>
@@ -189,7 +189,7 @@ export function RecommendSection() {
 
           {/* Weibo */}
           <button
-            onClick={handleWeiboShare}
+            onClick={() => { void handleWeiboShare() }}
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#e6162d] hover:bg-[#cc1428] transition-colors"
             title={t('Weibo')}
           >
@@ -200,7 +200,7 @@ export function RecommendSection() {
 
           {/* Twitter/X */}
           <button
-            onClick={handleTwitterShare}
+            onClick={() => { void handleTwitterShare() }}
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-black hover:bg-neutral-800 transition-colors"
             title="X (Twitter)"
           >
@@ -268,7 +268,7 @@ export function RecommendSection() {
 
               {/* Copy Button */}
               <button
-                onClick={handleModalCopy}
+                onClick={() => { void handleModalCopy() }}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-colors"
               >
                 {modalCopied ? (

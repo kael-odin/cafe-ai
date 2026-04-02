@@ -38,7 +38,8 @@ export function StreamingBubble({
   isStreaming,
   thoughts,
   textBlockVersion = 0
-}: StreamingBubbleProps) {
+}: StreamingBubbleProps): JSX.Element | null {
+  const lastMeasuredContentRef = useRef('')
   // DOM refs for measuring heights
   const historyRef = useRef<HTMLDivElement>(null)  // Contains all past segments
   const currentRef = useRef<HTMLDivElement>(null)  // Contains current (new) content
@@ -62,7 +63,6 @@ export function StreamingBubble({
    */
   useEffect(() => {
     if (textBlockVersion !== prevTextBlockVersionRef.current) {
-      console.log(`[StreamingBubble] 🆕 New text block detected: version ${prevTextBlockVersionRef.current} → ${textBlockVersion}`)
       // Reset all state for new text block
       setActiveSnapshotLen(0)
       setSegments([])
@@ -82,7 +82,7 @@ export function StreamingBubble({
     const currLen = thoughts.length
 
     if (currLen > prevLen) {
-      const newThought = thoughts[currLen - 1]
+      const newThought = thoughts.at(-1)
       // On tool_use, mark current content as pending (will be saved when new content arrives)
       if (newThought?.type === 'tool_use' && content && content.length > activeSnapshotLen) {
         pendingSnapshotRef.current = content
@@ -129,7 +129,6 @@ export function StreamingBubble({
   useEffect(() => {
     if (!content && thoughts.length === 0) {
       // Full reset for new conversation
-      console.log(`[StreamingBubble] 🔄 Full reset (new conversation)`)
       setSegments([])
       setScrollOffset(0)
       setCurrentHeight(0)
@@ -146,18 +145,20 @@ export function StreamingBubble({
    */
   const heightMeasureRef = useRef<number>(0)
   useEffect(() => {
-    if (currentRef.current) {
-      // Throttle: only measure every 100ms
-      const now = Date.now()
-      if (now - heightMeasureRef.current < 100) return
-      heightMeasureRef.current = now
+    if (!currentRef.current || lastMeasuredContentRef.current === content) return
 
-      requestAnimationFrame(() => {
-        if (currentRef.current) {
-          setCurrentHeight(currentRef.current.scrollHeight)
-        }
-      })
-    }
+    // Throttle layout reads during token streaming to reduce text-selection jank.
+    const now = Date.now()
+    if (now - heightMeasureRef.current < 160) return
+    heightMeasureRef.current = now
+    lastMeasuredContentRef.current = content
+
+    requestAnimationFrame(() => {
+      if (currentRef.current) {
+        const nextHeight = currentRef.current.scrollHeight
+        setCurrentHeight(prev => (prev === nextHeight ? prev : nextHeight))
+      }
+    })
   }, [content, segments.length])
 
   /**
@@ -170,7 +171,8 @@ export function StreamingBubble({
       // Wait for DOM to update
       requestAnimationFrame(() => {
         if (historyRef.current) {
-          setScrollOffset(historyRef.current.scrollHeight)
+          const nextOffset = historyRef.current.scrollHeight
+          setScrollOffset(prev => (prev === nextOffset ? prev : nextOffset))
         }
       })
     }

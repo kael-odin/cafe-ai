@@ -185,10 +185,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log('[Store] Deferred Git Bash status response:', gitBashStatus)
       if (gitBashStatus.success && gitBashStatus.data) {
         const { found, mockMode } = gitBashStatus.data
-
-        if (mockMode) {
-          set({ mockBashMode: true })
-        }
+        set({ mockBashMode: !!mockMode })
 
         // Git Bash genuinely not available — redirect to setup
         if (!found && !mockMode) {
@@ -224,11 +221,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('[Store] Git Bash status response:', gitBashStatus)
           if (gitBashStatus.success && gitBashStatus.data) {
             const { found, source, mockMode } = gitBashStatus.data
+            set({ mockBashMode: !!mockMode })
 
-            // Track mock mode for showing warning banner later
             if (mockMode) {
               console.log('[Store] Git Bash in mock mode, will show warning banner')
-              set({ mockBashMode: true })
             }
 
             // If Git Bash not found and not previously configured, show setup

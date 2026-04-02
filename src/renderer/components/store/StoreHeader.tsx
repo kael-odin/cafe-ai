@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
 import { useAppsPageStore } from '../../stores/apps-page.store'
 import { STORE_CATEGORY_META } from '../../../shared/store/store-types'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 import type { AppType } from '../../../shared/apps/spec-types'
 
@@ -19,7 +20,7 @@ const TYPE_FILTERS: Array<{ id: AppType | null; labelKey: string }> = [
   { id: 'mcp', labelKey: 'MCP' },
 ]
 
-export function StoreHeader() {
+export function StoreHeader(): JSX.Element {
   const { t } = useTranslation()
   const storeSearchQuery = useAppsPageStore(state => state.storeSearchQuery)
   const storeCategory = useAppsPageStore(state => state.storeCategory)
@@ -42,7 +43,7 @@ export function StoreHeader() {
     }
     debounceRef.current = setTimeout(() => {
       const state = useAppsPageStore.getState()
-      loadStoreApps({ search: value || undefined, category: state.storeCategory ?? undefined, type: state.storeTypeFilter ?? undefined })
+      void loadStoreApps({ search: value || undefined, category: state.storeCategory ?? undefined, type: state.storeTypeFilter ?? undefined })
     }, 300)
   }, [setStoreSearch, loadStoreApps])
 
@@ -59,7 +60,7 @@ export function StoreHeader() {
   const handleTypeFilterClick = useCallback((typeId: string | null) => {
     setStoreTypeFilter(typeId)
     const state = useAppsPageStore.getState()
-    loadStoreApps({
+    void loadStoreApps({
       search: state.storeSearchQuery || undefined,
       category: state.storeCategory ?? undefined,
       type: typeId ?? undefined,
@@ -70,7 +71,7 @@ export function StoreHeader() {
   const handleCategoryClick = useCallback((categoryId: string | null) => {
     setStoreCategory(categoryId)
     const state = useAppsPageStore.getState()
-    loadStoreApps({
+    void loadStoreApps({
       search: state.storeSearchQuery || undefined,
       category: categoryId ?? undefined,
       type: state.storeTypeFilter ?? undefined,
@@ -80,16 +81,25 @@ export function StoreHeader() {
   return (
     <div className="flex flex-col gap-3 px-4 py-4 border-b border-border/70 flex-shrink-0 bg-background/20 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-4" />
-      <div>
-        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Discover')}</div>
-        <div className="mt-1 flex items-end justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <CafeLogo size={30} animated={false} />
           <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Discover')}</div>
             <h3 className="text-base font-semibold text-foreground">{t('App Store')}</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {t('适合中文与英文工作流的应用市场 / Browse apps for your workflow')}
             </p>
           </div>
         </div>
+        <button
+          onClick={() => { void refreshStore() }}
+          disabled={storeLoading}
+          className="p-2.5 text-muted-foreground hover:text-foreground surface-subtle rounded-xl transition-colors disabled:opacity-50"
+          title={t('Refresh')}
+        >
+          <RefreshCw className={`w-4 h-4 ${storeLoading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Search + Refresh row */}
@@ -101,17 +111,9 @@ export function StoreHeader() {
             value={storeSearchQuery}
             onChange={e => handleSearchChange(e.target.value)}
             placeholder={t('Search apps...')}
-            className="w-full pl-9 pr-3 py-2.5 text-sm bg-secondary/80 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50"
+            className="form-input-soft w-full pl-9 pr-3 py-2.5 text-sm placeholder:text-muted-foreground/50"
           />
         </div>
-        <button
-          onClick={refreshStore}
-          disabled={storeLoading}
-          className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors disabled:opacity-50"
-          title={t('Refresh')}
-        >
-          <RefreshCw className={`w-4 h-4 ${storeLoading ? 'animate-spin' : ''}`} />
-        </button>
       </div>
 
       {/* Type filter tabs */}
@@ -122,8 +124,8 @@ export function StoreHeader() {
             onClick={() => handleTypeFilterClick(tf.id)}
             className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-xl transition-colors ${
               storeTypeFilter === tf.id
-                ? 'btn-primary text-primary-foreground font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                ? 'toolbar-chip toolbar-chip-active font-medium'
+                : 'toolbar-chip text-muted-foreground hover:text-foreground'
             }`}
           >
             {t(tf.labelKey)}
@@ -137,8 +139,8 @@ export function StoreHeader() {
           onClick={() => handleCategoryClick(null)}
             className={`flex-shrink-0 px-2.5 py-1.5 text-xs rounded-xl transition-colors ${
               storeCategory === null
-                ? 'panel-glass text-foreground font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
+                : 'toolbar-chip text-muted-foreground hover:text-foreground'
             }`}
         >
           {t('All')}
@@ -149,8 +151,8 @@ export function StoreHeader() {
             onClick={() => handleCategoryClick(cat.id)}
             className={`flex-shrink-0 px-2.5 py-1.5 text-xs rounded-xl transition-colors ${
               storeCategory === cat.id
-                ? 'panel-glass text-foreground font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
+                : 'toolbar-chip text-muted-foreground hover:text-foreground'
             }`}
           >
             {cat.icon} {t(cat.labelKey)}

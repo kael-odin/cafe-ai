@@ -1,6 +1,6 @@
 {
   "name": "cafe",
-  "version": "2.0.10",
+  "version": "2.1.0",
   "description": "AI that gets things done",
   "type": "module",
   "main": "./out/main/index.mjs",
@@ -135,6 +135,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.1",
+    "@ladybugdb/core": "^0.15.3",
     "@playwright/test": "^1.57.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.5",
@@ -148,6 +149,7 @@
     "@typescript-eslint/parser": "^8.57.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
+    "baseline-browser-mapping": "^2.10.13",
     "cross-env": "^10.1.0",
     "dotenv": "^17.2.4",
     "electron": "~29.4.6",
@@ -157,6 +159,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "gitnexus": "^1.5.3",
     "i18next-parser": "^9.3.0",
     "patch-package": "^8.0.1",
     "playwright": "^1.57.0",
@@ -196,7 +199,7 @@
     "publish": {
       "provider": "github",
       "owner": "kael-odin",
-      "repo": "cafe",
+      "repo": "cafe-ai",
       "releaseType": "release"
     },
     "mac": {

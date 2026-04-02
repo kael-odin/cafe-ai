@@ -21,11 +21,11 @@ import {
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
 import { useAppsStore } from '../../stores/apps.store'
+import { CafeLogo } from '../brand/CafeLogo'
 import type { CafeConfig } from '../../types'
 import { NOTIFICATION_CHANNEL_META } from '../../../shared/types/notification-channels'
 import type {
   NotificationChannelType,
-  NotificationChannelsConfig,
 } from '../../../shared/types/notification-channels'
 
 // ============================================
@@ -242,9 +242,9 @@ function ChannelField({ field, value, onChange }: ChannelFieldProps) {
       <div className="space-y-1">
         <label className="text-sm text-muted-foreground">{t(field.label)}</label>
         <select
-          value={(value as string) || field.options?.[0]?.value || ''}
+          value={(value as string | undefined) ?? field.options?.[0]?.value ?? ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          className="form-input-soft w-full px-3 py-2 text-sm"
         >
           {field.options?.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -298,7 +298,7 @@ function ChannelField({ field, value, onChange }: ChannelFieldProps) {
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
         placeholder={field.placeholder ? t(field.placeholder) : undefined}
-        className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+        className="form-input-soft w-full px-3 py-2 text-sm"
       />
     </div>
   )
@@ -339,7 +339,7 @@ function ChannelCard({
 }: ChannelCardProps) {
   const { t } = useTranslation()
   const Icon = def.icon
-  const isEnabled = Boolean(channelConfig?.enabled)
+  const isEnabled = Boolean(channelConfig.enabled)
 
   // Local draft state for debounced saves
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
@@ -350,7 +350,7 @@ function ChannelCard({
     setDraft(updated)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
-      onSave(def, updated)
+      void onSave(def, updated)
       setDraft(null)
       saveTimerRef.current = null
     }, 500)
@@ -364,14 +364,14 @@ function ChannelCard({
   }
 
   const handleFieldChange = (fieldKey: string, value: unknown, nested?: string) => {
-    const path = nested || fieldKey
+    const path = nested ?? fieldKey
     const updated = setNestedValue({ ...currentConfig }, path, value)
     scheduleSave(updated)
   }
 
   const getFieldValue = (field: FieldDef): unknown => {
-    const path = field.nested || field.key
-    return getNestedValue(currentConfig || {}, path)
+    const path = field.nested ?? field.key
+    return getNestedValue(currentConfig, path)
   }
 
   // Status display
@@ -384,7 +384,7 @@ function ChannelCard({
     : (isEnabled ? 'bg-green-500' : 'bg-muted-foreground/30')
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="subsection-soft-panel rounded-[1rem] overflow-hidden">
       {/* Card Header */}
       <button
         type="button"
@@ -429,7 +429,7 @@ function ChannelCard({
               <input
                 type="checkbox"
                 checked={isEnabled}
-                onChange={handleToggleEnabled}
+                onChange={() => { void handleToggleEnabled() }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
@@ -463,9 +463,9 @@ function ChannelCard({
             {onTest && def.notifyType && (
               <button
                 type="button"
-                onClick={() => onTest(def.notifyType!)}
-                disabled={isTesting || !isEnabled}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => { void onTest(def.notifyType) }}
+                disabled={(isTesting ?? false) || !isEnabled}
+                className="flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTesting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -480,8 +480,8 @@ function ChannelCard({
             {def.id === 'wecom-bot' && isEnabled && onReconnect && (
               <button
                 type="button"
-                onClick={onReconnect}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors"
+                onClick={() => { void onReconnect() }}
+                className="flex items-center gap-2 px-3 py-2 text-sm surface-subtle text-primary rounded-xl transition-colors hover:bg-secondary"
               >
                 <RefreshCw className="w-4 h-4" />
                 {t('Reconnect')}
@@ -499,7 +499,7 @@ function ChannelCard({
                 <span>
                   {testResult.success
                     ? t('Test passed')
-                    : testResult.error || t('Test failed')}
+                    : testResult.error ?? t('Test failed')}
                 </span>
               </div>
             )}
@@ -522,7 +522,7 @@ function ChannelCard({
 // Main Component
 // ============================================
 
-export function MessageChannelsSection({ config, setConfig }: MessageChannelsSectionProps) {
+export function MessageChannelsSection({ config, setConfig }: MessageChannelsSectionProps): JSX.Element {
   const { t } = useTranslation()
 
   const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set())
@@ -535,7 +535,7 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
   const automationApps = apps.filter(a => a.spec.type === 'automation')
 
   useEffect(() => {
-    loadApps()
+    void loadApps()
   }, [loadApps])
 
   // Poll WeCom Bot status
@@ -551,8 +551,8 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
         // Ignore
       }
     }
-    fetchBotStatus()
-    const interval = setInterval(fetchBotStatus, 10_000)
+    void fetchBotStatus()
+    const interval = setInterval(() => { void fetchBotStatus() }, 10_000)
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
@@ -644,22 +644,25 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
       return bot ?? {}
     }
     if (def.notifyType) {
-      const channels = config?.notificationChannels as NotificationChannelsConfig | undefined
+      const channels = config?.notificationChannels
       if (!channels) return {}
       const raw = channels[def.notifyType]
-      return raw ? (raw as unknown as Record<string, unknown>) : {}
+      return raw ? (raw as Record<string, unknown>) : {}
     }
     return {}
   }
 
   return (
-    <section id="message-channels" className="panel-glass rounded-[1.5rem] p-4 sm:p-6 relative overflow-hidden">
+      <section id="message-channels" className="panel-glass section-frame rounded-[1.5rem] p-4 sm:p-6 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
-      <div className="mb-4">
-        <h2 className="text-lg font-medium">{t('Message Channels')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('Message Channels')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
           {t('Configure channels for sending and receiving messages with digital humans')}
-        </p>
+          </p>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -671,11 +674,11 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
             isExpanded={expandedChannels.has(def.id)}
             onToggleExpand={() => toggleExpanded(def.id)}
             onSave={handleSaveChannel}
-            onTest={def.notifyType ? handleTestChannel : undefined}
+            onTest={def.notifyType ? (channelType) => { void handleTestChannel(channelType) } : undefined}
             isTesting={testingChannel === def.notifyType}
             testResult={def.notifyType ? testResults[def.notifyType] : undefined}
             botStatus={def.id === 'wecom-bot' ? botStatus : undefined}
-            onReconnect={def.id === 'wecom-bot' ? handleReconnect : undefined}
+            onReconnect={def.id === 'wecom-bot' ? () => { void handleReconnect() } : undefined}
           >
             {/* Default Digital Human selector — WeCom Bot only */}
             {def.id === 'wecom-bot' && (
@@ -686,9 +689,9 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
                 <div className="relative">
                   <Bot className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   <select
-                    value={config?.imChannels?.defaultAppId || ''}
-                    onChange={(e) => handleDefaultAppChange(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
+                    value={config?.imChannels?.defaultAppId ?? ''}
+                    onChange={(e) => { void handleDefaultAppChange(e.target.value) }}
+                    className="form-input-soft w-full pl-9 pr-3 py-2 text-sm appearance-none cursor-pointer"
                   >
                     <option value="">{t('Not configured')}</option>
                     {automationApps.map(app => (

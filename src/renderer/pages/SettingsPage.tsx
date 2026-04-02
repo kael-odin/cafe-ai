@@ -95,10 +95,7 @@ export function SettingsPage(): JSX.Element {
           <div className="p-6 md:p-8">
             <div className="max-w-2xl mx-auto space-y-6">
               {/* AI Sources Section (v2) */}
-              <section id="ai-model" className="panel-glass rounded-[1.5rem] p-6">
-                <h2 className="text-lg font-medium mb-4">{t('AI Model')}</h2>
-                <AISourcesSection config={config as CafeConfig} setConfig={setConfig} />
-              </section>
+              <AISourcesSection config={config as CafeConfig} setConfig={setConfig} />
 
               {/* Message Channels Section */}
               <MessageChannelsSection config={config} setConfig={setConfig} />

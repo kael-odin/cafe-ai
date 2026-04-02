@@ -21,15 +21,15 @@ interface AskUserQuestionCardProps {
   onAnswer: (answers: Record<string, string>) => void
 }
 
-export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuestionCardProps) {
+export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuestionCardProps): JSX.Element | null {
   const { questions, status } = pendingQuestion
 
   // Per-question selections (before submit)
-  const [selections, setSelections] = useState<Record<string, string | string[]>>({})
+  const [selections, setSelections] = useState<Partial<Record<string, string | string[]>>>({})
   // "Other" expanded state per question
-  const [otherExpanded, setOtherExpanded] = useState<Record<string, boolean>>({})
+  const [otherExpanded, setOtherExpanded] = useState<Partial<Record<string, boolean>>>({})
   // "Other" text per question
-  const [otherTexts, setOtherTexts] = useState<Record<string, string>>({})
+  const [otherTexts, setOtherTexts] = useState<Partial<Record<string, string>>>({})
   // Ref for auto-focus on "other" input
   const otherInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
@@ -38,7 +38,7 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
     const key = String(idx)
     const sel = selections[key]
     if (otherExpanded[key]) {
-      return (otherTexts[key] || '').trim().length > 0
+      return (otherTexts[key] ?? '').trim().length > 0
     }
     if (Array.isArray(sel)) {
       return sel.length > 0
@@ -52,13 +52,13 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
     questions.forEach((_, idx) => {
       const key = String(idx)
       if (otherExpanded[key]) {
-        result[key] = otherTexts[key]?.trim() || ''
+        result[key] = (otherTexts[key] ?? '').trim()
       } else {
         const sel = selections[key]
         if (Array.isArray(sel)) {
           result[key] = sel.join(', ')
         } else {
-          result[key] = sel as string || ''
+          result[key] = typeof sel === 'string' ? sel : ''
         }
       }
     })
@@ -78,7 +78,7 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
     if (status !== 'active') return
     const key = String(questionIdx)
     setSelections(prev => {
-      const current = (prev[key] as string[]) || []
+      const current = Array.isArray(prev[key]) ? prev[key] : []
       const next = current.includes(label)
         ? current.filter(l => l !== label)
         : [...current, label]
@@ -134,8 +134,8 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
       ref={cardRef}
       className={`
         ask-question-card mt-3 rounded-xl border overflow-hidden
-        transition-all duration-300
-        ${isCancelled ? 'border-border/50 bg-card/30 opacity-50' : 'border-primary/40 bg-gradient-to-br from-primary/5 via-background to-primary/3 animate-fade-in'}
+        transition-[border-color,background-color,opacity] duration-200 message-scroll-shell
+        ${isCancelled ? 'border-border/50 bg-card/30 opacity-50' : 'border-primary/40 bg-gradient-to-br from-primary/5 via-background to-primary/3'}
       `}
     >
       {/* Header */}
@@ -174,7 +174,7 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
               <div className="space-y-1.5">
                 {q.options.map((opt, optIdx) => {
                   const isSelected = isMulti
-                    ? (selectedValue as string[] || []).includes(opt.label)
+                    ? (Array.isArray(selectedValue) ? selectedValue : []).includes(opt.label)
                     : selectedValue === opt.label && !isOtherActive
 
                   return (
@@ -247,7 +247,7 @@ export function AskUserQuestionCard({ pendingQuestion, onAnswer }: AskUserQuesti
                         <input
                           ref={el => { otherInputRefs.current[key] = el }}
                           type="text"
-                          value={otherTexts[key] || ''}
+                          value={otherTexts[key] ?? ''}
                           onChange={e => setOtherTexts(prev => ({ ...prev, [key]: e.target.value }))}
                           onKeyDown={handleOtherKeyDown}
                           placeholder="Type your answer..."

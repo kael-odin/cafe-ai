@@ -6,9 +6,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
+import { CafeLogo } from '../brand/CafeLogo'
 import type { RemoteAccessStatus } from './types'
 
-export function RemoteAccessSection() {
+export function RemoteAccessSection(): JSX.Element {
   const { t } = useTranslation()
 
   // Remote access state
@@ -24,7 +25,7 @@ export function RemoteAccessSection() {
 
   // Load remote access status
   useEffect(() => {
-    loadRemoteStatus()
+    void loadRemoteStatus()
 
     const unsubscribe = api.onRemoteStatusChange((data) => {
       setRemoteStatus(data as RemoteAccessStatus)
@@ -38,13 +39,13 @@ export function RemoteAccessSection() {
   // Load QR code when remote is enabled
   useEffect(() => {
     if (remoteStatus?.enabled) {
-      loadQRCode()
+      void loadQRCode()
     } else {
       setQrCode(null)
     }
   }, [remoteStatus?.enabled, remoteStatus?.tunnel.url])
 
-  const loadRemoteStatus = async () => {
+  const loadRemoteStatus = async (): Promise<void> => {
     try {
       const response = await api.getRemoteStatus()
       if (response.success && response.data) {
@@ -55,14 +56,39 @@ export function RemoteAccessSection() {
     }
   }
 
-  const loadQRCode = async () => {
+  const loadQRCode = async (): Promise<void> => {
     const response = await api.getRemoteQRCode(false)
     if (response.success && response.data) {
-      setQrCode((response.data as any).qrCode)
+      setQrCode((response.data as { qrCode: string }).qrCode)
     }
   }
 
-  const handleToggleRemote = async () => {
+  const handleSavePassword = async (): Promise<void> => {
+    if (customPassword.length < 4) {
+      setPasswordError(t('Password too short'))
+      return
+    }
+
+    setIsSavingPassword(true)
+    setPasswordError(null)
+
+    try {
+      const res = await api.setRemotePassword(customPassword)
+      if (res.success) {
+        setIsEditingPassword(false)
+        setCustomPassword('')
+        await loadRemoteStatus()
+      } else {
+        setPasswordError(res.error ?? t('Failed to set password'))
+      }
+    } catch {
+      setPasswordError(t('Failed to set password'))
+    } finally {
+      setIsSavingPassword(false)
+    }
+  }
+
+  const handleToggleRemote = async (): Promise<void> => {
     if (remoteStatus?.enabled) {
       const response = await api.disableRemoteAccess()
       if (response.success) {
@@ -84,7 +110,7 @@ export function RemoteAccessSection() {
     }
   }
 
-  const handleToggleTunnel = async () => {
+  const handleToggleTunnel = async (): Promise<void> => {
     if (remoteStatus?.tunnel.status === 'running') {
       await api.disableTunnel()
     } else {
@@ -95,20 +121,26 @@ export function RemoteAccessSection() {
         setIsEnablingTunnel(false)
       }
     }
-    loadRemoteStatus()
+    await loadRemoteStatus()
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = (text: string): void => {
+    void navigator.clipboard.writeText(text)
   }
 
   return (
     <section id="remote" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
-      <h2 className="text-lg font-medium mb-4">{t('Remote Access')}</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('Remote Access')}</h2>
+          <p className="text-sm text-muted-foreground">{t('Securely reach your Cafe workspace from another device when you need it.')}</p>
+        </div>
+      </div>
 
       {/* Security Warning */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
+      <div className="info-banner-soft bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
         <div className="flex items-start gap-3">
           <span className="text-amber-500 text-xl">⚠️</span>
           <div className="text-sm">
@@ -132,8 +164,8 @@ export function RemoteAccessSection() {
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
-              checked={remoteStatus?.enabled || false}
-              onChange={handleToggleRemote}
+              checked={remoteStatus?.enabled ?? false}
+              onChange={() => { void handleToggleRemote() }}
               disabled={isEnablingRemote}
               className="sr-only peer"
             />
@@ -151,16 +183,16 @@ export function RemoteAccessSection() {
         {remoteStatus?.enabled && (
           <>
             {/* Local Access */}
-            <div className="info-banner-soft p-4 space-y-3">
+            <div className="subsection-soft-panel p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('Local Address')}</span>
                 <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg">
+                  <code className="text-sm surface-subtle px-2 py-1 rounded-lg">
                     {remoteStatus.server.localUrl}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(remoteStatus.server.localUrl || '')}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => copyToClipboard(remoteStatus.server.localUrl ?? '')}
+                    className="text-xs surface-subtle px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground"
                   >
                     {t('Copy')}
                   </button>
@@ -171,12 +203,12 @@ export function RemoteAccessSection() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('LAN Address')}</span>
                   <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg">
+                    <code className="text-sm surface-subtle px-2 py-1 rounded-lg">
                       {remoteStatus.server.lanUrl}
                     </code>
                     <button
-                      onClick={() => copyToClipboard(remoteStatus.server.lanUrl || '')}
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => copyToClipboard(remoteStatus.server.lanUrl ?? '')}
+                      className="text-xs surface-subtle px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground"
                     >
                       {t('Copy')}
                     </button>
@@ -189,18 +221,18 @@ export function RemoteAccessSection() {
                   <span className="text-sm text-muted-foreground">{t('Access Password')}</span>
                   {!isEditingPassword ? (
                     <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg font-mono tracking-wider">
+                      <code className="text-sm surface-subtle px-2 py-1 rounded-lg font-mono tracking-wider">
                         {showPassword ? remoteStatus.server.token : '••••••••'}
                       </code>
                       <button
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        className="text-xs surface-subtle px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground"
                       >
                         {showPassword ? t('Hide') : t('Show')}
                       </button>
                       <button
-                        onClick={() => copyToClipboard(remoteStatus.server.token || '')}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => copyToClipboard(remoteStatus.server.token ?? '')}
+                        className="text-xs surface-subtle px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground"
                       >
                         {t('Copy')}
                       </button>
@@ -226,33 +258,12 @@ export function RemoteAccessSection() {
                         }}
                         placeholder={t('4-32 characters')}
                         maxLength={32}
-                        className="w-32 px-2 py-1.5 text-sm bg-input rounded-xl border border-border focus:border-primary focus:outline-none"
+                        className="form-input-soft w-32 px-2 py-1.5 text-sm"
                       />
                       <button
-                        onClick={async () => {
-                          if (customPassword.length < 4) {
-                            setPasswordError(t('Password too short'))
-                            return
-                          }
-                          setIsSavingPassword(true)
-                          setPasswordError(null)
-                          try {
-                            const res = await api.setRemotePassword(customPassword)
-                            if (res.success) {
-                              setIsEditingPassword(false)
-                              setCustomPassword('')
-                              loadRemoteStatus()
-                            } else {
-                              setPasswordError(res.error || t('Failed to set password'))
-                            }
-                          } catch (error) {
-                            setPasswordError(t('Failed to set password'))
-                          } finally {
-                            setIsSavingPassword(false)
-                          }
-                        }}
+                        onClick={() => { void handleSavePassword() }}
                         disabled={isSavingPassword || customPassword.length < 4}
-                        className="text-xs px-2.5 py-1.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50"
+                        className="text-xs px-2.5 py-1.5 btn-primary text-primary-foreground rounded-xl disabled:opacity-50"
                       >
                         {isSavingPassword ? t('Saving...') : t('Save')}
                       </button>
@@ -262,7 +273,7 @@ export function RemoteAccessSection() {
                           setCustomPassword('')
                           setPasswordError(null)
                         }}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        className="text-xs surface-subtle px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground"
                       >
                         {t('Cancel')}
                       </button>
@@ -275,7 +286,7 @@ export function RemoteAccessSection() {
               </div>
 
               {remoteStatus.clients > 0 && (
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-sm border-t border-border/50 pt-3">
                   <span className="text-muted-foreground">{t('Connected Devices')}</span>
                   <span className="text-green-500">{t('{{count}} devices', { count: remoteStatus.clients })}</span>
                 </div>
@@ -292,7 +303,7 @@ export function RemoteAccessSection() {
                   </p>
                 </div>
                 <button
-                  onClick={handleToggleTunnel}
+                  onClick={() => { void handleToggleTunnel() }}
                   disabled={isEnablingTunnel}
                   className={`px-4 py-2 rounded-xl text-sm transition-colors ${
                     remoteStatus.tunnel.status === 'running'
@@ -311,16 +322,16 @@ export function RemoteAccessSection() {
               </div>
 
               {remoteStatus.tunnel.status === 'running' && remoteStatus.tunnel.url && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
+                <div className="subsection-soft-panel bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-green-500">{t('Public Address')}</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background px-2 py-1 rounded-xl text-green-500">
+                      <code className="text-sm surface-subtle px-2 py-1 rounded-xl text-green-500">
                         {remoteStatus.tunnel.url}
                       </code>
                       <button
-                        onClick={() => copyToClipboard(remoteStatus.tunnel.url || '')}
-                        className="text-xs text-green-500/80 hover:text-green-500"
+                        onClick={() => copyToClipboard(remoteStatus.tunnel.url ?? '')}
+                        className="text-xs surface-subtle px-2 py-1 rounded-lg text-green-500/80 hover:text-green-500"
                       >
                         {t('Copy')}
                       </button>
@@ -330,7 +341,7 @@ export function RemoteAccessSection() {
               )}
 
               {remoteStatus.tunnel.status === 'error' && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+                <div className="subsection-soft-panel bg-red-500/10 border border-red-500/30 rounded-xl p-3">
                   <p className="text-sm text-red-500">
                     {t('Tunnel connection failed')}: {remoteStatus.tunnel.error}
                   </p>
@@ -342,7 +353,7 @@ export function RemoteAccessSection() {
             {qrCode && (
               <div className="pt-4 border-t border-border">
                 <p className="font-medium mb-3">{t('Scan to Access')}</p>
-                <div className="flex flex-col items-center gap-3">
+                <div className="subsection-soft-panel p-4 flex flex-col items-center gap-3">
                   <div className="bg-white p-3 rounded-xl">
                     <img src={qrCode} alt="QR Code" className="w-48 h-48" />
                   </div>

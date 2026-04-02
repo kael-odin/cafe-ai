@@ -56,11 +56,11 @@ function Panel({
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="subsection-soft-panel rounded-[1rem] overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left"
       >
         <div className="flex items-center gap-2.5">
           <span className="text-muted-foreground">{icon}</span>
@@ -103,7 +103,7 @@ function StatusChip({ status }: { status: CliMigrateResult['status'] }) {
  * Public export: renders nothing in remote/web mode.
  * All hook logic lives in the inner component to respect Rules of Hooks.
  */
-export function CLIConfigSection() {
+export function CLIConfigSection(): JSX.Element | null {
   if (!isElectron()) return null
   return <CLIConfigSectionInner />
 }
@@ -145,11 +145,11 @@ function CLIConfigSectionInner() {
 
   // Load paths on mount
   useEffect(() => {
-    api.cliConfigGetPaths().then(res => {
+    void api.cliConfigGetPaths().then(res => {
       if (res.success && res.data) {
         const p = res.data as CliConfigPaths
         setPaths(p)
-        setConfigMode(p.configDirMode ?? 'cafe')
+        setConfigMode(p.configDirMode)
         setCustomDir(p.customConfigDir ?? '')
       }
     })
@@ -196,15 +196,19 @@ function CLIConfigSectionInner() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="border-t border-border pt-4 mt-4 space-y-3">
+    <div className="border-t border-border pt-4 mt-4 space-y-4">
       {/* Section header */}
-      <div className="flex items-center gap-2">
-        <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
-        <p className="font-medium text-sm">{t('Claude CLI Integration')}</p>
+      <div className="subsection-soft-panel p-4 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl panel-glass flex items-center justify-center">
+          <ArrowRightLeft className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="font-medium text-sm">{t('Claude CLI Integration')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('Manage config directory and migrate skills / MCP servers from your existing Claude CLI installation.')}
+          </p>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {t('Manage config directory and migrate skills / MCP servers from your existing Claude CLI installation.')}
-      </p>
 
       {/* ── 1. Config Directory ─────────────────────────────────────────── */}
       <Panel
@@ -218,8 +222,7 @@ function CLIConfigSectionInner() {
         <div className="space-y-2">
           {/* Cafe Default */}
           <label className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            'hover:bg-muted/50',
+            'choice-card-soft flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
             configMode === 'cafe' ? 'border-primary bg-primary/5' : 'border-border'
           )}>
             <input
@@ -241,8 +244,7 @@ function CLIConfigSectionInner() {
 
           {/* CC Default */}
           <label className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            'hover:bg-muted/50',
+            'choice-card-soft flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
             configMode === 'cc' ? 'border-amber-500 bg-amber-500/5' : 'border-border'
           )}>
             <input
@@ -269,8 +271,7 @@ function CLIConfigSectionInner() {
 
           {/* Custom */}
           <label className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            'hover:bg-muted/50',
+            'choice-card-soft flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
             configMode === 'custom' ? 'border-primary bg-primary/5' : 'border-border'
           )}>
             <input
@@ -290,7 +291,7 @@ function CLIConfigSectionInner() {
                   value={customDir}
                   onChange={e => { setCustomDir(e.target.value); setConfigDirResult(null) }}
                   placeholder={paths?.cafeDefault ?? '/path/to/claude-config'}
-                  className="mt-2 w-full px-3 py-1.5 text-xs font-mono bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="mt-2 form-input-soft w-full px-3 py-1.5 text-xs font-mono"
                   onClick={e => e.stopPropagation()}
                 />
               )}
@@ -300,7 +301,7 @@ function CLIConfigSectionInner() {
 
         {/* Current effective path */}
         {paths && (
-          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 mt-2">
+          <div className="text-xs text-muted-foreground subsection-soft-panel px-3 py-2 mt-2">
             <span className="font-medium">{t('Current effective path:')}</span>{' '}
             <span className="font-mono">{paths.current}</span>
           </div>
@@ -310,11 +311,10 @@ function CLIConfigSectionInner() {
         <div className="flex items-center gap-2 mt-3">
           <button
             type="button"
-            onClick={handleSaveConfigDir}
+            onClick={() => { void handleSaveConfigDir() }}
             disabled={configDirSaving}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
+              'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl transition-colors btn-primary text-primary-foreground',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
@@ -355,8 +355,8 @@ function CLIConfigSectionInner() {
         {(skillsMigration.phase === 'idle' || skillsMigration.phase === 'error') && (
           <button
             type="button"
-            onClick={skillsMigration.doScan}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+            onClick={() => { void skillsMigration.doScan() }}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
             {t('Scan')}
@@ -386,6 +386,7 @@ function CLIConfigSectionInner() {
             <div className="space-y-1.5">
               {skillsMigration.items.map(skill => (
                 <div key={skill.name} className="flex items-center justify-between gap-2 p-2 bg-muted/30 rounded-lg">
+                
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-mono font-medium truncate">{skill.name}</p>
                     {skill.exists && (
@@ -395,7 +396,7 @@ function CLIConfigSectionInner() {
                   <select
                     value={skillsMigration.actions[skill.name] ?? 'skip'}
                     onChange={e => skillsMigration.setAction(skill.name, e.target.value as CliSkillAction)}
-                    className="text-xs bg-secondary border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    className="form-input-soft text-xs rounded-lg px-2 py-1"
                   >
                     <option value="skip">{t('Skip')}</option>
                     <option value="overwrite">{t('Overwrite')}</option>
@@ -407,8 +408,8 @@ function CLIConfigSectionInner() {
             <div className="flex items-center gap-2 mt-2">
               <button
                 type="button"
-                onClick={skillsMigration.doMigrate}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                onClick={() => { void skillsMigration.doMigrate() }}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl btn-primary text-primary-foreground transition-colors disabled:opacity-50"
               >
                 <Check className="w-3 h-3" />
                 {t('Migrate')}
@@ -416,7 +417,7 @@ function CLIConfigSectionInner() {
               <button
                 type="button"
                 onClick={skillsMigration.reset}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors"
               >
                 {t('Cancel')}
               </button>
@@ -448,7 +449,7 @@ function CLIConfigSectionInner() {
             <button
               type="button"
               onClick={skillsMigration.reset}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors mt-2"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors mt-2"
             >
               <RefreshCw className="w-3 h-3" /> {t('Scan Again')}
             </button>
@@ -473,8 +474,8 @@ function CLIConfigSectionInner() {
         {(mcpMigration.phase === 'idle' || mcpMigration.phase === 'error') && (
           <button
             type="button"
-            onClick={mcpMigration.doScan}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            onClick={() => { void mcpMigration.doScan() }}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors disabled:opacity-50"
           >
             <RefreshCw className="w-3 h-3" />
             {t('Scan')}
@@ -512,7 +513,7 @@ function CLIConfigSectionInner() {
                   <select
                     value={mcpMigration.actions[s.name] ?? 'skip'}
                     onChange={e => mcpMigration.setAction(s.name, e.target.value as CliMcpAction)}
-                    className="text-xs bg-secondary border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    className="form-input-soft text-xs rounded-lg px-2 py-1"
                   >
                     <option value="skip">{t('Skip')}</option>
                     <option value="overwrite">{t('Overwrite')}</option>
@@ -523,8 +524,8 @@ function CLIConfigSectionInner() {
             <div className="flex items-center gap-2 mt-2">
               <button
                 type="button"
-                onClick={mcpMigration.doMigrate}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                onClick={() => { void mcpMigration.doMigrate() }}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl btn-primary text-primary-foreground transition-colors disabled:opacity-50"
               >
                 <Check className="w-3 h-3" />
                 {t('Migrate')}
@@ -532,7 +533,7 @@ function CLIConfigSectionInner() {
               <button
                 type="button"
                 onClick={mcpMigration.reset}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors"
               >
                 {t('Cancel')}
               </button>
@@ -563,7 +564,7 @@ function CLIConfigSectionInner() {
             <button
               type="button"
               onClick={mcpMigration.reset}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors mt-2"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors mt-2"
             >
               <RefreshCw className="w-3 h-3" /> {t('Scan Again')}
             </button>
@@ -574,7 +575,7 @@ function CLIConfigSectionInner() {
       {/* ── CC Mode Confirmation Dialog ─────────────────────────────────── */}
       {showCcConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="panel-glass section-frame rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-4">
+          <div className="panel-glass section-frame rounded-[1.25rem] shadow-2xl p-6 max-w-sm w-full space-y-4">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-5 h-5 shrink-0" />
               <p className="font-semibold">{t('High Risk: Shared Config')}</p>
@@ -600,7 +601,7 @@ function CLIConfigSectionInner() {
               <button
                 type="button"
                 onClick={() => setShowCcConfirm(false)}
-                className="flex-1 py-2 text-sm font-medium rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+                className="flex-1 py-2 text-sm font-medium rounded-xl surface-subtle hover:bg-secondary transition-colors"
               >
                 {t('Cancel')}
               </button>

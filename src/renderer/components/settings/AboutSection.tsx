@@ -8,11 +8,12 @@ import { Loader2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
 import type { UpdateStatus } from './types'
+import { CafeLogo } from '../brand/CafeLogo'
 
 declare const __BUILD_TIME__: string
 
-const DOCS_URL = 'https://github.com/kael-odin/cafe#readme'
-const FEEDBACK_URL = 'https://github.com/kael-odin/cafe/issues'
+const DOCS_URL = 'https://github.com/kael-odin/cafe-ai#readme'
+const FEEDBACK_URL = 'https://github.com/kael-odin/cafe-ai/issues'
 
 const handleOpenLink = async (url: string) => {
   try {
@@ -22,7 +23,7 @@ const handleOpenLink = async (url: string) => {
   }
 }
 
-export function AboutSection() {
+export function AboutSection(): JSX.Element {
   const { t } = useTranslation()
 
   // App version state
@@ -37,7 +38,7 @@ export function AboutSection() {
 
   // Load app version
   useEffect(() => {
-    api.getVersion().then((result) => {
+    void api.getVersion().then((result) => {
       if (result.success && result.data) {
         setAppVersion(result.data)
       }
@@ -63,25 +64,31 @@ export function AboutSection() {
   }, [])
 
   // Handle check for updates
-  const handleCheckForUpdates = async () => {
+  const handleCheckForUpdates = async (): Promise<void> => {
     setUpdateStatus({ checking: true, hasUpdate: false, upToDate: false })
     await api.checkForUpdates()
   }
 
   return (
-    <section id="about" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+    <section id="about" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-b right-6 top-5" />
-      <h2 className="text-lg font-medium mb-4">{t('About')}</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('About')}</h2>
+          <p className="text-sm text-muted-foreground">{t('Version, updates, and quick links for the Cafe workspace.')}</p>
+        </div>
+      </div>
 
       <div className="space-y-3 text-sm">
-        <div className="flex justify-between items-center">
+        <div className="subsection-soft-panel p-4 flex justify-between items-center gap-4">
           <span className="text-muted-foreground">{t('Version')}</span>
           <div className="flex items-center gap-3">
             <span>{appVersion ? `${appVersion} (${__BUILD_TIME__.replace(/T(\d{2}):(\d{2}).*/, '-$1$2')})` : '-'}</span>
             <button
-              onClick={handleCheckForUpdates}
+              onClick={() => { void handleCheckForUpdates() }}
               disabled={updateStatus.checking}
-              className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-xs px-3 py-1.5 rounded-xl surface-subtle text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {updateStatus.checking ? (
                 <span className="flex items-center gap-1">
@@ -99,25 +106,24 @@ export function AboutSection() {
           </div>
         </div>
 
-        <div className="flex justify-between">
+        <div className="subsection-soft-panel p-4 flex justify-between">
           <span className="text-muted-foreground">{t('Build')}</span>
           <span>Powered by Claude Code</span>
         </div>
 
         {/* Resource links */}
-        <div className="border-t border-border pt-3 flex justify-between items-center">
+        <div className="subsection-soft-panel p-4 flex justify-between items-center">
           <span className="text-muted-foreground">{t('Help')}</span>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleOpenLink(DOCS_URL)}
-              className="text-xs text-primary hover:text-primary/80 transition-colors"
+              onClick={() => { void handleOpenLink(DOCS_URL) }}
+              className="text-xs px-3 py-1.5 rounded-xl surface-subtle text-primary hover:text-primary/80 transition-colors"
             >
               {t('Docs')}
             </button>
-            <span className="text-muted-foreground/40 select-none">·</span>
             <button
-              onClick={() => handleOpenLink(FEEDBACK_URL)}
-              className="text-xs text-primary hover:text-primary/80 transition-colors"
+              onClick={() => { void handleOpenLink(FEEDBACK_URL) }}
+              className="text-xs px-3 py-1.5 rounded-xl surface-subtle text-primary hover:text-primary/80 transition-colors"
             >
               {t('Feedback')}
             </button>

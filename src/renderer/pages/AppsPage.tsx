@@ -32,12 +32,15 @@ import { ManualAddDialog } from '../components/apps/ManualAddDialog'
 import { SkillInstallDialog } from '../components/apps/SkillInstallDialog'
 import { UninstalledDetailView } from '../components/apps/UninstalledDetailView'
 import { StoreView } from '../components/store/StoreView'
+import { ContentCanvas } from '../components/canvas'
+import { useCanvasIsOpen, useCanvasStore } from '../stores/canvas.store'
+import { canvasLifecycle } from '../services/canvas-lifecycle'
 import { useTranslation, getCurrentLanguage } from '../i18n'
 import { resolveSpecI18n } from '../utils/spec-i18n'
 import { api } from '../api'
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 
-export function AppsPage() {
+export function AppsPage(): JSX.Element {
   const { t } = useTranslation()
   const { setView, previousView } = useAppStore()
   const currentSpace = useSpaceStore(state => state.currentSpace)
@@ -74,7 +77,7 @@ export function AppsPage() {
 
   // Load all apps globally (across all spaces) on mount
   useEffect(() => {
-    loadApps()
+    void loadApps()
   }, [loadApps])
 
   // Build spaceId -> space name map for display
@@ -120,7 +123,7 @@ export function AppsPage() {
     if (!selectedAppId && appsForCurrentTab.length > 0) {
       const activeApps = appsForCurrentTab.filter(a => a.status !== 'uninstalled')
       const waitingApp = activeApps.find(a => a.status === 'waiting_user')
-      const firstApp = waitingApp ?? activeApps[0] ?? appsForCurrentTab[0]
+      const firstApp = waitingApp ?? activeApps.at(0) ?? appsForCurrentTab[0]
       selectApp(firstApp.id, firstApp.status === 'uninstalled' ? 'uninstalled' : firstApp.spec.type)
     }
   }, [appsForCurrentTab, selectedAppId, selectApp, currentTab])
@@ -142,14 +145,26 @@ export function AppsPage() {
   const showLoginNotice = useMemo(() => {
     if (!selectedApp || selectedApp.spec.type !== 'automation') return false
     const browserLogin = resolvedSpec?.browser_login
-    if (!browserLogin || browserLogin.length === 0) return false
+    if (browserLogin == null || browserLogin.length === 0) return false
     return !selectedApp.userOverrides?.loginNoticeDismissed
   }, [selectedApp, resolvedSpec])
 
   const isSessionDetail = detailView?.type === 'session-detail'
   const isAppChat = detailView?.type === 'app-chat'
-  const isAppConfig = detailView?.type === 'app-config'
   const isUninstalledDetail = detailView?.type === 'uninstalled-detail'
+  const isCanvasOpen = useCanvasIsOpen()
+  const isCanvasTransitioning = useCanvasStore(state => state.isTransitioning)
+  const showCanvasPane = isCanvasOpen || isCanvasTransitioning
+
+  useEffect(() => {
+    if (showCanvasPane) {
+      void canvasLifecycle.showActiveBrowserView()
+    }
+
+    return () => {
+      void canvasLifecycle.hideAllBrowserViews()
+    }
+  }, [showCanvasPane])
 
   // Render the right-side detail panel
   const emptyStateVariant = currentTab === 'my-apps' ? 'apps' as const : 'automation' as const
@@ -211,7 +226,7 @@ export function AppsPage() {
         left={
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => setView(currentSpace ? 'space' : (previousView || 'home'))}
+              onClick={() => setView(currentSpace ? 'space' : (previousView ?? 'home'))}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-1"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -304,9 +319,9 @@ export function AppsPage() {
           </div>
 
           {/* Right: Detail panel */}
-          <div className="flex-1 flex flex-col overflow-hidden panel-glass section-frame rounded-[1.5rem]">
-            {/* Session detail breadcrumb — replaces AutomationHeader when drilling into a specific run */}
-            {isSessionDetail && selectedApp && (
+            <div className="flex-1 flex flex-col overflow-hidden panel-glass section-frame rounded-[1.5rem]">
+              {/* Session detail breadcrumb — replaces AutomationHeader when drilling into a specific run */}
+              {isSessionDetail && selectedApp && (
               <SessionBreadcrumb
                 appName={selectedAppName ?? ''}
                 runId={(detailView as { runId: string }).runId}
@@ -315,7 +330,7 @@ export function AppsPage() {
             )}
 
             {/* Automation persona card + tab bar — shown for all automation views except session detail drill-down */}
-            {!isSessionDetail && !isUninstalledDetail && selectedAppId && selectedApp?.spec.type === 'automation' && (
+            {!isSessionDetail && !isUninstalledDetail && selectedAppId && selectedApp && selectedApp.spec.type === 'automation' && (
               <>
                 <AutomationHeader appId={selectedAppId} spaceName={selectedApp?.spaceId ? spaceMap[selectedApp.spaceId] : t('Global')} />
                 {showLoginNotice && resolvedSpec?.browser_login && detailView?.type === 'activity-thread' && (
@@ -323,24 +338,31 @@ export function AppsPage() {
                     browserLogin={resolvedSpec.browser_login}
                     onDismiss={() => {
                       if (selectedAppId) {
-                        updateAppOverrides(selectedAppId, { loginNoticeDismissed: true })
+                        void updateAppOverrides(selectedAppId, { loginNoticeDismissed: true })
                       }
                     }}
                     onOpenBrowser={(url, label) => {
-                      api.openLoginWindow(url, label)
+                      void api.openLoginWindow(url, label)
                     }}
                   />
                 )}
               </>
             )}
 
-            {/* Detail content — app-chat manages its own scroll + flex layout */}
-            <div className={`flex-1 ${isAppChat ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-              {renderDetail()}
+              {/* Detail content / canvas split */}
+              <div className={`flex-1 min-h-0 ${showCanvasPane || isAppChat ? 'flex overflow-hidden' : 'overflow-y-auto'}`}>
+                <div className={`${showCanvasPane ? 'w-[min(46%,560px)] min-w-[320px] flex-shrink-0 border-r border-border/70' : 'flex-1'} ${isAppChat ? 'min-h-0 flex flex-col overflow-hidden' : 'overflow-y-auto'}`}>
+                  {renderDetail()}
+                </div>
+                {showCanvasPane && (
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <ContentCanvas />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Install dialog */}
       {showInstallDialog && (

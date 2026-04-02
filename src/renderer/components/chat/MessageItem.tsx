@@ -28,7 +28,7 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { FileChangesFooter } from '../diff'
 import { MessageImages } from './ImageAttachmentPreview'
 import { TokenUsageIndicator } from './TokenUsageIndicator'
-import { truncateText, getToolFriendlyFormat } from './thought-utils'
+import { getToolFriendlyFormat } from './thought-utils'
 import type { Message, Thought, ThoughtsSummary } from '../../types'
 import { useTranslation } from '../../i18n'
 import { useChatStore } from '../../stores/chat.store'
@@ -68,13 +68,13 @@ function ThoughtHistory({ thoughts, thoughtsSummary, onLoadThoughts }: ThoughtHi
   // For separated thoughts (null), use the summary
   const thinkingCount = displayThoughts
     ? displayThoughts.filter(t => t.type === 'thinking').length
-    : (thoughtsSummary?.types.thinking || 0)
+    : (thoughtsSummary?.types.thinking ?? 0)
   const toolCount = displayThoughts
     ? displayThoughts.filter(t => t.type === 'tool_use').length
-    : (thoughtsSummary?.types.tool_use || 0)
+    : (thoughtsSummary?.types.tool_use ?? 0)
   const totalCount = displayThoughts
     ? displayThoughts.length
-    : ((thoughtsSummary?.count || 0) - (thoughtsSummary?.types.result || 0))
+    : ((thoughtsSummary?.count ?? 0) - (thoughtsSummary?.types.result ?? 0))
 
   // Nothing to show
   if (totalCount === 0) return null
@@ -98,7 +98,7 @@ function ThoughtHistory({ thoughts, thoughtsSummary, onLoadThoughts }: ThoughtHi
   return (
     <div className="mt-3 border-t border-border/30 pt-2">
       <button
-        onClick={handleToggle}
+        onClick={() => { void handleToggle() }}
         className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
         disabled={isLoading}
       >
@@ -177,9 +177,10 @@ function ThoughtItem({ thought }: { thought: Thought }) {
   }
 
   const info = getTypeInfo()
+  const toolResult = hasToolResult ? thought.toolResult : null
   // Use friendly format for tool_use
   const content = thought.type === 'tool_use'
-    ? getToolFriendlyFormat(thought.toolName || '', thought.toolInput)
+    ? getToolFriendlyFormat(thought.toolName ?? '', thought.toolInput)
     : thought.type === 'tool_result'
       ? thought.toolOutput
       : thought.content
@@ -208,7 +209,7 @@ function ThoughtItem({ thought }: { thought: Thought }) {
           </div>
         )}
         {/* Show/Hide result button for tool_use with result */}
-        {hasToolResult && thought.toolResult!.output && (
+        {toolResult?.output && (
           <div className="mt-1">
             <button
               onClick={() => setShowResult(!showResult)}
@@ -218,12 +219,12 @@ function ThoughtItem({ thought }: { thought: Thought }) {
             </button>
             {showResult && (
               <div className={`mt-1 p-1.5 rounded text-[10px] overflow-x-auto ${
-                thought.toolResult!.isError
+                toolResult.isError
                   ? 'bg-destructive/10 text-destructive'
                   : 'bg-muted/30 text-muted-foreground'
               }`}>
                 <pre className="whitespace-pre-wrap break-words">
-                  {formatResultOutput(thought.toolResult!.output, isExpanded ? 10000 : 300)}
+                  {formatResultOutput(toolResult.output, isExpanded ? 10000 : 300)}
                 </pre>
               </div>
             )}
@@ -236,14 +237,13 @@ function ThoughtItem({ thought }: { thought: Thought }) {
 
 export const MessageItem = memo(function MessageItem({ message, previousCost = 0, hideThoughts = false, isInContainer = false, isWorking = false, isWaitingMore = false }: MessageItemProps) {
   const isUser = message.role === 'user'
-  const isStreaming = (message as any).isStreaming
+  const streamingMessage = message as Message & { isStreaming?: boolean }
+  const isStreaming = streamingMessage.isStreaming === true
   const [copied, setCopied] = useState(false)
   const { t } = useTranslation()
-  const { loadMessageThoughts, currentSpaceId, currentConversationId } = useChatStore(s => ({
-    loadMessageThoughts: s.loadMessageThoughts,
-    currentSpaceId: s.currentSpaceId,
-    currentConversationId: s.getCurrentSpaceState().currentConversationId,
-  }))
+  const loadMessageThoughts = useChatStore(s => s.loadMessageThoughts)
+  const currentSpaceId = useChatStore(s => s.currentSpaceId)
+  const currentConversationId = useChatStore(s => s.getCurrentSpaceState().currentConversationId)
 
   // Whether thoughts are stored separately (null = separated, not yet loaded)
   const hasThoughts = Array.isArray(message.thoughts) && message.thoughts.length > 0
@@ -270,9 +270,9 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
       .filter(t => t.type === 'tool_use' && t.toolName && isBrowserTool(t.toolName))
       .map(t => ({
         id: t.id,
-        name: t.toolName!,
+        name: t.toolName ?? 'browser',
         status: 'success' as const,  // Thoughts are recorded after completion
-        input: t.toolInput || {},
+        input: t.toolInput ?? {},
       }))
   }, [message.thoughts])
 
@@ -376,7 +376,7 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
 
       {/* File changes footer - shows immediately from metadata, or from loaded thoughts */}
       {/* Diff content is lazy-loaded from thoughts when user clicks a file */}
-      {!isUser && (message.metadata?.fileChanges || hasThoughts) && (
+      {!isUser && ((message.metadata?.fileChanges != null) || hasThoughts) && (
         <FileChangesFooter
           fileChangesSummary={message.metadata?.fileChanges}
           thoughts={message.thoughts}
@@ -396,7 +396,7 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
 
           {/* Copy button */}
           <button
-            onClick={handleCopyMessage}
+            onClick={() => { void handleCopyMessage() }}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground/60
               hover:text-foreground hover:bg-background/40 rounded-xl transition-all surface-subtle"
             title={t('Copy message')}
@@ -428,7 +428,7 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
   // Normal case: wrap with flex container
   return (
     <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'} message-scroll-shell`}
       data-message-id={message.id}
     >
       {bubble}

@@ -28,6 +28,7 @@ import {
 } from '../../types'
 import { useTranslation } from '../../i18n'
 import { api } from '../../api'
+import { CafeLogo } from '../brand/CafeLogo'
 
 interface ProviderSelectorProps {
   aiSources: AISourcesConfig
@@ -41,7 +42,7 @@ export function ProviderSelector({
   onSave,
   onCancel,
   editingSourceId
-}: ProviderSelectorProps) {
+}: ProviderSelectorProps): JSX.Element {
   const { t } = useTranslation()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -57,17 +58,17 @@ export function ProviderSelector({
 
   // State
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>(
-    editingSource?.provider || 'anthropic'
+    editingSource?.provider ?? 'anthropic'
   )
   const [showProviderDropdown, setShowProviderDropdown] = useState(false)
   const [providerSearchQuery, setProviderSearchQuery] = useState('')
 
-  const [apiKey, setApiKey] = useState(editingSource?.apiKey || '')
-  const [apiUrl, setApiUrl] = useState(editingSource?.apiUrl || '')
-  const [selectedModel, setSelectedModel] = useState(editingSource?.model || '')
+  const [apiKey, setApiKey] = useState(editingSource?.apiKey ?? '')
+  const [apiUrl, setApiUrl] = useState(editingSource?.apiUrl ?? '')
+  const [selectedModel, setSelectedModel] = useState(editingSource?.model ?? '')
   const [customModelInput, setCustomModelInput] = useState('')
   const [showCustomModel, setShowCustomModel] = useState(false)
-  const [sourceName, setSourceName] = useState(editingSource?.name || '')
+  const [sourceName, setSourceName] = useState(editingSource?.name ?? '')
 
   const [showApiKey, setShowApiKey] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
@@ -78,7 +79,7 @@ export function ProviderSelector({
   } | null>(null)
 
   const [fetchedModels, setFetchedModels] = useState<ModelOption[]>(
-    editingSource?.availableModels || []
+    editingSource?.availableModels ?? []
   )
   const [modelSearchQuery, setModelSearchQuery] = useState('')
   const [showModelDropdown, setShowModelDropdown] = useState(false)
@@ -125,7 +126,7 @@ export function ProviderSelector({
   useEffect(() => {
     if (currentProvider && !editingSource) {
       setApiUrl(currentProvider.apiUrl)
-      setSelectedModel(currentProvider.models[0]?.id || '')
+      setSelectedModel(currentProvider.models[0]?.id ?? '')
       setSourceName(currentProvider.name)
       setFetchedModels(currentProvider.models)
     }
@@ -133,7 +134,7 @@ export function ProviderSelector({
 
   // Filter models by search query
   const filteredModels = useMemo(() => {
-    const models = fetchedModels.length > 0 ? fetchedModels : (currentProvider?.models || [])
+    const models = fetchedModels.length > 0 ? fetchedModels : (currentProvider?.models ?? [])
     if (!modelSearchQuery) return models
     const query = modelSearchQuery.toLowerCase()
     return models.filter(m =>
@@ -157,7 +158,7 @@ export function ProviderSelector({
   // Handle delete model from list
   const handleDeleteModel = (modelId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const models = fetchedModels.length > 0 ? fetchedModels : (currentProvider?.models || [])
+    const models = fetchedModels.length > 0 ? fetchedModels : (currentProvider?.models ?? [])
     const newModels = models.filter(m => m.id !== modelId)
     setFetchedModels(newModels)
 
@@ -189,7 +190,7 @@ export function ProviderSelector({
       const response = await api.fetchModels(apiKey, apiUrl)
 
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch models')
+        throw new Error(response.error ?? 'Failed to fetch models')
       }
 
       const { models } = response.data as { models: ModelOption[] }
@@ -229,7 +230,7 @@ export function ProviderSelector({
     try {
       const availableModels: ModelOption[] = fetchedModels.length > 0
         ? fetchedModels
-        : (currentProvider?.models || [{ id: finalModel, name: finalModel }])
+        : (currentProvider?.models ?? [{ id: finalModel, name: finalModel }])
 
       if (!availableModels.some(m => m.id === finalModel)) {
         availableModels.unshift({ id: finalModel, name: finalModel })
@@ -238,16 +239,16 @@ export function ProviderSelector({
       const now = new Date().toISOString()
 
       const source: AISource = {
-        id: editingSource?.id || uuidv4(),
-        name: sourceName || currentProvider?.name || selectedProvider,
+        id: editingSource?.id ?? uuidv4(),
+        name: sourceName || (currentProvider?.name ?? selectedProvider),
         provider: selectedProvider,
         authType: 'api-key',
-        apiUrl: apiUrl || currentProvider?.apiUrl || 'https://api.openai.com',
-        apiType: editingSource?.apiType || currentProvider?.apiType,
+        apiUrl: apiUrl || (currentProvider?.apiUrl ?? 'https://api.openai.com'),
+        apiType: editingSource?.apiType ?? currentProvider?.apiType,
         apiKey,
         model: finalModel,
         availableModels,
-        createdAt: editingSource?.createdAt || now,
+        createdAt: editingSource?.createdAt ?? now,
         updatedAt: now
       }
 
@@ -285,10 +286,10 @@ export function ProviderSelector({
       if (!validationResponse.success || !validationResponse.data?.valid) {
         setValidationResult({
           valid: false,
-          message: validationResponse.data?.message || validationResponse.error || t('Connection failed')
+          message: validationResponse.data?.message ?? validationResponse.error ?? t('Connection failed')
         })
       } else {
-        const normalizedUrl = validationResponse.data.normalizedUrl || apiUrl
+        const normalizedUrl = validationResponse.data.normalizedUrl ?? apiUrl
         if (normalizedUrl !== apiUrl) {
           setApiUrl(normalizedUrl)
         }
@@ -339,7 +340,16 @@ export function ProviderSelector({
   )
 
   return (
-    <div className="space-y-4">
+    <div className="panel-glass section-frame rounded-[1.5rem] p-5 space-y-4 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-6" />
+      <div className="flex items-center gap-3">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Provider Setup')}</div>
+          <div className="text-sm text-muted-foreground">{t('Configure an API-based provider with display name, credentials, and model defaults.')}</div>
+        </div>
+      </div>
+
       {/* Provider Dropdown Selector */}
       <div className="relative" ref={dropdownRef}>
         <label className="block text-sm font-medium text-muted-foreground mb-1.5">
@@ -347,17 +357,17 @@ export function ProviderSelector({
         </label>
         <button
           onClick={() => setShowProviderDropdown(!showProviderDropdown)}
-          className="w-full flex items-center justify-between px-3 py-2.5 bg-input border border-border rounded-xl
+          className="form-input-soft w-full flex items-center justify-between px-3 py-2.5
                    text-foreground hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-bold text-primary">
-                {currentProvider?.name.charAt(0) || 'C'}
+                {currentProvider?.name.charAt(0) ?? 'C'}
               </span>
             </div>
             <div className="text-left">
-              <div className="text-sm font-medium">{currentProvider?.name || t('Select provider')}</div>
+              <div className="text-sm font-medium">{currentProvider?.name ?? t('Select provider')}</div>
               {currentProvider?.description && (
                 <div className="text-xs text-muted-foreground">{currentProvider.description}</div>
               )}
@@ -378,8 +388,7 @@ export function ProviderSelector({
                   value={providerSearchQuery}
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
                   placeholder={t('Search providers...')}
-                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-input border border-border rounded-xl
-                           text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="form-input-soft w-full pl-9 pr-3 py-2.5 text-sm placeholder:text-muted-foreground"
                   autoFocus
                 />
               </div>
@@ -440,7 +449,7 @@ export function ProviderSelector({
           </div>
 
           {/* Source Name */}
-          <div>
+          <div className="choice-card-soft p-3">
             <label className="block text-sm font-medium text-muted-foreground mb-1">
               {t('Display Name')}
             </label>
@@ -449,13 +458,12 @@ export function ProviderSelector({
               value={sourceName}
               onChange={(e) => setSourceName(e.target.value)}
               placeholder={currentProvider.name}
-               className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
-                        text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="form-input-soft w-full px-3 py-2.5"
             />
           </div>
 
           {/* API Key */}
-          <div>
+          <div className="choice-card-soft p-3">
             <label className="block text-sm font-medium text-muted-foreground mb-1">
               API Key
             </label>
@@ -465,8 +473,7 @@ export function ProviderSelector({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-..."
-                className="w-full px-3 py-2.5 pr-10 bg-input border border-border rounded-xl
-                         text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="form-input-soft w-full px-3 py-2.5 pr-10"
               />
               <button
                 onClick={() => setShowApiKey(!showApiKey)}
@@ -479,7 +486,7 @@ export function ProviderSelector({
 
           {/* API URL (for anthropic and openai - protocol entries that support custom URL) */}
           {(selectedProvider === 'anthropic' || selectedProvider === 'openai') && (
-            <div>
+            <div className="choice-card-soft p-3">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
                 API URL
               </label>
@@ -487,9 +494,8 @@ export function ProviderSelector({
                 type="text"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder={currentProvider?.apiUrl || 'https://api.example.com/v1'}
-                className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
-                         text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder={currentProvider.apiUrl}
+                className="form-input-soft w-full px-3 py-2.5"
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 {t('Default official URL, modify for custom proxy')}
@@ -498,15 +504,15 @@ export function ProviderSelector({
           )}
 
           {/* Model Selection */}
-          <div>
+          <div className="choice-card-soft p-3">
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-muted-foreground">
                 {t('Model')}
               </label>
               <button
-                onClick={handleFetchModels}
+                onClick={() => { void handleFetchModels() }}
                 disabled={isFetchingModels || !apiKey}
-                className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 disabled:opacity-50"
+                className="flex items-center gap-1 text-sm surface-subtle px-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
                 {isFetchingModels ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -537,15 +543,13 @@ export function ProviderSelector({
                 value={customModelInput}
                 onChange={(e) => setCustomModelInput(e.target.value)}
                 placeholder={t('Enter model ID')}
-                className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
-                         text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="form-input-soft w-full px-3 py-2.5"
               />
             ) : (
               <div className="relative">
                 <button
                   onClick={() => setShowModelDropdown(!showModelDropdown)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-input
-                           border border-border rounded-xl text-foreground
+                  className="form-input-soft w-full flex items-center justify-between px-3 py-2.5 text-foreground
                            hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   <span className="truncate">{selectedModel || t('Select model')}</span>
@@ -564,8 +568,7 @@ export function ProviderSelector({
                           value={modelSearchQuery}
                           onChange={(e) => setModelSearchQuery(e.target.value)}
                           placeholder={t('Search models...')}
-                          className="w-full pl-8 pr-3 py-2 text-sm bg-input border border-border
-                                   rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                          className="form-input-soft w-full pl-8 pr-3 py-2 text-sm"
                         />
                       </div>
                     </div>
@@ -625,14 +628,14 @@ export function ProviderSelector({
 
           {/* Notes */}
           {currentProvider.notes && (
-            <div className="text-xs text-muted-foreground p-2 bg-secondary/50 rounded-xl">
+            <div className="text-xs text-muted-foreground p-3 info-banner-soft">
               {currentProvider.notes}
             </div>
           )}
 
           {/* Validation Result */}
           {validationResult && (
-            <div className={`flex items-center gap-2 p-2 rounded-xl ${
+            <div className={`flex items-center gap-2 p-3 rounded-xl ${
               validationResult.valid
                 ? 'bg-green-500/10 text-green-600'
                 : 'bg-red-500/10 text-red-600'
@@ -646,15 +649,15 @@ export function ProviderSelector({
           <div className="flex gap-3 pt-2">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground rounded-xl transition-colors"
+              className="flex-1 px-4 py-2 surface-subtle text-muted-foreground hover:bg-secondary/80 hover:text-foreground rounded-xl transition-colors"
             >
               {t('Cancel')}
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => { void handleSave() }}
               disabled={isValidating || !apiKey}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl
-                       hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 btn-primary text-primary-foreground rounded-xl
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isValidating && <Loader2 size={16} className="animate-spin" />}
               {editingSource ? t('Update') : t('Save')}
@@ -662,11 +665,11 @@ export function ProviderSelector({
           </div>
           {/* Test connection link */}
           <div className="flex justify-end pt-1">
-            <button
-              onClick={handleTestConnection}
-              disabled={isValidating || !apiKey}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            >
+              <button
+                onClick={() => { void handleTestConnection() }}
+                disabled={isValidating || !apiKey}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
               {t('Test connection')}
             </button>
           </div>
