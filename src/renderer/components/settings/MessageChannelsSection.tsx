@@ -653,7 +653,8 @@ export function MessageChannelsSection({ config, setConfig }: MessageChannelsSec
   }
 
   return (
-    <section id="message-channels" className="bg-card rounded-xl border border-border p-4 sm:p-6">
+    <section id="message-channels" className="panel-glass rounded-[1.5rem] p-4 sm:p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
       <div className="mb-4">
         <h2 className="text-lg font-medium">{t('Message Channels')}</h2>
         <p className="text-sm text-muted-foreground mt-1">

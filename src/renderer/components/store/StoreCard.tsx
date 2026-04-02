@@ -13,12 +13,14 @@ import { AppTypeBadge } from './AppTypeBadge'
 interface StoreCardProps {
   entry: RegistryEntry
   onClick: () => void
+  className?: string
+  style?: React.CSSProperties
 }
 
 /** Max number of tags displayed on the card */
 const MAX_VISIBLE_TAGS = 3
 
-export function StoreCard({ entry, onClick }: StoreCardProps) {
+export function StoreCard({ entry, onClick, className = '', style }: StoreCardProps) {
   const { t } = useTranslation()
   const { name, description } = resolveEntryI18n(entry, getCurrentLanguage())
   const visibleTags = entry.tags.slice(0, MAX_VISIBLE_TAGS)
@@ -26,18 +28,17 @@ export function StoreCard({ entry, onClick }: StoreCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-4 rounded-xl border border-border 
-        hover:border-primary/40 hover:bg-secondary/50 
-        transition-all duration-300 cursor-pointer
-        hover:shadow-lg hover:shadow-primary/5
-        hover:-translate-y-0.5
-        active:translate-y-0"
+      style={style}
+      className={`w-full text-left p-4 rounded-[1.1rem] border border-border/80 bg-card
+        hover:border-primary/40 hover:bg-secondary/30 
+        transition-colors duration-150 cursor-pointer
+        active:translate-y-0 ${className}`}
     >
       {/* First line: icon + name + type badge + version */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           {entry.icon && (
-            <span className="text-base flex-shrink-0">{entry.icon}</span>
+            <span className="text-base flex-shrink-0 w-8 h-8 rounded-lg bg-background/30 flex items-center justify-center">{entry.icon}</span>
           )}
           <span className="text-sm font-medium text-foreground truncate">
             {name}
@@ -65,7 +66,7 @@ export function StoreCard({ entry, onClick }: StoreCardProps) {
           {visibleTags.map(tag => (
             <span
               key={tag}
-              className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground"
+            className="text-xs px-2 py-0.5 rounded-full bg-secondary/80 text-muted-foreground"
             >
               {tag}
             </span>

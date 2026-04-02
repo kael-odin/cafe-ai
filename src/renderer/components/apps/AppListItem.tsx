@@ -34,10 +34,10 @@ export function AppListItem({ app, isSelected, spaceName, onClick }: AppListItem
     <button
       onClick={onClick}
       className={`
-        w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors text-sm
+        w-full flex items-center gap-2.5 px-3 py-2.5 text-left rounded-xl transition-all text-sm border border-transparent
         ${isSelected
-          ? 'bg-secondary text-foreground'
-          : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+          ? 'panel-glass text-foreground border-primary/25 shadow-[0_10px_22px_hsl(var(--primary)/0.08)]'
+          : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border/60'
         }
         ${isUninstalled ? 'opacity-50' : ''}
       `}
@@ -54,7 +54,7 @@ export function AppListItem({ app, isSelected, spaceName, onClick }: AppListItem
           {name}
         </span>
         {spaceName && (
-          <span className="block text-[11px] text-muted-foreground/70 truncate">
+          <span className="block text-[11px] text-muted-foreground/75 truncate mt-0.5">
             {spaceName}
           </span>
         )}
@@ -62,7 +62,7 @@ export function AppListItem({ app, isSelected, spaceName, onClick }: AppListItem
 
       {/* Type badge for MCP/Skill apps */}
       {(appType === 'mcp' || appType === 'skill') && (
-        <span className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">
+        <span className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground uppercase tracking-wide">
           {appTypeLabel(appType)}
         </span>
       )}

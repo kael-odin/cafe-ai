@@ -18,7 +18,7 @@ import { MessageList } from './MessageList'
 import type { MessageListHandle } from './MessageList'
 import { InputArea } from './InputArea'
 import { ScrollToBottomButton } from './ScrollToBottomButton'
-import { Sparkles } from '../icons/ToolIcons'
+import { CafeLogo } from '../brand/CafeLogo'
 import {
   ONBOARDING_ARTIFACT_NAME,
   getOnboardingAiResponse,
@@ -52,7 +52,6 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
   const {
     isActive: isOnboarding,
     currentStep,
-    nextStep,
     setMockAnimating,
     setMockThinking,
     isMockAnimating,
@@ -65,22 +64,31 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
   const [mockStreamingContent, setMockStreamingContent] = useState<string>('')
   // Artifact list for @ mention suggestions in InputArea
   const [mentionArtifacts, setMentionArtifacts] = useState<Artifact[]>([])
+  const mentionArtifactsRequestedRef = useRef(false)
 
-  // Load artifacts for @ mention suggestions (depth=5 for deeper file references)
+  // Reset on space switch. Artifact suggestions are loaded lazily on first '@'
+  // interaction instead of immediately when a space opens.
   useEffect(() => {
-    if (!currentSpace?.id) {
-      setMentionArtifacts([])
-      return
-    }
-    let cancelled = false
+    mentionArtifactsRequestedRef.current = false
+    setMentionArtifacts([])
+  }, [currentSpace?.id])
+
+  const ensureMentionArtifacts = useCallback(() => {
+    if (!currentSpace?.id || mentionArtifactsRequestedRef.current) return
+
+    mentionArtifactsRequestedRef.current = true
+
     api.listArtifacts(currentSpace.id, 5).then(response => {
-      if (!cancelled && response.success && response.data) {
+      if (response.success && response.data) {
         setMentionArtifacts(response.data as Artifact[])
+        return
       }
+
+      mentionArtifactsRequestedRef.current = false
     }).catch(error => {
-      if (!cancelled) console.error('[ChatView] Failed to load mention artifacts:', error)
+      mentionArtifactsRequestedRef.current = false
+      console.error('[ChatView] Failed to load mention artifacts:', error)
     })
-    return () => { cancelled = true }
   }, [currentSpace?.id])
 
   // Clear mock state when onboarding completes
@@ -296,7 +304,7 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
   const handleSend = async (content: string, images?: ImageAttachment[], thinkingEnabled?: boolean) => {
     // In onboarding mode, intercept and play mock response
     if (isOnboarding && currentStep === 'send-message') {
-      handleOnboardingSend()
+      void handleOnboardingSend()
       return
     }
 
@@ -335,9 +343,7 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
   const displayIsStreaming = isStreaming  // Only real streaming (not mock)
   const hasMessages = displayMessages.length > 0 || displayStreamingContent || displayIsThinking
 
-  // Track previous compact state for smooth transitions
   const prevCompactRef = useRef(isCompact)
-  const isTransitioningLayout = prevCompactRef.current !== isCompact
 
   useEffect(() => {
     prevCompactRef.current = isCompact
@@ -346,11 +352,18 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
   return (
     <div
       className={`
-        flex-1 flex flex-col h-full
+        flex-1 flex flex-col h-full relative overflow-hidden panel-glass-rich
         transition-[padding] duration-300 ease-out
-        ${isCompact ? 'bg-background/50' : 'bg-background'}
+        ${isCompact ? 'bg-background/10 rounded-[1.5rem]' : 'bg-background/5 rounded-[1.5rem]'}
       `}
     >
+      <span className="ambient-orb left-[-72px] top-[-30px]" />
+      <span className="ambient-orb accent right-[-64px] bottom-[-48px]" />
+      <div className="sakura-fall-scene opacity-40">
+        <span className="sakura-petal sakura-petal-sm petal-1" />
+        <span className="sakura-petal sakura-petal-sm petal-2" />
+        <span className="sakura-petal sakura-petal-sm petal-3" />
+      </div>
       {/* Messages area wrapper - relative for button positioning */}
       <div className="flex-1 relative overflow-hidden">
         {/* Virtuoso manages its own scroll container */}
@@ -404,6 +417,7 @@ export function ChatView({ isCompact = false }: ChatViewProps) {
         isCompact={isCompact}
         slashCommands={slashCommands}
         mentionArtifacts={mentionArtifacts}
+        ensureMentionArtifacts={ensureMentionArtifacts}
       />
     </div>
   )
@@ -427,7 +441,7 @@ function EmptyState({ isTemp, isCompact = false }: { isTemp: boolean; isCompact?
   if (isCompact) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-4">
-        <Sparkles className="w-8 h-8 text-primary/70" />
+        <CafeLogo size={40} />
         <p className="mt-4 text-sm text-muted-foreground">
           {t('Continue the conversation here')}
         </p>
@@ -437,18 +451,23 @@ function EmptyState({ isTemp, isCompact = false }: { isTemp: boolean; isCompact?
 
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-8">
-      {/* Icon */}
-      <Sparkles className="w-12 h-12 text-primary" />
+      <CafeLogo size={72} />
 
-      {/* Title - concise and warm */}
-      <h2 className="mt-6 text-xl font-medium">
-        Cafe
+      <h2 className="mt-6 text-xl font-medium tracking-[-0.02em]">
+        {isTemp ? 'Cafe' : t('Workspace Chat')}
       </h2>
-      <p className="mt-2 text-muted-foreground">
-        {t('Not just chat, help you get things done')}
+      <p className="mt-2 max-w-md text-muted-foreground leading-6">
+        {isTemp
+          ? t('Ask Cafe to plan, search, write, browse, or automate work from one calm desktop workspace.')
+          : t('Use this space to keep project context, files, conversations, and tools together.')}
       </p>
 
-      {/* Powered by badge - simplified */}
+      <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
+        <span className="pill-stat rounded-full px-3 py-1.5">{t('Plan')}</span>
+        <span className="pill-stat rounded-full px-3 py-1.5">{t('Search')}</span>
+        <span className="pill-stat rounded-full px-3 py-1.5">{t('Build')}</span>
+      </div>
+
       <div className="mt-8 px-3 py-1.5 rounded-full border border-border">
         <span className="text-xs text-muted-foreground">
           Powered by Claude Code

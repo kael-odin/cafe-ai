@@ -9,6 +9,7 @@ import { useAppStore } from '../../stores/app.store'
 import { api } from '../../api'
 import { LoginSelector } from './LoginSelector'
 import { ApiSetup } from './ApiSetup'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 import { Loader2 } from 'lucide-react'
 
@@ -118,13 +119,14 @@ export function SetupFlow() {
 
   if (step === 'oauth-waiting') {
     return (
-      <div className="h-full w-full flex flex-col items-center justify-center bg-background p-8">
-        {/* Header with Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 rounded-full border-2 border-primary/60 flex items-center justify-center Cafe-glow">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-transparent" />
-          </div>
-          <h1 className="mt-4 text-3xl font-light tracking-wide">Cafe</h1>
+        <div className="h-full w-full flex flex-col items-center justify-center bg-background p-8">
+          {/* Header with Logo */}
+          <div className="flex flex-col items-center mb-10">
+          <CafeLogo size={84} />
+          <h1 className="mt-4 text-3xl font-medium tracking-[-0.03em]">Cafe</h1>
+          <p className="mt-2 text-sm text-muted-foreground/80 text-center max-w-sm">
+            {t('Hold on while your workspace opens the door to the right model.')}
+          </p>
         </div>
 
         {/* Loading state */}

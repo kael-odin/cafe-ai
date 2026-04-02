@@ -48,22 +48,22 @@ export function AppearanceSection({ config, setConfig }: AppearanceSectionProps)
   }
 
   return (
-    <section id="appearance" className="bg-card rounded-xl border border-border p-6">
+    <section id="appearance" className="panel-glass section-frame rounded-[1.5rem] p-6">
       <h2 className="text-lg font-medium mb-4">{t('Appearance')}</h2>
 
       <div className="space-y-6">
         {/* Theme */}
         <div>
           <label className="block text-sm text-muted-foreground mb-2">{t('Theme')}</label>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
             {(['light', 'dark', 'system'] as ThemeMode[]).map((themeMode) => (
               <button
                 key={themeMode}
                 onClick={() => handleThemeChange(themeMode)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`px-4 py-2 rounded-xl transition-colors ${
                   theme === themeMode
-                    ? 'bg-primary/20 text-primary border border-primary'
-                    : 'bg-secondary hover:bg-secondary/80'
+                    ? 'panel-glass section-frame text-primary border border-primary/60'
+                    : 'surface-subtle hover:bg-secondary'
                 }`}
               >
                 {themeMode === 'light' ? t('Light') : themeMode === 'dark' ? t('Dark') : t('Follow System')}
@@ -78,7 +78,7 @@ export function AppearanceSection({ config, setConfig }: AppearanceSectionProps)
           <select
             value={getCurrentLanguage()}
             onChange={(e) => setLanguage(e.target.value as LocaleCode)}
-            className="w-full px-4 py-2 bg-input rounded-lg border border-border focus:border-primary focus:outline-none transition-colors"
+            className="w-full px-4 py-2.5 bg-input rounded-xl border border-border focus:border-primary focus:outline-none transition-colors"
           >
             {Object.entries(SUPPORTED_LOCALES).map(([code, name]) => (
               <option key={code} value={code}>
@@ -91,15 +91,15 @@ export function AppearanceSection({ config, setConfig }: AppearanceSectionProps)
         {/* Send Key */}
         <div>
           <label className="block text-sm text-muted-foreground mb-2">{t('Send Key')}</label>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
             {(['enter', 'ctrl-enter'] as SendKeyMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => handleSendKeyModeChange(mode)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`px-4 py-2 rounded-xl transition-colors ${
                   sendKeyMode === mode
-                    ? 'bg-primary/20 text-primary border border-primary'
-                    : 'bg-secondary hover:bg-secondary/80'
+                    ? 'panel-glass section-frame text-primary border border-primary/60'
+                    : 'surface-subtle hover:bg-secondary'
                 }`}
               >
                 {mode === 'enter' ? t('Enter') : t('Ctrl+Enter')}

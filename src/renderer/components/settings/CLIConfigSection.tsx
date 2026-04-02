@@ -574,7 +574,7 @@ function CLIConfigSectionInner() {
       {/* ── CC Mode Confirmation Dialog ─────────────────────────────────── */}
       {showCcConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-4">
+          <div className="panel-glass section-frame rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-4">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-5 h-5 shrink-0" />
               <p className="font-semibold">{t('High Risk: Shared Config')}</p>
@@ -593,14 +593,14 @@ function CLIConfigSectionInner() {
               <button
                 type="button"
                 onClick={confirmCcMode}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                className="flex-1 py-2 text-sm font-medium rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors"
               >
                 {t('Use Shared Config')}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCcConfirm(false)}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                className="flex-1 py-2 text-sm font-medium rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
               >
                 {t('Cancel')}
               </button>

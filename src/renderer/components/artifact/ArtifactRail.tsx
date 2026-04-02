@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ArtifactCard, type ArtifactContextMenuState } from './ArtifactCard'
 import { ArtifactTree } from './ArtifactTree'
+import { CafeLogo } from '../brand/CafeLogo'
 import { api } from '../../api'
 import type { Artifact, ArtifactViewMode, ArtifactChangeEvent } from '../../types'
 import { useIsGenerating } from '../../stores/chat.store'
@@ -110,6 +111,8 @@ export function ArtifactRail({
   const isExpanded = isControlled ? externalExpanded : internalExpanded
 
   const [isLoading, setIsLoading] = useState(false)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const [canRenderContent, setCanRenderContent] = useState(false)
   const [width, setWidth] = useState(initialWidth != null ? clampWidth(initialWidth) : DEFAULT_WIDTH)
   const widthRef = useRef(width)
   const [isDragging, setIsDragging] = useState(false)
@@ -310,13 +313,26 @@ export function ArtifactRail({
       console.error('[ArtifactRail] Failed to load artifacts:', error)
     } finally {
       setIsLoading(false)
+      setHasLoadedOnce(true)
     }
   }, [spaceId])
 
   // Load artifacts on mount and when space changes
   useEffect(() => {
-    loadArtifacts()
-  }, [loadArtifacts])
+    if (!canRenderContent) return
+    void loadArtifacts()
+  }, [canRenderContent, loadArtifacts])
+
+  // Delay first content mount slightly to avoid a flash of the rail loading box
+  useEffect(() => {
+    if (!currentSpace?.isTemp) {
+      setCanRenderContent(true)
+      return
+    }
+    setCanRenderContent(false)
+    const timer = setTimeout(() => setCanRenderContent(true), 420)
+    return () => clearTimeout(timer)
+  }, [spaceId, currentSpace?.isTemp])
 
   // Refresh artifacts when generation completes (debounced)
   useEffect(() => {
@@ -328,7 +344,7 @@ export function ArtifactRail({
 
   // Subscribe to artifact change events for incremental updates
   useEffect(() => {
-    if (!spaceId) return
+    if (!spaceId || !canRenderContent) return
 
     // Initialize watcher for this space
     api.initArtifactWatcher(spaceId).catch(err => {
@@ -376,13 +392,13 @@ export function ArtifactRail({
     })
 
     return cleanup
-  }, [spaceId, loadArtifacts])
+  }, [canRenderContent, spaceId, loadArtifacts])
 
   // Refresh artifacts when entering view-artifact onboarding step
   useEffect(() => {
     if (isOnboardingViewStep) {
       // Delay slightly to ensure file is written
-      const timer = setTimeout(loadArtifacts, 300)
+      const timer = setTimeout(() => { void loadArtifacts() }, 300)
       return () => clearTimeout(timer)
     }
   }, [isOnboardingViewStep, loadArtifacts])
@@ -400,20 +416,24 @@ export function ArtifactRail({
 
   // Shared content renderer
   const renderContent = () => (
-    <div className="flex-1 overflow-hidden">
-      {viewMode === 'tree' ? (
-        <ArtifactTree spaceId={spaceId} />
-      ) : (
-        <div className="h-full overflow-auto p-2">
-          {isLoading ? (
+      <div className="flex-1 overflow-hidden">
+        {!canRenderContent ? (
+          <div className="h-full" />
+        ) : viewMode === 'tree' ? (
+          <ArtifactTree spaceId={spaceId} />
+        ) : (
+          <div className="h-full overflow-auto p-2">
+          {!hasLoadedOnce && isLoading ? (
+            <div className="h-full" />
+          ) : isLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-2">
               <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin mb-3" />
               <p className="text-xs text-muted-foreground">{t('Loading...')}</p>
             </div>
           ) : artifacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-2">
-              <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center mb-3 cafe-breathe">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-transparent" />
+              <div className="mb-3 cafe-breathe">
+                <CafeLogo size={46} />
               </div>
               <p className="text-xs text-muted-foreground">
                 {isTemp ? t('Ideas will crystallize here') : t('Files will appear here')}
@@ -422,8 +442,8 @@ export function ArtifactRail({
                 <p className="text-xs text-primary/60 mt-2 animate-pulse">
                   {t('AI is working...')}
                 </p>
-              )}
-            </div>
+        )}
+      </div>
           ) : (
             <div className="space-y-2">
               {artifacts.map((artifact) => {
@@ -450,14 +470,14 @@ export function ArtifactRail({
   // Shared footer renderer with folder and browser buttons
   // flex-shrink-0 ensures footer doesn't compress, allowing content to take remaining space
   const renderFooter = () => (
-    <div className="flex-shrink-0 p-2 border-t border-border">
+    <div className="flex-shrink-0 p-2 border-t border-border/70 bg-background/20">
       {viewMode === 'card' && artifacts.length > 0 && (
         <p className="text-xs text-muted-foreground text-center mb-2">
           {artifacts.length} {t('artifacts')}
         </p>
       )}
       {isWebMode ? (
-        <div className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-muted-foreground/50 rounded-lg cursor-not-allowed">
+        <div className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-muted-foreground/50 rounded-xl cursor-not-allowed surface-subtle">
           <Monitor className="w-4 h-4" />
           <span>{t('Please open folder in client')}</span>
         </div>
@@ -466,7 +486,7 @@ export function ArtifactRail({
           {/* Open folder button */}
           <button
             onClick={handleOpenFolder}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground rounded-xl transition-colors surface-subtle"
             title={t('Open folder (⌘⇧F)')}
           >
             <FolderOpen className="w-4 h-4 text-amber-500" />
@@ -475,7 +495,7 @@ export function ArtifactRail({
           {/* Open browser button */}
           <button
             onClick={handleOpenBrowser}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground rounded-xl transition-colors surface-subtle"
             title={t('Open browser (⌘⇧B)')}
           >
             <Globe className="w-4 h-4 text-blue-500" />
@@ -496,9 +516,9 @@ export function ArtifactRail({
           className="
             fixed right-0 top-1/3 z-[60]
             w-10 h-14
-            bg-card
-            border-l border-y border-border
-            rounded-l-xl
+            bg-card/95 backdrop-blur
+            border-l border-y border-border/70
+            rounded-l-2xl
             shadow-lg
             flex flex-col items-center justify-center gap-1
             hover:bg-card
@@ -528,20 +548,21 @@ export function ArtifactRail({
             <div
               className="
                 relative w-[min(280px,75vw)] h-full
-                bg-card border-l border-border
+                panel-glass section-frame border-l border-border/70
                 flex flex-col
                 animate-slide-in-right-full
                 shadow-2xl
               "
             >
               {/* Header */}
-              <div className="p-3 border-b border-border flex items-center justify-between">
+              <div className="p-3 border-b border-border/70 bg-background/20 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
+                  <CafeLogo size={18} animated={false} />
                   <span className="text-sm font-medium text-muted-foreground">{t('Artifacts')}</span>
                   <button
                     onClick={toggleViewMode}
                     className={`
-                      p-1 rounded transition-all duration-200
+                      p-1.5 rounded-xl transition-all duration-200
                       hover:bg-secondary/80
                       ${viewMode === 'tree' ? 'bg-secondary text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'}
                     `}
@@ -556,9 +577,9 @@ export function ArtifactRail({
                 </div>
                 <button
                   onClick={() => setMobileOverlayOpen(false)}
-                  className="p-1 hover:bg-secondary rounded transition-colors"
-                  aria-label={t('Close')}
-                >
+                    className="p-1.5 hover:bg-secondary rounded-xl transition-colors"
+                    aria-label={t('Close')}
+                  >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -581,7 +602,7 @@ export function ArtifactRail({
   return (
     <div
       ref={railRef}
-      className="h-full flex-shrink-0 border-l border-border bg-card/30 flex flex-col relative"
+      className="h-full flex-shrink-0 border-l border-border/70 panel-glass section-frame flex flex-col relative overflow-hidden"
       style={{
         width: displayWidth,
         // Disable transition when: dragging OR Canvas is open (prevent layout flicker)
@@ -600,14 +621,15 @@ export function ArtifactRail({
       )}
 
       {/* Header - height matches CanvasTabs (py-1.5 + h-7 content = ~40px) */}
-      <div className="flex-shrink-0 px-3 h-10 border-b border-border flex items-center justify-between">
+      <div className="flex-shrink-0 px-3 h-10 border-b border-border/70 bg-background/20 flex items-center justify-between">
         {isExpanded && (
           <div className="flex items-center gap-1.5">
+            <CafeLogo size={18} animated={false} />
             <span className="text-sm font-medium text-muted-foreground">{t('Artifacts')}</span>
             <button
               onClick={toggleViewMode}
               className={`
-                p-1 rounded transition-all duration-200
+                p-1.5 rounded-xl transition-all duration-200
                 hover:bg-secondary/80
                 ${viewMode === 'tree' ? 'bg-secondary text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'}
               `}
@@ -623,7 +645,7 @@ export function ArtifactRail({
         )}
         <button
           onClick={handleToggleExpanded}
-          className="p-1 hover:bg-secondary rounded transition-colors"
+          className="p-1.5 hover:bg-secondary rounded-xl transition-colors"
         >
           <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? '' : 'rotate-180'}`} />
         </button>
@@ -640,7 +662,7 @@ export function ArtifactRail({
         <div className="flex-1 flex flex-col items-center py-4 gap-2">
           {isWebMode ? (
             <div
-              className="p-2 rounded-lg cursor-not-allowed opacity-50"
+              className="p-2 rounded-xl cursor-not-allowed opacity-50 surface-subtle"
               title={t('Please open folder in client')}
             >
               <Monitor className="w-5 h-5 text-muted-foreground" />
@@ -649,14 +671,14 @@ export function ArtifactRail({
             <>
               <button
                 onClick={handleOpenFolder}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                className="p-2 hover:bg-secondary rounded-xl transition-colors"
                 title={t('Open folder')}
               >
                 <FolderOpen className="w-5 h-5 text-amber-500" />
               </button>
               <button
                 onClick={handleOpenBrowser}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                className="p-2 hover:bg-secondary rounded-xl transition-colors"
                 title={t('Open browser')}
               >
                 <Globe className="w-5 h-5 text-blue-500" />
@@ -671,13 +693,13 @@ export function ArtifactRail({
         <div
           ref={cardContextMenuRef}
           role="menu"
-          className="fixed z-[9999] min-w-[180px] bg-popover border border-border rounded-lg shadow-lg py-1"
+          className="fixed z-[9999] min-w-[180px] bg-popover border border-border rounded-xl shadow-lg py-1.5 panel-glass"
           style={{ top: cardContextMenu.y, left: cardContextMenu.x }}
         >
           <button
             role="menuitem"
             onClick={() => handleCopyRelativePath(cardContextMenu.relativePath)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary transition-colors text-left"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors text-left"
           >
             <span>{t('Copy relative path')}</span>
           </button>
@@ -685,7 +707,7 @@ export function ArtifactRail({
             <button
               role="menuitem"
               onClick={() => handleRevealInFolder(cardContextMenu.path)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors text-left"
             >
               <span>{cardContextMenu.isFolder ? t('Open folder location') : t('Show in folder')}</span>
             </button>

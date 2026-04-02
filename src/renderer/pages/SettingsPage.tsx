@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useAppStore } from '../stores/app.store'
 import { api } from '../api'
 import type { CafeConfig } from '../types'
+import { CafeLogo } from '../components/brand/CafeLogo'
 import { Header } from '../components/layout/Header'
 import { useTranslation } from '../i18n'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -22,13 +23,12 @@ import {
   AdvancedSection,
   RemoteAccessSection,
   AboutSection,
-  NotificationChannelsSection,
   MessageChannelsSection,
   RegistrySection,
   RecommendSection
 } from '../components/settings'
 
-export function SettingsPage() {
+export function SettingsPage(): JSX.Element {
   const { t } = useTranslation()
   const { config, setConfig, goBack } = useAppStore()
   const isMobile = useIsMobile()
@@ -49,18 +49,22 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col app-shell">
       {/* Header */}
       <Header
         left={
           <>
             <button
               onClick={handleBack}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+              className="p-1.5 hover:bg-secondary rounded-lg transition-colors surface-subtle"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <span className="font-medium text-sm">{t('Settings')}</span>
+            <CafeLogo size={26} animated={false} />
+            <div className="flex flex-col leading-none">
+              <span className="font-medium text-sm">{t('Settings')}</span>
+              <span className="text-[11px] text-muted-foreground/80">{t('Theme, model, remote access, and store')}</span>
+            </div>
           </>
         }
       />
@@ -88,10 +92,10 @@ export function SettingsPage() {
           )}
 
           {/* Scrollable Content */}
-          <div className="p-6">
+          <div className="p-6 md:p-8">
             <div className="max-w-2xl mx-auto space-y-6">
               {/* AI Sources Section (v2) */}
-              <section id="ai-model" className="bg-card rounded-xl border border-border p-6">
+              <section id="ai-model" className="panel-glass rounded-[1.5rem] p-6">
                 <h2 className="text-lg font-medium mb-4">{t('AI Model')}</h2>
                 <AISourcesSection config={config as CafeConfig} setConfig={setConfig} />
               </section>

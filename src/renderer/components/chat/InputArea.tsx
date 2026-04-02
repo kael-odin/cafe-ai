@@ -82,6 +82,8 @@ interface InputAreaProps {
   slashCommands?: SlashCommandItem[]
   /** Artifacts available for @ mention suggestions */
   mentionArtifacts?: Artifact[]
+  /** Lazy loader for mention artifacts, used to avoid scanning on initial space open */
+  ensureMentionArtifacts?: () => void
 }
 
 // Image constraints
@@ -94,7 +96,7 @@ interface ImageError {
   message: string
 }
 
-export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact = false, slashCommands = [], mentionArtifacts = [] }: InputAreaProps) {
+export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact = false, slashCommands = [], mentionArtifacts = [], ensureMentionArtifacts }: InputAreaProps) {
   const { t } = useTranslation()
   const sendKeyMode = useAppStore(state => state.config?.chat?.sendKeyMode ?? 'enter')
   const [content, setContent] = useState('')
@@ -555,7 +557,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
   return (
     <div className={`
-      border-t border-border/50 bg-background
+      border-t border-border/50 bg-background/40 backdrop-blur
       transition-[padding] duration-300 ease-out
       ${isCompact ? 'px-3 py-2' : 'px-4 py-3'}
     `}>
@@ -582,10 +584,10 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
         {/* Input container */}
         <div
           className={`
-            relative flex flex-col rounded-2xl transition-all duration-200
+            relative flex flex-col rounded-[1.5rem] transition-all duration-200 input-area soft-shine
             ${isFocused
-              ? 'ring-1 ring-primary/30 bg-card shadow-sm'
-              : 'bg-secondary/50 hover:bg-secondary/70'
+              ? 'ring-1 ring-primary/20'
+              : 'hover:border-primary/30'
             }
             ${isGenerating ? 'opacity-60' : ''}
             ${isDragOver ? 'ring-2 ring-primary/50 bg-primary/5' : ''}
@@ -606,7 +608,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
           )}
           {/* @ mention autocomplete menu */}
           {mentionMenuOpen && filteredMentionArtifacts.length > 0 && (
-            <div className="absolute bottom-full left-0 mb-2 w-full max-w-md bg-popover border border-border rounded-xl shadow-lg z-30 overflow-hidden">
+            <div className="absolute bottom-full left-0 mb-2 w-full max-w-md bg-popover border border-border rounded-[1rem] shadow-lg z-30 overflow-hidden panel-glass">
               <div className="max-h-[336px] overflow-y-auto py-1">
                 {filteredMentionArtifacts.map((artifact, index) => {
                   const isSelected = index === mentionSelectedIndex
@@ -663,7 +665,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
           )}
 
           {/* Textarea area */}
-          <div className="px-3 pt-3 pb-1">
+          <div className="px-3.5 pt-3.5 pb-1">
             <textarea
               ref={textareaRef}
               value={displayContent}
@@ -695,7 +697,10 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
                 const nextCursor = e.target.selectionStart ?? val.length
                 setCursorPos(nextCursor)
                 const nextMentionMatch = getMentionMatch(val, nextCursor)
-                if (nextMentionMatch && mentionArtifacts.length > 0) {
+                if (nextMentionMatch) {
+                  if (mentionArtifacts.length === 0) {
+                    ensureMentionArtifacts?.()
+                  }
                   setMentionMenuOpen(true)
                   setMentionSelectedIndex(0)
                 } else {
@@ -712,7 +717,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
               readOnly={isOnboardingSendStep}
               rows={1}
               className={`w-full bg-transparent resize-none
-                focus:outline-none text-foreground placeholder:text-muted-foreground/50
+                focus:outline-none text-[15px] leading-7 text-foreground placeholder:text-muted-foreground/50
                 disabled:cursor-not-allowed min-h-[24px]
                 ${isOnboardingSendStep ? 'cursor-default' : ''}`}
               style={{ maxHeight: '200px' }}
@@ -792,20 +797,20 @@ function InputToolbar({
 }: InputToolbarProps) {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center justify-between px-2 pb-2 pt-1">
+        <div className="flex items-center justify-between px-3 pb-3 pt-2 border-t border-border/20 bg-gradient-to-b from-transparent to-background/10 rounded-b-[1.5rem]">
       {/* Left section: attachment button + thinking toggle */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {/* Attachment menu */}
         {!isGenerating && !isOnboarding && (
           <div className="relative" ref={attachMenuRef}>
             <button
               onClick={onAttachMenuToggle}
               disabled={isProcessingImages}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg
+              className={`w-8 h-8 flex items-center justify-center rounded-xl toolbar-chip
                 transition-all duration-150
                 ${showAttachMenu
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'
+                  ? 'toolbar-chip-active'
+                  : 'text-muted-foreground/60 hover:text-muted-foreground'
                 }
                 ${isProcessingImages ? 'opacity-50 cursor-not-allowed' : ''}
               `}
@@ -817,7 +822,7 @@ function InputToolbar({
             {/* Attachment menu dropdown */}
             {showAttachMenu && (
               <div className="absolute bottom-full left-0 mb-2 py-1.5 bg-popover border border-border
-                rounded-xl shadow-lg min-w-[160px] z-20 animate-fade-in">
+                rounded-[1rem] shadow-lg min-w-[180px] z-20 animate-fade-in panel-glass soft-shine">
                 <button
                   onClick={onImageClick}
                   disabled={imageCount >= maxImages}
@@ -847,11 +852,11 @@ function InputToolbar({
         {!isGenerating && !isOnboarding && (
           <button
             onClick={onAIBrowserToggle}
-            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-lg
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-xl toolbar-chip
               transition-colors duration-200 relative
               ${aiBrowserEnabled
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50'
+                ? 'toolbar-chip-active'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
               }
             `}
             title={aiBrowserEnabled ? t('AI Browser enabled (click to disable)') : t('Enable AI Browser')}
@@ -869,11 +874,11 @@ function InputToolbar({
         {!isGenerating && !isOnboarding && (
           <button
             onClick={onThinkingToggle}
-            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-lg
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-xl toolbar-chip
               transition-colors duration-200
               ${thinkingEnabled
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50'
+                ? 'toolbar-chip-active'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
               }
             `}
             title={thinkingEnabled ? t('Disable Deep Thinking') : t('Enable Deep Thinking')}
@@ -890,7 +895,7 @@ function InputToolbar({
           <button
             onClick={onStop}
             className="w-8 h-8 flex items-center justify-center
-              bg-destructive/10 text-destructive rounded-lg
+              bg-destructive/10 text-destructive rounded-xl border border-destructive/20
               hover:bg-destructive/20 active:bg-destructive/30
               transition-all duration-150"
             title={t('Stop generation (Esc)')}
@@ -902,11 +907,11 @@ function InputToolbar({
             data-onboarding="send-button"
             onClick={onSend}
             disabled={!canSend}
-            className={`
-              w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200
+              className={`
+              w-9 h-9 flex items-center justify-center rounded-[0.95rem] transition-all duration-200 btn-send
               ${canSend
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
-                : 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed'
+                ? 'active:scale-95'
+                : 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed shadow-none'
               }
             `}
             title={

@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { Virtuoso } from 'react-virtuoso'
 import { MessageSquare, Plus } from '../icons/ToolIcons'
 import { ChevronLeft, EllipsisVertical, Pin, Pencil, Trash2 } from 'lucide-react'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 import { useChatStore, useAllConversationStatuses } from '../../stores/chat.store'
 import { useSpaceStore } from '../../stores/space.store'
@@ -266,8 +267,8 @@ export const ConversationList = memo(function ConversationList({
   const renderConversationItem = useCallback((conversation: ConversationMeta) => (
     <div
       onClick={() => editingId !== conversation.id && useChatStore.getState().selectConversation(conversation.id)}
-      className={`w-full px-3 py-2 text-left hover:bg-secondary/50 transition-colors cursor-pointer group relative ${
-        conversation.id === currentConversationId ? 'bg-primary/10 border-l-2 border-primary' : ''
+      className={`w-full px-3 py-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer group relative border-b border-border/30 ${
+        conversation.id === currentConversationId ? 'bg-primary/10 border-l-2 border-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.12)]' : 'hover:border-primary/10'
       }`}
     >
       {/* Edit mode */}
@@ -295,9 +296,9 @@ export const ConversationList = memo(function ConversationList({
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2 relative">
-            <MessageSquare className="w-4 h-4 text-blue-500 flex-shrink-0" />
-            <span className="text-sm truncate flex-1">
+          <div className="flex items-center gap-2 relative pr-8">
+            <MessageSquare className="w-4 h-4 text-primary flex-shrink-0" />
+            <span className="text-sm truncate flex-1 font-medium">
               {conversation.title}
             </span>
             {/* Absolutely positioned so idle placeholder doesn't steal title space */}
@@ -323,7 +324,7 @@ export const ConversationList = memo(function ConversationList({
                     setMenuOpenId(conversation.id)
                   }
                 }}
-                className="px-1.5 py-1 rounded transition-colors bg-secondary text-foreground/80 hover:text-foreground hover:bg-secondary"
+                className="px-1.5 py-1 rounded-lg transition-colors bg-secondary/80 text-foreground/80 hover:text-foreground hover:bg-secondary"
                 title={t('More')}
               >
                 <EllipsisVertical className="w-3.5 h-3.5" />
@@ -338,15 +339,15 @@ export const ConversationList = memo(function ConversationList({
                     setMenuOpenId(null)
                     setMenuPosition(null)
                   }}
-                  className="px-1.5 py-1 rounded bg-secondary text-foreground"
-                  title={t('More')}
-                >
+                   className="px-1.5 py-1 rounded-lg bg-secondary text-foreground"
+                   title={t('More')}
+                 >
                   <EllipsisVertical className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1.5">
             {formatDate(conversation.updatedAt)}
           </p>
         </>
@@ -358,16 +359,22 @@ export const ConversationList = memo(function ConversationList({
     <>
     <div
       ref={containerRef}
-      className="border-r border-border flex flex-col bg-card/50 relative"
+      className="panel-glass section-frame rounded-[1.5rem] flex flex-col relative overflow-hidden"
       style={{ width, transition: isDragging ? 'none' : 'width 0.2s ease' }}
     >
       {/* Header */}
-      <div className="p-3 border-b border-border flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{t('Conversations')}</span>
+      <div className="p-3.5 border-b border-border/70 flex items-center justify-between bg-background/20 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <CafeLogo size={22} animated={false} />
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Workspace')}</div>
+            <span className="text-sm font-medium text-foreground">{t('Conversations')}</span>
+          </div>
+        </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="relative p-1 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground before:content-[''] before:absolute before:-inset-2"
+            className="relative p-1.5 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground before:content-[''] before:absolute before:-inset-2"
             title={t('Close sidebar')}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -393,7 +400,7 @@ export const ConversationList = memo(function ConversationList({
       </div>
 
       {/* Conversation list - virtualized for performance with large lists */}
-      <div className="flex-1 overflow-hidden border-t border-border">
+      <div className="flex-1 overflow-hidden border-t border-border/70 bg-background/10">
         <Virtuoso
           data={conversations}
           overscan={200}
@@ -402,13 +409,13 @@ export const ConversationList = memo(function ConversationList({
       </div>
 
       {/* New conversation button */}
-      <div className="p-2 border-t border-border">
+      <div className="p-3 border-t border-border/70 bg-background/20">
         <button
           onClick={() => {
             const spaceId = useSpaceStore.getState().currentSpace?.id
             if (spaceId) useChatStore.getState().createConversation(spaceId)
           }}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-primary hover:bg-primary/10 rounded-xl transition-colors surface-subtle soft-hover-accent"
         >
           <Plus className="w-4 h-4" />
           {t('New conversation')}
@@ -432,7 +439,7 @@ export const ConversationList = memo(function ConversationList({
       return createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[9999] min-w-[140px] bg-popover border border-border rounded-lg shadow-lg py-1"
+          className="fixed z-[9999] min-w-[150px] bg-popover border border-border rounded-xl shadow-lg py-1.5 panel-glass"
           style={{ top: menuPosition.top, left: menuPosition.left, transform: 'translateX(-100%)' }}
         >
           <button
@@ -443,7 +450,7 @@ export const ConversationList = memo(function ConversationList({
               setMenuOpenId(null)
               setMenuPosition(null)
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors"
           >
             <Pin className={`w-3.5 h-3.5 ${conv.starred ? 'text-primary' : ''}`} />
             <span>{conv.starred ? t('Unpin') : t('Pin')}</span>
@@ -454,7 +461,7 @@ export const ConversationList = memo(function ConversationList({
               setMenuOpenId(null)
               setMenuPosition(null)
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             <span>{t('Rename')}</span>
@@ -467,7 +474,7 @@ export const ConversationList = memo(function ConversationList({
               setMenuOpenId(null)
               setMenuPosition(null)
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>{t('Delete')}</span>

@@ -107,7 +107,7 @@ function supportsType(source: RegistrySource, type?: AppType): boolean {
       return type === 'mcp'
     case 'claude-skills':
       return type === 'skill'
-    case 'Cafe':
+    case 'cafe':
     default:
       return type === 'automation'
   }

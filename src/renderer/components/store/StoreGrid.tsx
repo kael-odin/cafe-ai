@@ -21,17 +21,18 @@ export function StoreGrid() {
 
   if (storeApps.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-          <Package className="w-6 h-6 text-muted-foreground" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center">
+        <div className="w-16 h-16 rounded-[1.5rem] panel-glass flex items-center justify-center">
+          <Package className="w-7 h-7 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-lg font-semibold text-foreground">
             {t('No apps found')}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
             {t('Try adjusting your search or filters')}
           </p>
+          <p className="text-xs text-muted-foreground/80 mt-2">{t('没有找到合适的应用时，可以先切换分类，或用中英文关键词尝试搜索')}</p>
         </div>
       </div>
     )
@@ -39,8 +40,8 @@ export function StoreGrid() {
 
   return (
     <div className="flex flex-col">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {storeApps.map(entry => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+        {storeApps.map((entry) => (
           <StoreCard
             key={entry.slug}
             entry={entry}
@@ -53,7 +54,7 @@ export function StoreGrid() {
           <button
             onClick={loadMoreStoreApps}
             disabled={storeLoading}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 panel-glass"
           >
             {storeLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

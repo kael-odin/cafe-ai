@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useAppStore } from '../../stores/app.store'
 import { api } from '../../api'
 import { Lightbulb, CheckCircle2, XCircle } from '../icons/ToolIcons'
+import { CafeLogo } from '../brand/CafeLogo'
 import { Globe, ChevronDown, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react'
 import { AVAILABLE_MODELS, DEFAULT_MODEL, type AISourcesConfig, type AISource } from '../../types'
 import { getBuiltinProvider } from '../../types'
@@ -293,11 +294,11 @@ export function ApiSetup({ onBack, showBack = false }: ApiSetupProps) {
 
       {/* Header */}
       <div className="flex flex-col items-center mb-8">
-        {/* Logo */}
-        <div className="w-16 h-16 rounded-full border-2 border-primary/60 flex items-center justify-center Cafe-glow">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-transparent" />
-        </div>
-        <h1 className="mt-4 text-2xl font-light">Cafe</h1>
+        <CafeLogo size={68} />
+        <h1 className="mt-4 text-2xl font-medium tracking-[-0.02em]">Cafe</h1>
+        <p className="mt-2 text-sm text-muted-foreground/80 text-center max-w-xs">
+          {t('Connect your model in a workspace that stays calm, clear, and a little bit feline.')}
+        </p>
       </div>
 
       {/* Main content */}

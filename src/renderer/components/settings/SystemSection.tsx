@@ -213,7 +213,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
   return (
     <>
       {/* Permissions Section */}
-      <section id="permissions" className="bg-card rounded-xl border border-border p-6">
+      <section id="permissions" className="panel-glass section-frame rounded-[1.5rem] p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium">{t('Permissions')}</h2>
           <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-500">
@@ -222,7 +222,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
         </div>
 
         {/* Info banner */}
-        <div className="bg-muted/50 rounded-lg p-3 mb-4 text-sm text-muted-foreground">
+        <div className="info-banner-soft p-3 mb-4 text-sm text-muted-foreground">
           {t('We recommend full trust mode - use natural language to control Cafe.')}
         </div>
 
@@ -247,7 +247,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
       </section>
 
       {/* System Section */}
-      <section id="system" className="bg-card rounded-xl border border-border p-6">
+      <section id="system" className="panel-glass section-frame rounded-[1.5rem] p-6">
         <h2 className="text-lg font-medium mb-4">{t('System')}</h2>
 
         <div className="space-y-4">
@@ -327,11 +327,11 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && handleProxySave()}
                 placeholder="http://127.0.0.1:1087"
-                className="flex-1 px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+                className="form-input-soft flex-1 px-3 py-1.5 text-sm font-mono"
               />
               <button
                 onClick={handleProxySave}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors shrink-0"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors shrink-0"
               >
                 {proxySaved ? (
                   <CheckCircle className="w-3.5 h-3.5" />
@@ -359,8 +359,8 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
             </div>
             <button
               onClick={() => api.openLogFolder()}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
-            >
+                className="flex items-center gap-2 px-3 py-1.5 text-sm surface-subtle hover:bg-secondary rounded-xl transition-colors"
+              >
               <FolderOpen className="w-4 h-4" />
               {t('Open Folder')}
             </button>
@@ -378,7 +378,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
               <button
                 onClick={handleRunDiagnostics}
                 disabled={isRunningDiagnostics}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors disabled:opacity-50"
               >
                 {isRunningDiagnostics ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -394,7 +394,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
               <div className="mt-4 space-y-3">
                 {/* Health Status Summary */}
                 <div
-                  className={`p-4 rounded-lg ${getHealthStatusStyle('healthy').bg} cursor-pointer`}
+                  className={`p-4 rounded-xl ${getHealthStatusStyle('healthy').bg} cursor-pointer border border-border/40`}
                   onClick={() => setDiagnosticsExpanded(!diagnosticsExpanded)}
                 >
                   <div className="flex items-center justify-between">
@@ -428,7 +428,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                 {diagnosticsExpanded && (
                   <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
                     {/* System Info */}
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                    <div className="bg-muted/30 rounded-xl p-3 space-y-2">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('System Info')}</p>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between">
@@ -451,7 +451,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                     </div>
 
                     {/* Health Metrics */}
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                    <div className="bg-muted/30 rounded-xl p-3 space-y-2">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Health Metrics')}</p>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between">
@@ -479,7 +479,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Process Status (from PPID scan) */}
                     {healthCheckResult && (
-                      <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                      <div className="bg-muted/30 rounded-xl p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Process Status')}</p>
                         <div className="space-y-2">
                           {/* Claude processes */}
@@ -522,7 +522,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Service Status (HTTP probes) */}
                     {healthCheckResult && (
-                      <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                      <div className="bg-muted/30 rounded-xl p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Service Status')}</p>
                         <div className="space-y-2">
                           {/* OpenAI Router */}
@@ -589,7 +589,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Registry Cleanup */}
                     {healthCheckResult && (healthCheckResult.registryCleanup.removed > 0 || healthCheckResult.registryCleanup.orphans > 0) && (
-                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 space-y-1">
+                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 space-y-1">
                         <p className="text-xs font-medium text-amber-500 uppercase tracking-wide">{t('Cleanup Actions')}</p>
                         <div className="text-sm text-amber-500">
                           {healthCheckResult.registryCleanup.removed > 0 && (
@@ -604,7 +604,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
 
                     {/* Recent Errors */}
                     {healthReport.recentErrors.length > 0 && (
-                      <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 space-y-2">
+                      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3 space-y-2">
                         <p className="text-xs font-medium text-red-500 uppercase tracking-wide">{t('Recent Errors')}</p>
                         <div className="space-y-1.5 max-h-32 overflow-y-auto">
                           {healthReport.recentErrors.slice(0, 5).map((error, index) => (
@@ -619,11 +619,11 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                     )}
 
                     {/* Recovery Actions */}
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-3">
+                    <div className="bg-muted/30 rounded-xl p-3 space-y-3">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Recovery Actions')}</p>
 
                       {recoveryResult && (
-                        <div className={`p-2 rounded-lg text-sm ${recoveryResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                        <div className={`p-2 rounded-xl text-sm ${recoveryResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                           {recoveryResult.message}
                         </div>
                       )}
@@ -633,7 +633,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                         <button
                           onClick={() => handleRecovery('S2')}
                           disabled={isRecovering !== null}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-lg transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl transition-colors disabled:opacity-50"
                           title={t('Kill all AI sessions and restart - fixes most issues')}
                         >
                           {isRecovering === 'S2' ? (
@@ -648,7 +648,7 @@ export function SystemSection({ config, setConfig }: SystemSectionProps) {
                         <button
                           onClick={() => handleRecovery('S3')}
                           disabled={isRecovering !== null}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors disabled:opacity-50"
                           title={t('Restart the entire application')}
                         >
                           {isRecovering === 'S3' ? (

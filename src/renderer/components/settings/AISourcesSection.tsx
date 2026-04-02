@@ -293,7 +293,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
     return (
       <div
         key={source.id}
-        className={`border rounded-lg transition-all ${
+        className={`border rounded-xl transition-all ${
           isCurrent
             ? 'border-primary bg-primary/5'
             : 'border-border-primary bg-surface-secondary'
@@ -320,7 +320,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
           </button>
 
           {/* Icon */}
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
             isCurrent ? 'bg-primary/20' : 'bg-surface-tertiary'
           }`}>
             {isOAuth ? (
@@ -342,7 +342,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
 
           {/* User info for OAuth */}
           {isOAuth && source.user?.name && (
-            <span className="text-xs text-text-secondary px-2 py-1 bg-surface-tertiary rounded">
+            <span className="text-xs text-text-secondary px-2 py-1 bg-surface-tertiary rounded-full">
               {source.user.name}
             </span>
           )}
@@ -390,7 +390,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
                     onClick={() => handleOAuthLogout(source.id)}
                     disabled={loggingOutSourceId === source.id}
                     className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-500
-                             bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors"
+                             bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors"
                   >
                     {loggingOutSourceId === source.id ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -405,7 +405,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
                     <button
                       onClick={() => setEditingSourceId(source.id)}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm text-text-secondary
-                               bg-surface-tertiary hover:bg-surface-primary rounded-md transition-colors"
+                               bg-surface-tertiary hover:bg-surface-primary rounded-xl transition-colors"
                     >
                       <Edit2 size={14} />
                       {t('Edit')}
@@ -413,7 +413,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
                     <button
                       onClick={() => setDeletingSourceId(source.id)}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-500
-                               bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors"
+                               bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors"
                     >
                       <Trash2 size={14} />
                       {t('Delete')}
@@ -452,7 +452,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
   if (deletingSourceId) {
     const sourceToDelete = aiSources.sources.find(s => s.id === deletingSourceId)
     return (
-      <div className="p-4 bg-surface-secondary rounded-lg border border-border-primary space-y-4">
+      <div className="panel-glass section-frame p-4 rounded-xl space-y-4">
         <h3 className="font-medium text-text-primary">{t('Confirm Delete')}</h3>
         <p className="text-text-secondary">
           {t('Are you sure you want to delete')} <strong>{sourceToDelete?.name}</strong>?
@@ -460,13 +460,13 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
         <div className="flex gap-3">
           <button
             onClick={() => setDeletingSourceId(null)}
-            className="flex-1 px-4 py-2 text-text-secondary hover:bg-surface-tertiary rounded-md"
+            className="flex-1 px-4 py-2 text-text-secondary hover:bg-surface-tertiary rounded-xl"
           >
             {t('Cancel')}
           </button>
           <button
             onClick={() => handleDeleteSource(deletingSourceId)}
-            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600"
           >
             {t('Delete')}
           </button>
@@ -478,13 +478,13 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
   // Show OAuth login state
   if (loginState) {
     return (
-      <div className="p-4 bg-surface-secondary rounded-lg border border-border-primary space-y-4">
+      <div className="panel-glass section-frame p-4 rounded-xl space-y-4">
         <div className="flex items-center gap-3">
           <Loader2 size={20} className="animate-spin text-primary" />
           <span className="text-text-primary">{loginState.status}</span>
         </div>
         {loginState.userCode && (
-          <div className="p-3 bg-surface-tertiary rounded-md text-center">
+          <div className="p-3 bg-surface-tertiary rounded-xl text-center">
             <p className="text-sm text-text-secondary mb-2">{t('Your code')}:</p>
             <p className="text-2xl font-mono font-bold text-primary">{loginState.userCode}</p>
             {loginState.verificationUri && (
@@ -511,9 +511,9 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
           {aiSources.sources.map(renderSourceCard)}
         </div>
       ) : (
-        <div className="p-6 text-center text-text-tertiary bg-surface-secondary rounded-lg border border-border-primary">
-          {t('No AI sources configured')}
-        </div>
+          <div className="p-6 text-center text-text-tertiary bg-surface-secondary rounded-xl border border-border-primary">
+            {t('No AI sources configured')}
+          </div>
       )}
 
       {/* Add Source Button */}
@@ -521,7 +521,7 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
         onClick={() => setShowAddForm(true)}
         className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed
                  border-border-secondary hover:border-primary text-text-secondary hover:text-primary
-                 rounded-lg transition-colors"
+                 rounded-xl transition-colors"
       >
         <Plus size={18} />
         {t('Add AI Provider')}
@@ -548,13 +548,13 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps) {
                   <button
                     key={provider.type}
                     onClick={() => handleOAuthLogin(provider.type as ProviderId)}
-                    className="flex items-center gap-3 w-full p-3 bg-surface-secondary hover:bg-surface-tertiary
-                             border border-border-primary rounded-lg transition-colors"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: provider.iconBgColor }}
-                    >
+                     className="flex items-center gap-3 w-full p-3 bg-surface-secondary hover:bg-surface-tertiary
+                              border border-border-primary rounded-xl transition-colors"
+                   >
+                     <div
+                       className="w-10 h-10 rounded-xl flex items-center justify-center"
+                       style={{ backgroundColor: provider.iconBgColor }}
+                     >
                       <IconComponent size={20} className="text-white" />
                     </div>
                     <div className="flex-1 text-left">

@@ -130,16 +130,45 @@ export function AppList({ onInstall, onManualAdd, spaceMap, mode = 'automation' 
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable list */}
-      <div className="flex-1 overflow-y-auto py-2 px-2 space-y-4">
+      <div className="px-3 pt-3 pb-2 border-b border-border/70 bg-background/20 backdrop-blur-sm">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+          {isAppsMode ? t('Toolkit') : t('Workspace')}
+        </div>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {isAppsMode ? t('Installed Apps') : t('Digital Humans')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isAppsMode
+                ? t('适合中文用户的技能、MCP 与扩展入口 / Skills, MCPs and extensions')
+                : t('把常用自动化角色集中到一个工作台 / Your automation workspace')}
+            </p>
+          </div>
+          <div className="text-xs text-muted-foreground rounded-full bg-secondary/70 px-2.5 py-1">
+            {filteredApps.length}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5">
         {groups.length === 0 && (
-          <p className="text-xs text-muted-foreground px-2 py-4 text-center">
-            {emptyText}
-          </p>
+          <div className="rounded-2xl border border-dashed border-border/70 bg-background/15 px-4 py-8 text-center">
+            <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-secondary/80 flex items-center justify-center">
+              {isAppsMode ? <Upload className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
+            </div>
+            <p className="text-sm font-medium text-foreground">{emptyText}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isAppsMode
+                ? t('可以先去应用商店看看，也可以手动添加 SKILL / MCP')
+                : t('从一次对话开始创建数字员工，或先去应用商店浏览模板')}
+            </p>
+          </div>
         )}
 
         {groups.map(group => (
           <div key={group.label}>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
               {t(group.label)}
               <span className="ml-1 font-normal normal-case tracking-normal">({group.apps.length})</span>
             </p>
@@ -165,11 +194,11 @@ export function AppList({ onInstall, onManualAdd, spaceMap, mode = 'automation' 
       </div>
 
       {/* Bottom actions */}
-      <div className="flex-shrink-0 border-t border-border p-2 space-y-1">
+      <div className="flex-shrink-0 border-t border-border/70 p-3 space-y-2 bg-background/20">
         {!isAppsMode && (
           <button
             onClick={onInstall}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors"
           >
             <Plus className="w-4 h-4" />
             {actionText}
@@ -178,12 +207,20 @@ export function AppList({ onInstall, onManualAdd, spaceMap, mode = 'automation' 
         {isAppsMode && onManualAdd && (
           <button
             onClick={onManualAdd}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors"
           >
             <Upload className="w-4 h-4" />
             {t('Manual Add SKILL/MCP')}
           </button>
         )}
+
+        <button
+          onClick={onInstall}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm btn-primary text-primary-foreground rounded-xl"
+        >
+          <Plus className="w-4 h-4" />
+          {isAppsMode ? t('Browse App Store') : actionText}
+        </button>
       </div>
     </div>
   )

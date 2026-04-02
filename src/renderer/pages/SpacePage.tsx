@@ -53,6 +53,7 @@ function persistLayout(update: Partial<LayoutConfig>) {
 
 export function SpacePage() {
   const { t } = useTranslation()
+  const [showArtifactRail, setShowArtifactRail] = useState(false)
 
   // Precise selectors — only subscribe to what SpacePage needs for layout orchestration
   const setView = useAppStore(state => state.setView)
@@ -228,6 +229,17 @@ export function SpacePage() {
     initSpace()
   }, [currentSpace?.id]) // Only re-run when space ID changes
 
+  useEffect(() => {
+    if (!currentSpace) return
+    if (!currentSpace.isTemp) {
+      setShowArtifactRail(true)
+      return
+    }
+    setShowArtifactRail(false)
+    const timer = setTimeout(() => setShowArtifactRail(true), 420)
+    return () => clearTimeout(timer)
+  }, [currentSpace?.id, currentSpace?.isTemp])
+
   // Toggle conversation list sidebar with global persistence
   const handleToggleConversationList = useCallback(() => {
     const newValue = !showConversationList
@@ -306,7 +318,7 @@ export function SpacePage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col app-shell">
       {/*
         ChatCapsule overlay is now managed via IPC to render above BrowserView.
         The overlay SPA is a separate WebContentsView that appears above all views.
@@ -316,7 +328,7 @@ export function SpacePage() {
       {/* Header - replaced with drag region spacer when maximized (for macOS traffic lights) */}
       {isCanvasMaximized ? (
         <div
-          className="h-11 flex-shrink-0 bg-background"
+          className="h-11 flex-shrink-0 bg-background/80 backdrop-blur section-frame rounded-t-[1rem] border-b-0"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         />
       ) : (
@@ -326,7 +338,7 @@ export function SpacePage() {
             {/* Back button */}
             <button
               onClick={() => setView('home')}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+                className="p-2 hover:bg-secondary rounded-xl transition-colors surface-subtle"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -349,7 +361,7 @@ export function SpacePage() {
             {/* New conversation button */}
             <button
               onClick={handleNewConversation}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-sm hover:bg-secondary rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm panel-glass hover:border-primary/30 rounded-xl transition-colors surface-subtle"
               title={t('New conversation')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,7 +380,7 @@ export function SpacePage() {
 
             <button
               onClick={() => setView('settings')}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+                className="p-2 hover:bg-secondary rounded-xl transition-colors surface-subtle"
               title={t('Settings')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -390,7 +402,7 @@ export function SpacePage() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="relative z-0 flex-1 flex overflow-hidden p-2 md:p-3 gap-2 md:gap-3">
         {/* Conversation list sidebar - CSS hidden when collapsed or maximized, unmounted on mobile */}
         {!isMobile && (
           <div style={{ display: showConversationList && !isCanvasMaximized ? 'flex' : 'none' }}>
@@ -410,7 +422,7 @@ export function SpacePage() {
                 ref={chatContainerRef}
                 className={`
                   flex flex-col min-w-0 relative
-                  ${isCanvasOpen ? 'border-r border-border/60' : 'flex-1 border-r border-transparent'}
+                  ${isCanvasOpen ? 'border-r border-border/40 panel-glass section-frame rounded-[1.5rem]' : 'flex-1 panel-glass section-frame rounded-[1.5rem]'}
                 `}
                 style={{
                   width: isCanvasOpen ? dragChatWidth : undefined,
@@ -469,7 +481,7 @@ export function SpacePage() {
 
         {/* Artifact rail - auto-collapses when maximized via useEffect above */}
         {/* Smart collapse: collapses when canvas is open, respects user preference */}
-        {!isMobile && (
+        {!isMobile && showArtifactRail && (
           <ArtifactRail
             externalExpanded={effectiveRailExpanded}
             onExpandedChange={setRailExpanded}
@@ -481,19 +493,19 @@ export function SpacePage() {
 
       {/* Mobile Canvas Overlay */}
       {isMobile && isCanvasOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background animate-slide-in-right-full">
-          {/* Mobile Canvas Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex flex-col bg-background animate-slide-in-right-full">
+            {/* Mobile Canvas Header */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/70 bg-card/80 backdrop-blur-sm">
             <button
               onClick={() => setCanvasOpen(false)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-colors surface-subtle"
             >
               <MessageSquare className="w-4 h-4" />
               <span>{t('Return to conversation')}</span>
             </button>
             <button
               onClick={() => setCanvasOpen(false)}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+              className="p-1.5 hover:bg-secondary rounded-xl transition-colors surface-subtle"
             >
               <X className="w-5 h-5" />
             </button>

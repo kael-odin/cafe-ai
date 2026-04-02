@@ -41,25 +41,36 @@ export function EmptyState({ hasApps, onInstall, variant = 'automation' }: Empty
   const ActionIcon = isApps ? Store : Plus
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-      <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-        <Blocks className="w-6 h-6 text-muted-foreground" />
+    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center relative overflow-hidden">
+      <span className="sakura-petal sakura-float-a right-16 top-12" />
+      <span className="sakura-petal sakura-petal-sm sakura-float-b left-20 bottom-16" />
+
+      <div className="w-16 h-16 rounded-[1.5rem] panel-glass flex items-center justify-center">
+        <Blocks className="w-7 h-7 text-primary" />
       </div>
 
       {hasApps ? (
         <div>
-          <p className="text-sm font-medium text-foreground">{selectText}</p>
-          <p className="text-xs text-muted-foreground mt-1">{selectHint}</p>
+          <p className="text-lg font-semibold text-foreground">{selectText}</p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">{selectHint}</p>
+          <p className="text-xs text-muted-foreground/80 mt-2">
+            {isApps ? t('左侧列表支持按类型快速浏览') : t('左侧列表会根据当前状态自动分组')}
+          </p>
         </div>
       ) : (
         <>
           <div>
-            <p className="text-sm font-medium text-foreground">{emptyTitle}</p>
-            <p className="text-xs text-muted-foreground mt-1">{emptyHint}</p>
+            <p className="text-lg font-semibold text-foreground">{emptyTitle}</p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">{emptyHint}</p>
+            <p className="text-xs text-muted-foreground/80 mt-2">
+              {isApps
+                ? t('先从高频工具开始，中文工作流会更顺手')
+                : t('先创建一个角色，再慢慢扩充你的数字员工团队')}
+            </p>
           </div>
           <button
             onClick={onInstall}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm btn-primary text-primary-foreground rounded-xl"
           >
             <ActionIcon className="w-4 h-4" />
             {actionLabel}

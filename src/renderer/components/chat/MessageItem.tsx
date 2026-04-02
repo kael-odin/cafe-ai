@@ -299,13 +299,13 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
     </div>
   ) : (
     <div
-      className={`rounded-2xl px-4 py-3 ${
+      className={`rounded-[1.35rem] px-4 py-3.5 ${
         isUser ? 'message-user' : 'message-assistant'
       } ${isStreaming ? 'streaming-message' : ''} ${isWorking ? 'message-working' : ''} ${!isInContainer ? 'max-w-[85%]' : 'w-full'}`}
     >
       {/* Working indicator - shows when AI is working */}
       {isWorking && !isUser && (
-        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-border/30 working-indicator-fade">
+        <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-border/30 working-indicator-fade">
           <Sparkles size={12} className="text-primary/60 animate-pulse-gentle" />
           <span className="text-xs text-muted-foreground/70">{t('Cafe is working')}</span>
         </div>
@@ -390,15 +390,15 @@ export const MessageItem = memo(function MessageItem({ message, previousCost = 0
 
       {/* Token usage indicator + copy button - only for completed assistant messages with tokenUsage */}
       {!isUser && !isWorking && message.tokenUsage && (
-        <div className="flex justify-end items-center gap-2 mt-2 pt-1">
+        <div className="flex justify-end items-center gap-2 mt-2 message-meta-bar">
           {/* Token usage indicator */}
           <TokenUsageIndicator tokenUsage={message.tokenUsage} previousCost={previousCost} />
 
           {/* Copy button */}
           <button
             onClick={handleCopyMessage}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground/60
-              hover:text-foreground hover:bg-white/5 rounded-md transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground/60
+              hover:text-foreground hover:bg-background/40 rounded-xl transition-all surface-subtle"
             title={t('Copy message')}
           >
             {copied ? (

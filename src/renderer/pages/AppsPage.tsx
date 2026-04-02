@@ -16,6 +16,7 @@ import { useSpaceStore } from '../stores/space.store'
 import { useAppsStore } from '../stores/apps.store'
 import { useAppsPageStore } from '../stores/apps-page.store'
 import { Header } from '../components/layout/Header'
+import { CafeLogo } from '../components/brand/CafeLogo'
 import { AppList } from '../components/apps/AppList'
 import { AutomationHeader } from '../components/apps/AutomationHeader'
 import { LoginNoticeBar } from '../components/apps/LoginNoticeBar'
@@ -204,22 +205,32 @@ export function AppsPage() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background app-shell">
       {/* Header */}
       <Header
         left={
-          <button
-            onClick={() => setView(currentSpace ? 'space' : (previousView || 'home'))}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            {currentSpace?.name ?? t('Back')}
-          </button>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setView(currentSpace ? 'space' : (previousView || 'home'))}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {currentSpace?.name ?? t('Back')}
+            </button>
+            <div className="h-5 w-px bg-border/70" />
+            <div className="flex items-center gap-2 min-w-0">
+              <CafeLogo size={26} animated={false} />
+              <div className="flex flex-col leading-none min-w-0">
+                <span className="text-sm font-semibold truncate">{t('Apps')}</span>
+                <span className="text-[11px] text-muted-foreground/80 truncate">{t('Digital humans, MCP, skills, and store')}</span>
+              </div>
+            </div>
+          </div>
         }
         right={
           <button
             onClick={() => setView('settings')}
-            className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-secondary rounded-xl transition-colors surface-subtle"
             title={t('Settings')}
           >
             <Settings className="w-5 h-5" />
@@ -228,37 +239,44 @@ export function AppsPage() {
       />
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 px-4 py-2 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/70 flex-shrink-0 bg-background/60 backdrop-blur relative overflow-hidden">
+        <div className="flex items-center gap-1">
         <button
           onClick={() => setCurrentTab('my-digital-humans')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+          className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${
             currentTab === 'my-digital-humans'
-              ? 'bg-secondary text-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
+              : 'toolbar-chip text-muted-foreground hover:text-foreground'
           }`}
         >
           {t('My Digital Humans')}
         </button>
         <button
           onClick={() => setCurrentTab('my-apps')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+          className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${
             currentTab === 'my-apps'
-              ? 'bg-secondary text-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
+              : 'toolbar-chip text-muted-foreground hover:text-foreground'
           }`}
         >
           {t('My Apps')}
         </button>
         <button
           onClick={() => setCurrentTab('store')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+          className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${
             currentTab === 'store'
-              ? 'bg-secondary text-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              ? 'toolbar-chip toolbar-chip-active text-foreground font-medium'
+              : 'toolbar-chip text-muted-foreground hover:text-foreground'
           }`}
         >
           {t('App Store')}
         </button>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="pill-stat rounded-full px-3 py-1.5">{t('中文工具流')}</span>
+          <span className="pill-stat rounded-full px-3 py-1.5">{t('MCP + Skills')}</span>
+        </div>
       </div>
 
       {/* Content area */}
@@ -266,9 +284,9 @@ export function AppsPage() {
         <StoreView />
       ) : (
         /* Split layout: left sidebar + right detail (shared by both tabs) */
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden p-3 gap-3">
           {/* Left: App list (fixed 240px width) */}
-          <div className="w-60 flex-shrink-0 border-r border-border flex flex-col overflow-hidden">
+          <div className="w-64 flex-shrink-0 panel-glass section-frame rounded-[1.5rem] overflow-hidden">
             {currentTab === 'my-apps' ? (
               <AppList
                 mode="apps"
@@ -286,7 +304,7 @@ export function AppsPage() {
           </div>
 
           {/* Right: Detail panel */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden panel-glass section-frame rounded-[1.5rem]">
             {/* Session detail breadcrumb — replaces AutomationHeader when drilling into a specific run */}
             {isSessionDetail && selectedApp && (
               <SessionBreadcrumb
@@ -367,7 +385,7 @@ function SessionBreadcrumb({ appName, runId, label, onBack }: SessionBreadcrumbP
   const displayLabel = label || (shortRunId ? `${t('Run')} ${shortRunId}` : '')
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-muted/30 flex-shrink-0">
+    <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border/70 bg-muted/20 backdrop-blur flex-shrink-0">
       <button
         onClick={onBack}
         className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors font-medium"

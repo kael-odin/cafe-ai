@@ -501,7 +501,8 @@ export function NotificationChannelsSection({ config, setConfig }: NotificationC
   }
 
   return (
-    <section id="notification-channels" className="bg-card rounded-xl border border-border p-6">
+    <section id="notification-channels" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-6" />
       <div className="mb-4">
         <h2 className="text-lg font-medium">{t('Notification Channels')}</h2>
         <p className="text-sm text-muted-foreground mt-1">

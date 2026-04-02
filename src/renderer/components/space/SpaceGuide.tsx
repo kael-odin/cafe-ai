@@ -49,7 +49,7 @@ export function SpaceGuide() {
       {/* Collapsed title bar - always visible */}
       <button
         onClick={toggleExpand}
-        className="w-full flex items-center justify-between px-3 py-2.5 sm:p-3 rounded-lg bg-card border border-border hover:border-primary/30 transition-all group"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-2xl panel-glass section-frame soft-hover-accent transition-all group"
       >
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-primary/10 flex items-center justify-center">
@@ -68,7 +68,7 @@ export function SpaceGuide() {
 
       {/* Expanded content - no divider lines, use spacing instead */}
       {isExpanded && (
-        <div className="mt-2 rounded-lg bg-card border border-border overflow-hidden animate-slide-down">
+        <div className="mt-3 rounded-[1.35rem] panel-glass section-frame overflow-hidden animate-slide-down">
           <div className="p-3 sm:p-4 space-y-4 sm:space-y-5">
             {/* Section 1: What can AI do */}
             <div className="flex items-start gap-2.5 sm:gap-3">
@@ -124,7 +124,7 @@ export function SpaceGuide() {
           </div>
 
           {/* Warning section - keep separate with subtle top border */}
-          <div className="px-3 py-2.5 sm:p-3 bg-Cafe-warning/5 border-t border-border/50">
+          <div className="px-4 py-3 bg-Cafe-warning/5 border-t border-border/50">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-Cafe-warning flex-shrink-0" />
               <p className="text-xs text-muted-foreground">

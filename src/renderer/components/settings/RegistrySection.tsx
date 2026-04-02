@@ -10,6 +10,7 @@ import { api } from '../../api'
 import type { RegistrySource } from '../../../shared/store/store-types'
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
+  'cafe': 'Cafe',
   'Cafe': 'Cafe',
   'mcp-registry': 'MCP',
   'smithery': 'Smithery',
@@ -155,7 +156,7 @@ export function RegistrySection() {
     registry.isDefault || BUILTIN_IDS.has(registry.id)
 
   return (
-    <section id="app-store" className="bg-card rounded-xl border border-border p-6">
+    <section id="app-store" className="panel-glass rounded-[1.5rem] p-6">
       <div className="mb-4">
         <h2 className="text-lg font-medium">{t('App Store')}</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -179,7 +180,7 @@ export function RegistrySection() {
       ) : (
         <>
           {/* Registry list */}
-          <div className="space-y-0 divide-y divide-border rounded-lg border border-border overflow-hidden">
+          <div className="space-y-0 divide-y divide-border rounded-xl border border-border/70 overflow-hidden bg-background/10">
             {registries.map((registry) => (
               <div key={registry.id} className="px-4 py-3">
                 <div className="flex items-center justify-between">

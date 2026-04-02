@@ -69,7 +69,8 @@ export function AboutSection() {
   }
 
   return (
-    <section id="about" className="bg-card rounded-xl border border-border p-6">
+    <section id="about" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-b right-6 top-5" />
       <h2 className="text-lg font-medium mb-4">{t('About')}</h2>
 
       <div className="space-y-3 text-sm">

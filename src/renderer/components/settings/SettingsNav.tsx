@@ -3,8 +3,9 @@
  * Left sidebar navigation with scroll sync and mobile responsive dropdown
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { CafeLogo } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { getFilteredNavItems } from './nav-config'
@@ -38,12 +39,12 @@ function NavButton({
   return (
     <button
       onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors",
-        "hover:bg-secondary",
-        active && "bg-primary/10 text-primary border-l-2 border-primary",
-        !active && "border-l-2 border-transparent"
-      )}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors rounded-2xl border border-transparent",
+          "hover:bg-secondary/70 hover:border-border/60",
+          active && "bg-primary/10 text-primary border-primary/30 shadow-[0_8px_20px_hsl(var(--primary)/0.08)]",
+          !active && "border-l-2 border-transparent"
+        )}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />
       <span className="truncate">{t(item.labelKey)}</span>
@@ -88,7 +89,7 @@ function MobileNavDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-full flex items-center justify-between gap-2 px-4 py-3",
-          "bg-card border border-border rounded-lg",
+          "panel-glass section-frame surface-subtle rounded-2xl",
           "text-sm font-medium transition-colors",
           isOpen && "ring-2 ring-primary"
         )}
@@ -105,7 +106,7 @@ function MobileNavDropdown({
 
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="absolute z-50 w-full mt-2 panel-glass section-frame rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = item.id === activeSection
@@ -140,13 +141,14 @@ function MobileNavDropdown({
  * Main Settings Navigation Component
  * Renders sidebar on desktop, dropdown on mobile
  */
-export function SettingsNav({ isRemoteMode, activeSection, onSectionChange }: SettingsNavProps) {
+export function SettingsNav({ isRemoteMode, activeSection, onSectionChange }: SettingsNavProps): JSX.Element {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
   const navItems = getFilteredNavItems(isRemoteMode)
 
   if (isMobile) {
     return (
-      <div className="px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
+      <div className="px-4 py-3 border-b border-border/70 bg-background/70 backdrop-blur sticky top-0 z-10">
         <MobileNavDropdown
           navItems={navItems}
           activeSection={activeSection}
@@ -158,8 +160,17 @@ export function SettingsNav({ isRemoteMode, activeSection, onSectionChange }: Se
 
   // Desktop sidebar
   return (
-    <nav className="w-48 shrink-0 border-r border-border bg-card overflow-y-auto">
-      <div className="py-2">
+    <nav className="w-56 shrink-0 border-r border-border/70 bg-card/40 backdrop-blur overflow-y-auto">
+      <div className="px-4 pt-4 pb-3 border-b border-border/60">
+        <div className="flex items-center gap-2.5">
+          <CafeLogo size={24} animated={false} />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground truncate">{t('Settings')}</div>
+            <div className="text-[11px] text-muted-foreground/80 truncate">{t('Workspace appearance and behavior')}</div>
+          </div>
+        </div>
+      </div>
+      <div className="p-3 space-y-1">
         {navItems.map((item) => (
           <NavButton
             key={item.id}
@@ -176,7 +187,7 @@ export function SettingsNav({ isRemoteMode, activeSection, onSectionChange }: Se
 /**
  * Scroll to a section smoothly
  */
-export function scrollToSection(sectionId: string) {
+export function scrollToSection(sectionId: string): void {
   const element = document.getElementById(sectionId)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' })

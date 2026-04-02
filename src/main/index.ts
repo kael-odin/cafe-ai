@@ -48,11 +48,26 @@ Object.assign(console, log.functions)
 
 import { app, BrowserWindow, Menu, protocol } from 'electron'
 import open from 'open'
+import { mkdirSync } from 'fs'
 
 // GPU compatibility: Disable hardware acceleration on Windows to prevent blank window issues
 // Some Windows GPU configurations cause the GPU process to crash, resulting in a white/blank screen
 // Using both disableHardwareAcceleration() and disable-gpu switch for maximum compatibility
 if (process.platform === 'win32') {
+  const localAppData = process.env.LOCALAPPDATA || process.env.TEMP || process.cwd()
+  const sessionDataPath = join(localAppData, 'Cafe', 'session-data')
+  const userDataPath = join(localAppData, 'Cafe', 'user-data')
+  const diskCachePath = join(sessionDataPath, 'Cache')
+  const gpuCachePath = join(sessionDataPath, 'GPUCache')
+
+  mkdirSync(diskCachePath, { recursive: true })
+  mkdirSync(gpuCachePath, { recursive: true })
+  mkdirSync(userDataPath, { recursive: true })
+  app.setPath('userData', userDataPath)
+  app.setPath('sessionData', sessionDataPath)
+  app.setPath('cache', diskCachePath)
+  app.commandLine.appendSwitch('disk-cache-dir', diskCachePath)
+  app.commandLine.appendSwitch('gpu-disk-cache-dir', gpuCachePath)
   app.disableHardwareAcceleration()
   app.commandLine.appendSwitch('disable-gpu')
 }

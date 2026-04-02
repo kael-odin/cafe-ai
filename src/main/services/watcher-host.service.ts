@@ -61,6 +61,9 @@ function forkWorker(): ChildProcess {
   const child = fork(workerPath, [], {
     stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     env: { ...process.env },
+    // Prevent a visible console window from flashing on Windows when the
+    // file-watcher utility process is started for artifact scans/watchers.
+    windowsHide: true,
   })
 
   // Handle messages from worker

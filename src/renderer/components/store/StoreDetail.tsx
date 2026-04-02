@@ -119,7 +119,7 @@ export function StoreDetail() {
   if (storeDetailLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="px-4 py-3 border-b border-border/70 bg-background/20 flex-shrink-0">
           <button
             onClick={clearStoreSelection}
             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -139,7 +139,7 @@ export function StoreDetail() {
   if (storeDetailError) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="px-4 py-3 border-b border-border/70 bg-background/20 flex-shrink-0">
           <button
             onClick={clearStoreSelection}
             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -148,16 +148,19 @@ export function StoreDetail() {
             {t('Back to Store')}
           </button>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <AlertCircle className="w-8 h-8 text-muted-foreground/50" />
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">{t('Failed to load app details')}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">{storeDetailError}</p>
-          </div>
-          <button
-            onClick={() => storeSelectedSlug && void selectStoreApp(storeSelectedSlug)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-secondary transition-colors"
-          >
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center relative overflow-hidden">
+            <span className="sakura-petal sakura-petal-sm sakura-float-a right-16 top-14" />
+            <div className="w-14 h-14 rounded-[1.25rem] panel-glass flex items-center justify-center">
+              <AlertCircle className="w-7 h-7 text-primary/80" />
+            </div>
+            <div className="text-center">
+              <p className="text-base font-semibold text-foreground">{t('Failed to load app details')}</p>
+              <p className="text-sm text-muted-foreground mt-2 max-w-md">{storeDetailError}</p>
+            </div>
+            <button
+              onClick={() => storeSelectedSlug && void selectStoreApp(storeSelectedSlug)}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-xl hover:bg-secondary transition-colors"
+            >
             <RotateCcw className="w-3.5 h-3.5" />
             {t('Retry')}
           </button>
@@ -170,7 +173,7 @@ export function StoreDetail() {
   if (!storeSelectedDetail || !entry || !spec) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="px-4 py-3 border-b border-border/70 bg-background/20 flex-shrink-0">
           <button
             onClick={clearStoreSelection}
             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -179,8 +182,11 @@ export function StoreDetail() {
             {t('Back to Store')}
           </button>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('App not found')}</p>
+        <div className="flex-1 flex items-center justify-center p-8 text-center">
+          <div>
+            <p className="text-base font-semibold text-foreground">{t('App not found')}</p>
+            <p className="text-sm text-muted-foreground mt-2">{t('这个应用可能已下架，或者当前源暂时不可用')}</p>
+          </div>
         </div>
       </div>
     )
@@ -190,7 +196,7 @@ export function StoreDetail() {
     <>
       <div className="flex-1 overflow-y-auto">
         {/* Back button */}
-        <div className="px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="px-4 py-3 border-b border-border/70 bg-background/20 backdrop-blur flex-shrink-0">
           <button
             onClick={clearStoreSelection}
             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -200,15 +206,22 @@ export function StoreDetail() {
           </button>
         </div>
 
-        <div className="p-6 space-y-6 max-w-3xl">
+        <div className="p-6 md:p-8 space-y-6 max-w-4xl relative">
+          <span className="sakura-petal sakura-float-a right-8 top-6" />
+          <span className="sakura-petal sakura-petal-sm sakura-float-b right-24 top-20" />
+
           {/* Header: Icon + Name + Version + Author */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3 min-w-0">
+          <div className="panel-glass rounded-[1.75rem] p-5 md:p-6 flex items-start justify-between gap-4 hero-card">
+            <div className="flex items-start gap-4 min-w-0">
               {entry.icon && (
-                <span className="text-3xl flex-shrink-0">{entry.icon}</span>
+                <span className="text-3xl flex-shrink-0 w-16 h-16 rounded-[1.25rem] bg-background/35 flex items-center justify-center shadow-sm">{entry.icon}</span>
               )}
               <div className="min-w-0">
-                <h1 className="text-lg font-semibold text-foreground">{resolvedEntry?.name ?? entry.name}</h1>
+                <div className="page-section-title mb-2">{t('Store Detail')}</div>
+                <h1 className="text-xl md:text-2xl font-semibold text-foreground">{resolvedEntry?.name ?? entry.name}</h1>
+                <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
+                  {resolvedSpec?.description ?? spec.description ?? entry.description}
+                </p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-xs text-muted-foreground">v{entry.version}</span>
                   <span className="text-xs text-muted-foreground">
@@ -227,11 +240,11 @@ export function StoreDetail() {
             </div>
 
             {/* Install / Installed / Update button */}
-            <div className="flex-shrink-0 flex flex-col items-end gap-1">
+            <div className="flex-shrink-0 flex flex-col items-end gap-2">
               {!isBundlePackage ? (
                 <button
                   disabled
-                  className="px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-lg cursor-default"
+                  className="px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-default"
                   title={t('Unsupported package format')}
                 >
                   {t('Unsupported package format')}
@@ -242,7 +255,7 @@ export function StoreDetail() {
                   {installedApp && !updateInfo ? (
                     <button
                       disabled
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-lg cursor-default"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-default"
                     >
                       <Check className="w-4 h-4" />
                       {t('Installed')}
@@ -251,7 +264,7 @@ export function StoreDetail() {
                     <button
                       onClick={handleUpdateInPlace}
                       disabled={updateInstalling}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       {updateInstalling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                       {t('Update to')} v{updateInfo.latestVersion}
@@ -259,7 +272,7 @@ export function StoreDetail() {
                   ) : (
                     <button
                       disabled
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-lg cursor-not-allowed opacity-60"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-not-allowed opacity-60"
                       title={t('MCP store install is coming soon. Use Manual Add to configure MCP servers.')}
                     >
                       {t('Coming Soon')}
@@ -275,7 +288,7 @@ export function StoreDetail() {
                   {installedApp && !updateInfo ? (
                     <button
                       disabled
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-lg cursor-default"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-default"
                     >
                       <Check className="w-4 h-4" />
                       {t('Installed')}
@@ -284,7 +297,7 @@ export function StoreDetail() {
                     <button
                       onClick={handleUpdateInPlace}
                       disabled={updateInstalling}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       {updateInstalling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                       {t('Update to')} v{updateInfo.latestVersion}
@@ -292,7 +305,7 @@ export function StoreDetail() {
                   ) : (
                     <button
                       onClick={() => setShowInstallDialog(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       {t('Install')}
@@ -307,7 +320,7 @@ export function StoreDetail() {
                   {installedApp && !updateInfo ? (
                     <button
                       disabled
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-lg cursor-default"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-default"
                     >
                       <Check className="w-4 h-4" />
                       {t('Installed')}
@@ -315,7 +328,7 @@ export function StoreDetail() {
                   ) : updateInfo ? (
                     <button
                       onClick={() => setShowInstallDialog(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       {t('Update to')} v{updateInfo.latestVersion}
@@ -323,7 +336,7 @@ export function StoreDetail() {
                   ) : (
                     <button
                       onClick={() => setShowInstallDialog(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       {t('Install')}
@@ -335,7 +348,7 @@ export function StoreDetail() {
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-2 panel-glass rounded-[1.35rem] p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('Description')}
             </h2>
@@ -346,7 +359,7 @@ export function StoreDetail() {
 
           {/* Config Schema Preview */}
           {(resolvedSpec?.config_schema ?? spec.config_schema) && (resolvedSpec?.config_schema ?? spec.config_schema)!.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-3 panel-glass rounded-[1.35rem] p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('Configuration')}
               </h2>
@@ -354,7 +367,7 @@ export function StoreDetail() {
                 {(resolvedSpec?.config_schema ?? spec.config_schema)!.map(field => (
                   <div
                     key={field.key}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-secondary/45 border border-border/70"
                   >
                     <div className="min-w-0">
                       <span className="text-sm text-foreground">{field.label}</span>

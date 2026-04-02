@@ -30,8 +30,8 @@ export function SidebarToggle({ isOpen, onToggle }: SidebarToggleProps) {
     <button
       onClick={onToggle}
       className={`
-        relative flex items-center gap-1.5 p-1.5 rounded-r-lg transition-colors
-        bg-background border border-l-0 border-border/50 shadow-sm
+        relative z-10 flex items-center gap-1.5 p-2 rounded-r-2xl transition-colors
+        bg-background/85 border border-l-0 border-border/60 shadow-[0_10px_20px_hsl(232_34%_5%/0.12)] backdrop-blur
         hover:bg-secondary text-muted-foreground hover:text-foreground
       `}
       title={isOpen ? t('Close sidebar') : t('Open sidebar')}

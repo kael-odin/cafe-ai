@@ -78,7 +78,20 @@ export function StoreHeader() {
   }, [setStoreCategory, loadStoreApps])
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+    <div className="flex flex-col gap-3 px-4 py-4 border-b border-border/70 flex-shrink-0 bg-background/20 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-4" />
+      <div>
+        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Discover')}</div>
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">{t('App Store')}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t('适合中文与英文工作流的应用市场 / Browse apps for your workflow')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Search + Refresh row */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -88,13 +101,13 @@ export function StoreHeader() {
             value={storeSearchQuery}
             onChange={e => handleSearchChange(e.target.value)}
             placeholder={t('Search apps...')}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50"
+            className="w-full pl-9 pr-3 py-2.5 text-sm bg-secondary/80 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50"
           />
         </div>
         <button
           onClick={refreshStore}
           disabled={storeLoading}
-          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors disabled:opacity-50"
+          className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors disabled:opacity-50"
           title={t('Refresh')}
         >
           <RefreshCw className={`w-4 h-4 ${storeLoading ? 'animate-spin' : ''}`} />
@@ -107,9 +120,9 @@ export function StoreHeader() {
           <button
             key={String(tf.id)}
             onClick={() => handleTypeFilterClick(tf.id)}
-            className={`flex-shrink-0 px-3 py-1 text-xs rounded-md transition-colors ${
+            className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-xl transition-colors ${
               storeTypeFilter === tf.id
-                ? 'bg-primary text-primary-foreground font-medium'
+                ? 'btn-primary text-primary-foreground font-medium'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
             }`}
           >
@@ -122,11 +135,11 @@ export function StoreHeader() {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
         <button
           onClick={() => handleCategoryClick(null)}
-          className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-md transition-colors ${
-            storeCategory === null
-              ? 'bg-secondary text-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-          }`}
+            className={`flex-shrink-0 px-2.5 py-1.5 text-xs rounded-xl transition-colors ${
+              storeCategory === null
+                ? 'panel-glass text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
         >
           {t('All')}
         </button>
@@ -134,9 +147,9 @@ export function StoreHeader() {
           <button
             key={cat.id}
             onClick={() => handleCategoryClick(cat.id)}
-            className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-md transition-colors ${
+            className={`flex-shrink-0 px-2.5 py-1.5 text-xs rounded-xl transition-colors ${
               storeCategory === cat.id
-                ? 'bg-secondary text-foreground font-medium'
+                ? 'panel-glass text-foreground font-medium'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
             }`}
           >

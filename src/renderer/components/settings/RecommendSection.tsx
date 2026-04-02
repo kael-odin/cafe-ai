@@ -115,7 +115,8 @@ export function RecommendSection() {
 
   return (
     <>
-      <section id="recommend" className="bg-card rounded-xl border border-border p-6">
+      <section id="recommend" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+        <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-6" />
         <h2 className="text-lg font-medium mb-2">{t('Recommend Cafe')}</h2>
         <p className="text-sm text-muted-foreground mb-4">
           {t('Like it? Help spread the word')}
@@ -126,7 +127,7 @@ export function RecommendSection() {
           {/* Star on GitHub */}
           <button
             onClick={handleStarGitHub}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#24292f] hover:bg-[#32383f] text-white rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#24292f] hover:bg-[#32383f] text-white rounded-xl text-sm font-medium transition-colors"
           >
             <Star className="w-4 h-4" />
             {t('Star on GitHub')}
@@ -135,7 +136,7 @@ export function RecommendSection() {
           {/* Copy Link */}
           <button
             onClick={handleCopyLink}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-xl text-sm font-medium transition-colors"
           >
             {copied ? (
               <>
@@ -217,7 +218,7 @@ export function RecommendSection() {
           onClick={handleCloseModal}
         >
           <div
-            className="bg-card rounded-2xl border border-border p-6 shadow-xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200"
+            className="panel-glass rounded-[1.5rem] p-6 shadow-xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

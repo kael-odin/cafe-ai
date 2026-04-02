@@ -54,14 +54,14 @@ export function Header({ left, right, className = '' }: HeaderProps) {
   return (
     <header
       className={`
-        flex items-center justify-between h-10
-        border-b border-border drag-region
+        relative z-40 flex items-center justify-between h-12
+        border-b border-border/70 drag-region glass-header
         ${platformPadding}
         ${className}
       `.trim().replace(/\s+/g, ' ')}
     >
       {/* Left side: Interactive elements need no-drag to allow clicks */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="relative z-10 flex items-center gap-2 sm:gap-3 min-w-0">
         <div className="no-drag flex items-center gap-2 sm:gap-3">
           {left}
         </div>
@@ -71,7 +71,7 @@ export function Header({ left, right, className = '' }: HeaderProps) {
       <div className="flex-1 min-w-[100px]" />
 
       {/* Right side: Interactive elements need no-drag to allow clicks */}
-      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+      <div className="relative z-10 flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <div className="no-drag flex items-center gap-1 sm:gap-2">
           {right}
         </div>

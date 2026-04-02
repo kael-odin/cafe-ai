@@ -1,84 +1,94 @@
 /**
- * CafeLogo - Brand animated logo component
- * Used across the app for loading states and branding
+ * CafeLogo - Brand logo component based on the bundled Cafe icon.
  *
- * Usage:
- *   <CafeLogo size="sm" />      // 28px - for inline/small areas
- *   <CafeLogo size="md" />      // 48px - for medium contexts
- *   <CafeLogo size="lg" />      // 96px - for large displays (like splash)
- *   <CafeLogo size={64} />      // custom size in pixels
+ * Used across splash, setup, error states, and page headers so the visual
+ * language stays consistent with the packaged app/tray assets.
  */
+
+import type { CSSProperties } from 'react'
+
+import brandLogo from '../../../../resources/icon.png'
+import sakuraPetal from '../../../../resources/tray/trayTemplate@2x.png'
 
 interface CafeLogoProps {
   /** Size preset or custom pixel value */
   size?: 'sm' | 'md' | 'lg' | number
   /** Optional additional class names */
   className?: string
+  /** Enable subtle floating/glow animation */
+  animated?: boolean
 }
 
-// Size presets in pixels
 const SIZE_PRESETS = {
   sm: 28,
   md: 48,
-  lg: 96
+  lg: 96,
 } as const
 
-// Scale-dependent styles based on size
-function getScaledStyles(size: number) {
-  // Base reference is 96px (lg size)
-  const scale = size / 96
-
+function getScaledStyles(size: number): {
+  padding: number
+  radius: number
+  petalSize: number
+  shellShadow: string
+  logoShadow: string
+} {
   return {
-    // Blur scales with size
-    blur: size <= 32 ? 'blur-sm' : size <= 56 ? 'blur-md' : 'blur-xl',
-    // Border width scales with size
-    border: size <= 32 ? 'border-2' : size <= 56 ? 'border-[3px]' : 'border-4',
-    // Inner glow inset scales with size
-    inset: size <= 32 ? 'inset-0.5' : size <= 56 ? 'inset-1' : 'inset-2',
-    // SVG stroke width (thicker at small sizes for visibility)
-    strokeWidth: size <= 32 ? 4 : size <= 56 ? 3.5 : 3
+    padding: size <= 32 ? 5 : size <= 56 ? 7 : 11,
+    radius: Math.max(10, Math.round(size * 0.28)),
+    petalSize: Math.max(12, Math.round(size * 0.28)),
+    shellShadow: size <= 32
+      ? '0 10px 22px hsl(232 34% 6% / 0.24), inset 0 1px 0 hsl(0 0% 100% / 0.08)'
+      : size <= 56
+        ? '0 14px 28px hsl(232 34% 6% / 0.26), inset 0 1px 0 hsl(0 0% 100% / 0.08)'
+        : '0 20px 42px hsl(232 34% 6% / 0.3), inset 0 1px 0 hsl(0 0% 100% / 0.08)',
+    logoShadow: size <= 32
+      ? 'drop-shadow(0 6px 12px hsl(var(--primary) / 0.12))'
+      : size <= 56
+        ? 'drop-shadow(0 10px 18px hsl(var(--primary) / 0.14))'
+        : 'drop-shadow(0 16px 24px hsl(var(--primary) / 0.18))',
   }
 }
 
-export function CafeLogo({ size = 'md', className = '' }: CafeLogoProps) {
+export function CafeLogo({ size = 'md', className = '', animated = true }: CafeLogoProps): JSX.Element {
   const pixelSize = typeof size === 'number' ? size : SIZE_PRESETS[size]
   const styles = getScaledStyles(pixelSize)
 
   return (
     <div
-      className={`relative ${className}`}
+      className={`relative no-select ${className}`.trim()}
       style={{ width: pixelSize, height: pixelSize }}
     >
-      {/* Outer glow ring */}
-      <div className={`absolute inset-0 rounded-full bg-primary/20 ${styles.blur} cafe-breathe`} />
-
-      {/* Main ring */}
       <div
-        className={`relative rounded-full ${styles.border} border-primary/60 flex items-center justify-center cafe-glow`}
-        style={{ width: pixelSize, height: pixelSize }}
-      >
-        {/* Inner glow */}
-        <div className={`absolute ${styles.inset} rounded-full bg-gradient-to-br from-primary/30 to-transparent`} />
+        className={`absolute inset-0 z-10 brand-logo-shell ${animated ? 'cafe-glow' : ''}`.trim()}
+        style={{ borderRadius: styles.radius, boxShadow: styles.shellShadow }}
+      />
 
-        {/* Animated ring segment - the key spinning arc */}
-        <svg
-          className="absolute inset-0 w-full h-full -rotate-90"
-          viewBox="0 0 100 100"
-        >
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth={styles.strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray="70 200"
-            className="cafe-spin"
-            style={{ transformOrigin: 'center' }}
-          />
-        </svg>
+      <div
+        className="relative z-20 h-full w-full"
+        style={{ padding: styles.padding }}
+      >
+        <img
+          src={brandLogo}
+          alt="Cafe logo"
+          className={`h-full w-full object-contain brand-logo-image ${animated ? 'animate-brand-logo-float' : ''}`.trim()}
+          style={{ '--brand-logo-shadow': styles.logoShadow } as CSSProperties}
+        />
       </div>
+
+      <img
+        src={sakuraPetal}
+        alt=""
+        aria-hidden="true"
+        className={`pointer-events-none absolute z-30 ${animated ? 'animate-brand-petal-float' : ''}`.trim()}
+        style={{
+          top: Math.round(pixelSize * -0.22),
+          right: Math.round(pixelSize * -0.2),
+          width: Math.round(styles.petalSize * 0.9),
+          height: Math.round(styles.petalSize * 0.9),
+          opacity: 0.92,
+          filter: 'drop-shadow(0 6px 10px hsl(var(--primary) / 0.14))',
+        }}
+      />
     </div>
   )
 }

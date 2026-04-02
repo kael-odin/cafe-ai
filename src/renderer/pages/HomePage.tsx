@@ -17,6 +17,7 @@ import {
   Pencil
 } from '../components/icons/ToolIcons'
 import { Header } from '../components/layout/Header'
+import { CafeLogo } from '../components/brand/CafeLogo'
 import { SpaceGuide } from '../components/space/SpaceGuide'
 import { Monitor, Blocks, ArrowRight, AlertCircle, SendHorizontal } from 'lucide-react'
 import { api } from '../api'
@@ -206,47 +207,92 @@ export function HomePage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col app-shell">
       {/* Header - cross-platform support */}
       <Header
         left={
           <>
-            <div className="w-[22px] h-[22px] rounded-full border-2 border-primary/60 flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-primary/30 to-transparent" />
+            <CafeLogo size={34} animated={false} />
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-semibold tracking-[-0.02em]">Cafe</span>
+              <span className="text-[11px] text-muted-foreground/80">{t('Sakura Ink Workspace')}</span>
             </div>
-            <span className="text-sm font-medium">Cafe</span>
           </>
         }
         right={
           <button
             onClick={() => setView('settings')}
-            className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+            className="p-2 hover:bg-secondary rounded-xl transition-colors surface-subtle"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
         }
       />
 
       {/* Content */}
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-6 md:p-8">
+        <section className="hero-card panel-glass section-frame soft-shine rounded-[1.75rem] p-6 md:p-8 mb-6 animate-fade-in">
+          <span className="sakura-petal sakura-float-a right-10 top-8" />
+          <span className="sakura-petal sakura-petal-sm sakura-float-b right-28 top-20" />
+          <span className="sakura-petal sakura-petal-sm sakura-float-a left-10 bottom-12" />
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <div className="page-section-title mb-3">{t('Cat Cafe Workspace')}</div>
+              <h1 className="text-[1.48rem] md:text-[2.45rem] font-medium tracking-[-0.03em] leading-[1.22]">
+                {t('把 AI、工具与项目空间，放进一间克制而有辨识度的猫咪咖啡馆。')}
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground/90">
+                {t('以深墨灰为底、樱花与雾蓝为点缀，把对话、Browser、MCP、Skills 与 Workspace 收拢到同一张工作台。')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="pill-stat rounded-full px-3 py-1.5">{t('Agent Workspace')}</span>
+                <span className="pill-stat rounded-full px-3 py-1.5">{t('MCP + Skills')}</span>
+                <span className="pill-stat rounded-full px-3 py-1.5">{t('Browser + Code')}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 text-xs text-muted-foreground md:items-end">
+              <div className="hero-logo-float self-start md:self-auto">
+                <CafeLogo size={112} />
+              </div>
+              <div className="flex items-center gap-3">
+              <div className="pill-stat rounded-2xl px-4 py-3 min-w-[120px]">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/80">{t('Spaces')}</div>
+                <div className="mt-1 text-2xl font-semibold text-foreground">{spaces.length + (CafeSpace ? 1 : 0)}</div>
+              </div>
+              <div className="pill-stat rounded-2xl px-4 py-3 min-w-[120px]">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/80">{t('Apps')}</div>
+                <div className="mt-1 text-2xl font-semibold text-foreground">{apps.length}</div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Primary entry cards: Cafe Space + Apps */}
-        <div className="grid grid-cols-2 gap-4 mb-8 animate-fade-in">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 animate-fade-in">
           {/* Cafe Space card */}
           {CafeSpace && (
             <div
               data-onboarding="Cafe-space"
               onClick={() => handleSpaceClick(CafeSpace)}
-              className="Cafe-space-card p-5 rounded-xl cursor-pointer flex flex-col justify-between min-h-[160px]"
+              className="Cafe-space-card hero-card section-frame soft-shine p-5 md:p-6 rounded-[1.5rem] cursor-pointer flex flex-col justify-between min-h-[180px] soft-hover-accent"
             >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h2 className="text-sm font-semibold">{t('Cafe')}</h2>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <div>
+                    <h2 className="text-sm font-semibold">{t('Cafe')}</h2>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('默认对话空间')}</p>
+                  </div>
+                </div>
+                <span className="pill-stat rounded-full px-2.5 py-1 text-[11px]">{t('Start')}</span>
               </div>
-              <div className="flex flex-col gap-2 px-3 pt-3 pb-2 rounded-xl bg-background/60 border border-primary/20 min-h-[72px]">
+              <div className="flex flex-col gap-3 px-4 pt-4 pb-3 rounded-2xl bg-background/45 border border-primary/20 min-h-[88px] backdrop-blur">
                 <span className="text-xs text-muted-foreground flex-1">
-                  {t('Ask me anything...')}
+                  {t('从一个想法、一段需求，或一个待办开始。')}
                 </span>
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{t('即时开始对话')}</span>
                   <SendHorizontal className="w-4 h-4 text-primary/50" />
                 </div>
               </div>
@@ -256,19 +302,25 @@ export function HomePage() {
           {/* Apps card */}
           <div
             onClick={() => setView('apps')}
-            className="p-5 rounded-xl cursor-pointer border border-border hover:border-primary/40 hover:bg-secondary/50 transition-colors flex flex-col gap-3 min-h-[160px]"
+            className="panel-glass section-frame soft-shine p-5 md:p-6 rounded-[1.5rem] cursor-pointer transition-colors flex flex-col gap-3 min-h-[180px] soft-hover-accent"
           >
-            <div className="flex items-center gap-2">
-              <Blocks className="w-5 h-5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">{t('Apps')}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Blocks className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <h2 className="text-sm font-semibold">{t('Apps')}</h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{t('把能力沉淀成可复用工具')}</p>
+                </div>
+              </div>
+              <span className="pill-stat rounded-full px-2.5 py-1 text-[11px]">{apps.length}</span>
             </div>
 
             {apps.length === 0 ? (
               <p className="text-xs text-muted-foreground flex-1">
-                {t('No apps yet. Create from a conversation.')}
+                {t('还没有工具也没关系，先从一次对话开始，后面再把能力沉淀成应用。')}
               </p>
             ) : (
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-1.5">
                 {apps.slice(0, 3).map(app => {
                   const isWaiting = app.status === 'waiting_user'
                   return (
@@ -279,9 +331,9 @@ export function HomePage() {
                         setInitialAppId(app.id)
                         setView('apps')
                       }}
-                      className="w-full flex items-center gap-1.5 text-left hover:opacity-80 transition-opacity"
+                      className="w-full flex items-center gap-2 text-left rounded-xl px-2 py-1.5 hover:bg-background/25 transition-colors"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                      <span className={`inline-status-dot ${
                         isWaiting ? 'bg-orange-400' :
                         app.status === 'active' ? 'bg-green-500/70' :
                         app.status === 'error' ? 'bg-red-500' : 'border border-muted-foreground/40'
@@ -296,7 +348,7 @@ export function HomePage() {
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-1">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {t('Open')} <ArrowRight className="w-3 h-3" />
               </span>
@@ -305,11 +357,14 @@ export function HomePage() {
         </div>
 
         {/* Spaces Section */}
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted-foreground">{t('Dedicated Spaces')}</h3>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <div className="page-section-title mb-1">{t('Workspace')}</div>
+            <h3 className="text-base font-medium text-foreground">{t('Dedicated Spaces')}</h3>
+          </div>
           <button
             onClick={() => setShowCreateDialog(true)}
-            className="flex items-center gap-1 px-3 py-1 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-xl transition-colors"
           >
             <Plus className="w-4 h-4" />
             {t('New')}
@@ -324,17 +379,20 @@ export function HomePage() {
             <p className="text-sm">{t('No dedicated spaces yet')}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {spaces.map((space, i) => (
               <div
                 key={`${space.id}-${i}`}
                 onClick={() => handleSpaceClick(space)}
-                className="space-card p-4 group animate-fade-in"
+                className="space-card section-frame p-4 md:p-5 group animate-fade-in soft-hover-accent"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <SpaceIcon iconId={space.icon} size={20} />
-                    <span className="font-medium truncate">{space.name}</span>
+                    <div>
+                      <span className="font-medium truncate block">{space.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{t('独立工作空间')}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button
@@ -353,7 +411,7 @@ export function HomePage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-3">
                   {formatTimeAgo(space.updatedAt)}{t('active')}
                 </p>
               </div>
@@ -364,19 +422,25 @@ export function HomePage() {
 
       {/* Create Space Dialog */}
       {showCreateDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md animate-fade-in">
-            <h2 className="text-lg font-medium mb-4">{t('Create Dedicated Space')}</h2>
+          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="panel-glass section-frame rounded-[1.5rem] p-6 w-full max-w-md animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="page-section-title mb-1">{t('Workspace')}</div>
+                <h2 className="text-lg font-medium">{t('Create Dedicated Space')}</h2>
+              </div>
+              <div className="pill-stat rounded-full px-2.5 py-1 text-[11px]">{t('New')}</div>
+            </div>
 
             {/* Icon select */}
             <div className="mb-4">
-              <label className="block text-sm text-muted-foreground mb-2">{t('Icon (optional)')}</label>
+              <label className="block text-sm text-muted-foreground mb-2">{t('Icon')}</label>
               <div className="flex flex-wrap gap-2">
                 {SPACE_ICONS.map((iconId) => (
                   <button
                     key={iconId}
                     onClick={() => setNewSpaceIcon(iconId)}
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
                       newSpaceIcon === iconId
                         ? 'bg-primary/20 border-2 border-primary'
                         : 'bg-secondary hover:bg-secondary/80'
@@ -394,7 +458,7 @@ export function HomePage() {
               <div className="space-y-2">
                 {/* Default location */}
                 <label
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                     !useCustomPath
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-muted-foreground/50'
@@ -422,7 +486,7 @@ export function HomePage() {
 
                 {/* Custom location */}
                 <label
-                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     isWebMode
                       ? 'cursor-not-allowed opacity-60 border-border'
                       : useCustomPath
@@ -462,7 +526,7 @@ export function HomePage() {
                         e.preventDefault()
                         handleSelectFolder()
                       }}
-                      className="px-3 py-1.5 text-xs bg-secondary hover:bg-secondary/80 rounded-md flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 text-xs bg-secondary hover:bg-secondary/80 rounded-xl flex items-center gap-1.5 transition-colors"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
                       {t('Browse')}
@@ -481,7 +545,7 @@ export function HomePage() {
                 value={newSpaceName}
                 onChange={(e) => setNewSpaceName(e.target.value)}
                 placeholder={t('My Project')}
-                className="w-full px-4 py-2 bg-input rounded-lg border border-border focus:border-primary focus:outline-none transition-colors"
+                className="w-full px-4 py-2.5 bg-input rounded-xl border border-border focus:border-primary focus:outline-none transition-colors"
               />
             </div>
 
@@ -489,14 +553,14 @@ export function HomePage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={resetDialog}
-                className="px-4 py-2 text-muted-foreground hover:bg-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
               >
                 {t('Cancel')}
               </button>
               <button
                 onClick={handleCreateSpace}
                 disabled={!newSpaceName.trim() || (useCustomPath && !customPath)}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('Create')}
               </button>
@@ -507,9 +571,15 @@ export function HomePage() {
 
       {/* Edit Space Dialog */}
       {editingSpace && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md animate-fade-in">
-            <h2 className="text-lg font-medium mb-4">{t('Edit Space')}</h2>
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="panel-glass section-frame rounded-[1.5rem] p-6 w-full max-w-md animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="page-section-title mb-1">{t('Workspace')}</div>
+                <h2 className="text-lg font-medium">{t('Edit Space')}</h2>
+              </div>
+              <div className="pill-stat rounded-full px-2.5 py-1 text-[11px]">{t('Edit')}</div>
+            </div>
 
             {/* Space name */}
             <div className="mb-4">
@@ -519,7 +589,7 @@ export function HomePage() {
                 value={editSpaceName}
                 onChange={(e) => setEditSpaceName(e.target.value)}
                 placeholder={t('My Project')}
-                className="w-full px-4 py-2 bg-input rounded-lg border border-border focus:border-primary focus:outline-none transition-colors"
+                className="w-full px-4 py-2.5 bg-input rounded-xl border border-border focus:border-primary focus:outline-none transition-colors"
                 autoFocus
               />
             </div>
@@ -532,7 +602,7 @@ export function HomePage() {
                   <button
                     key={iconId}
                     onClick={() => setEditSpaceIcon(iconId)}
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
                       editSpaceIcon === iconId
                         ? 'bg-primary/20 border-2 border-primary'
                         : 'bg-secondary hover:bg-secondary/80'
@@ -548,14 +618,14 @@ export function HomePage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleCancelEdit}
-                className="px-4 py-2 text-muted-foreground hover:bg-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
               >
                 {t('Cancel')}
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={!editSpaceName.trim()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('Save')}
               </button>

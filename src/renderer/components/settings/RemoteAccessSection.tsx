@@ -103,11 +103,12 @@ export function RemoteAccessSection() {
   }
 
   return (
-    <section id="remote" className="bg-card rounded-xl border border-border p-6">
+    <section id="remote" className="panel-glass section-frame rounded-[1.5rem] p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
       <h2 className="text-lg font-medium mb-4">{t('Remote Access')}</h2>
 
       {/* Security Warning */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
         <div className="flex items-start gap-3">
           <span className="text-amber-500 text-xl">⚠️</span>
           <div className="text-sm">
@@ -150,11 +151,11 @@ export function RemoteAccessSection() {
         {remoteStatus?.enabled && (
           <>
             {/* Local Access */}
-            <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
+            <div className="info-banner-soft p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('Local Address')}</span>
                 <div className="flex items-center gap-2">
-                  <code className="text-sm bg-background px-2 py-1 rounded">
+                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg">
                     {remoteStatus.server.localUrl}
                   </code>
                   <button
@@ -170,7 +171,7 @@ export function RemoteAccessSection() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('LAN Address')}</span>
                   <div className="flex items-center gap-2">
-                    <code className="text-sm bg-background px-2 py-1 rounded">
+                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg">
                       {remoteStatus.server.lanUrl}
                     </code>
                     <button
@@ -188,7 +189,7 @@ export function RemoteAccessSection() {
                   <span className="text-sm text-muted-foreground">{t('Access Password')}</span>
                   {!isEditingPassword ? (
                     <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background px-2 py-1 rounded font-mono tracking-wider">
+                      <code className="text-sm bg-background/60 px-2 py-1 rounded-lg font-mono tracking-wider">
                         {showPassword ? remoteStatus.server.token : '••••••••'}
                       </code>
                       <button
@@ -225,7 +226,7 @@ export function RemoteAccessSection() {
                         }}
                         placeholder={t('4-32 characters')}
                         maxLength={32}
-                        className="w-32 px-2 py-1 text-sm bg-input rounded border border-border focus:border-primary focus:outline-none"
+                        className="w-32 px-2 py-1.5 text-sm bg-input rounded-xl border border-border focus:border-primary focus:outline-none"
                       />
                       <button
                         onClick={async () => {
@@ -251,7 +252,7 @@ export function RemoteAccessSection() {
                           }
                         }}
                         disabled={isSavingPassword || customPassword.length < 4}
-                        className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
+                        className="text-xs px-2.5 py-1.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50"
                       >
                         {isSavingPassword ? t('Saving...') : t('Save')}
                       </button>
@@ -293,7 +294,7 @@ export function RemoteAccessSection() {
                 <button
                   onClick={handleToggleTunnel}
                   disabled={isEnablingTunnel}
-                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm transition-colors ${
                     remoteStatus.tunnel.status === 'running'
                       ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
                       : 'bg-primary/20 text-primary hover:bg-primary/30'
@@ -310,11 +311,11 @@ export function RemoteAccessSection() {
               </div>
 
               {remoteStatus.tunnel.status === 'running' && remoteStatus.tunnel.url && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-green-500">{t('Public Address')}</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-sm bg-background px-2 py-1 rounded text-green-500">
+                      <code className="text-sm bg-background px-2 py-1 rounded-xl text-green-500">
                         {remoteStatus.tunnel.url}
                       </code>
                       <button
@@ -329,7 +330,7 @@ export function RemoteAccessSection() {
               )}
 
               {remoteStatus.tunnel.status === 'error' && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
                   <p className="text-sm text-red-500">
                     {t('Tunnel connection failed')}: {remoteStatus.tunnel.error}
                   </p>

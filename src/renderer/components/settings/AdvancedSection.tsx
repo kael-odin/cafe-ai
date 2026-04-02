@@ -55,11 +55,12 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
   }
 
   return (
-    <section id="advanced" className="bg-card rounded-xl border border-border p-6">
+    <section id="advanced" className="panel-glass rounded-[1.5rem] p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-a right-6 top-5" />
       <h2 className="text-lg font-medium mb-4">{t('Advanced')}</h2>
 
       {/* Warning banner */}
-      <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-5 text-sm text-amber-600 dark:text-amber-400">
+      <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-5 text-sm text-amber-600 dark:text-amber-400">
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
         <span>{t('Changes here affect all AI agent behavior. New settings take effect on the next conversation.')}</span>
       </div>
@@ -76,7 +77,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
 
           <div className="space-y-2">
             {/* Official */}
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+            <label className="choice-card-soft flex items-start gap-3 p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
               <input
                 type="radio"
                 name="promptProfile"
@@ -92,7 +93,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
             </label>
 
             {/* Cafe Optimized */}
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+            <label className="choice-card-soft flex items-start gap-3 p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
               <input
                 type="radio"
                 name="promptProfile"
@@ -142,7 +143,7 @@ export function AdvancedSection({ config, setConfig }: AdvancedSectionProps) {
                 handleMaxTurnsChange(val)
               }
             }}
-            className="w-24 px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="form-input-soft w-24 px-3 py-1.5 text-sm text-right"
           />
         </div>
       </div>

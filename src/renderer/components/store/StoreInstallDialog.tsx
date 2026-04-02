@@ -126,31 +126,36 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
   }, [configSchema, configValues, detail.entry.slug, selectedSpaceId, installFromStore, onInstalled, t])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={onClose}>
       <div
-        className="relative w-full max-w-lg mx-4 bg-background border border-border rounded-xl shadow-xl flex flex-col max-h-[85vh]"
+        className="relative w-full max-w-xl mx-4 panel-glass-rich rounded-[1.75rem] shadow-xl flex flex-col max-h-[85vh] overflow-hidden stagger-fade-in"
         onMouseDown={e => e.stopPropagation()}
       >
+        <span className="ambient-orb right-[-40px] top-[-24px]" />
+        <span className="sakura-petal sakura-float-a left-8 top-8" />
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/70 flex-shrink-0 bg-background/20 backdrop-blur-sm">
           <div className="flex items-center gap-2 min-w-0">
             {detail.entry.icon && (
-              <span className="text-base">{detail.entry.icon}</span>
+              <span className="text-base w-9 h-9 rounded-xl bg-background/35 flex items-center justify-center">{detail.entry.icon}</span>
             )}
-            <h2 className="text-sm font-semibold truncate">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">{t('Install')}</div>
+              <h2 className="text-sm font-semibold truncate">
               {t('Install')} {resolveSpecI18n(detail.spec, getCurrentLanguage()).name}
-            </h2>
+              </h2>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground rounded-xl transition-colors hover:bg-secondary/50"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div className="p-5 space-y-5 overflow-y-auto flex-1 relative z-10">
           {/* Scope selector */}
           <div className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -164,7 +169,7 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
               <select
                 value={selectedSpaceId}
                 onChange={e => setSelectedSpaceId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                className="form-input-soft w-full px-3 py-2.5 text-sm"
               >
                 {showGlobalOption && (
                   <option value={GLOBAL_SCOPE}>{t('Global (all spaces)')}</option>
@@ -194,22 +199,22 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
           )}
 
           {error && (
-            <p className="text-xs text-red-400">{error}</p>
+            <p className="text-sm text-red-300 info-banner-soft px-3 py-2">{error}</p>
           )}
         </div>
 
         {/* Install progress bar (shown while downloading) */}
         {loading && progress && (
-          <div className="px-4 pt-2 pb-1 space-y-1 border-t border-border flex-shrink-0">
+          <div className="px-5 pt-3 pb-2 space-y-1 border-t border-border/70 flex-shrink-0 bg-background/15">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{progress.message}</span>
               {progress.filesTotal > 0 && (
                 <span>{progress.filesComplete}/{progress.filesTotal}</span>
               )}
             </div>
-            <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-200"
+                className="h-full bg-primary rounded-full transition-all duration-300"
                 style={{ width: `${progress.percent}%` }}
               />
             </div>
@@ -217,17 +222,17 @@ export function StoreInstallDialog({ detail, onClose, onInstalled, showGlobalOpt
         )}
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-border flex-shrink-0">
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-border/70 flex-shrink-0 bg-background/15">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-secondary/50"
           >
             {t('Cancel')}
           </button>
           <button
             onClick={handleInstall}
             disabled={loading || !selectedSpaceId}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {t('Install')}
@@ -251,12 +256,12 @@ interface ConfigFieldProps {
 function ConfigField({ field, value, onChange }: ConfigFieldProps) {
   const { t } = useTranslation()
 
-  const inputClasses = 'w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50'
+  const inputClasses = 'form-input-soft w-full px-3 py-2.5 text-sm placeholder:text-muted-foreground/50'
 
   switch (field.type) {
     case 'boolean':
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 choice-card-soft p-3">
           <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
             <input
               type="checkbox"

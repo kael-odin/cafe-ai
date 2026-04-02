@@ -307,12 +307,12 @@ export function ProviderSelector({
     <button
       key={provider.id}
       onClick={() => handleSelectProvider(provider.id)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-secondary/80 transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-secondary/80 transition-colors rounded-xl ${
         selectedProvider === provider.id ? 'bg-primary/10' : ''
       }`}
     >
       {/* Provider Icon/Initial */}
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
         selectedProvider === provider.id ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
       }`}>
         <span className="text-sm font-bold">{provider.name.charAt(0)}</span>
@@ -347,11 +347,11 @@ export function ProviderSelector({
         </label>
         <button
           onClick={() => setShowProviderDropdown(!showProviderDropdown)}
-          className="w-full flex items-center justify-between px-3 py-2.5 bg-input border border-border rounded-lg
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-input border border-border rounded-xl
                    text-foreground hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-bold text-primary">
                 {currentProvider?.name.charAt(0) || 'C'}
               </span>
@@ -368,7 +368,7 @@ export function ProviderSelector({
 
         {/* Dropdown Menu */}
         {showProviderDropdown && (
-          <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute z-50 w-full mt-1 panel-glass section-frame rounded-xl shadow-lg overflow-hidden">
             {/* Search Input */}
             <div className="p-2 border-b border-border">
               <div className="relative">
@@ -378,7 +378,7 @@ export function ProviderSelector({
                   value={providerSearchQuery}
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
                   placeholder={t('Search providers...')}
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-input border border-border rounded-lg
+                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-input border border-border rounded-xl
                            text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   autoFocus
                 />
@@ -421,7 +421,7 @@ export function ProviderSelector({
 
       {/* Selected Provider Config */}
       {currentProvider && (
-        <div className="space-y-4 p-4 bg-secondary/30 rounded-lg border border-border">
+        <div className="space-y-4 p-4 panel-glass section-frame rounded-xl">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-foreground">
               {t('Configure')} {currentProvider.name}
@@ -449,8 +449,8 @@ export function ProviderSelector({
               value={sourceName}
               onChange={(e) => setSourceName(e.target.value)}
               placeholder={currentProvider.name}
-              className="w-full px-3 py-2 bg-input border border-border rounded-lg
-                       text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+               className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
+                        text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -465,7 +465,7 @@ export function ProviderSelector({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-..."
-                className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg
+                className="w-full px-3 py-2.5 pr-10 bg-input border border-border rounded-xl
                          text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <button
@@ -488,7 +488,7 @@ export function ProviderSelector({
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
                 placeholder={currentProvider?.apiUrl || 'https://api.example.com/v1'}
-                className="w-full px-3 py-2 bg-input border border-border rounded-lg
+                className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
                          text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <p className="mt-1 text-xs text-muted-foreground">
@@ -537,15 +537,15 @@ export function ProviderSelector({
                 value={customModelInput}
                 onChange={(e) => setCustomModelInput(e.target.value)}
                 placeholder={t('Enter model ID')}
-                className="w-full px-3 py-2 bg-input border border-border rounded-lg
+                className="w-full px-3 py-2.5 bg-input border border-border rounded-xl
                          text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             ) : (
               <div className="relative">
                 <button
                   onClick={() => setShowModelDropdown(!showModelDropdown)}
-                  className="w-full flex items-center justify-between px-3 py-2 bg-input
-                           border border-border rounded-lg text-foreground
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-input
+                           border border-border rounded-xl text-foreground
                            hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   <span className="truncate">{selectedModel || t('Select model')}</span>
@@ -553,8 +553,8 @@ export function ProviderSelector({
                 </button>
 
                 {showModelDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-card border border-border
-                                rounded-lg shadow-lg max-h-60 overflow-hidden">
+                  <div className="absolute z-50 w-full mt-1 panel-glass section-frame
+                                rounded-xl shadow-lg max-h-60 overflow-hidden">
                     {/* Search */}
                     <div className="p-2 border-b border-border">
                       <div className="relative">
@@ -564,8 +564,8 @@ export function ProviderSelector({
                           value={modelSearchQuery}
                           onChange={(e) => setModelSearchQuery(e.target.value)}
                           placeholder={t('Search models...')}
-                          className="w-full pl-8 pr-3 py-1.5 text-sm bg-input border border-border
-                                   rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                          className="w-full pl-8 pr-3 py-2 text-sm bg-input border border-border
+                                   rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
                         />
                       </div>
                     </div>
@@ -584,7 +584,7 @@ export function ProviderSelector({
                               setShowModelDropdown(false)
                               setModelSearchQuery('')
                             }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary/80 cursor-pointer ${
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary/80 cursor-pointer rounded-xl ${
                               isSelected ? 'bg-primary/10' : ''
                             }`}
                           >
@@ -602,7 +602,7 @@ export function ProviderSelector({
                             {showDelete && (
                               <button
                                 onClick={(e) => handleDeleteModel(model.id, e)}
-                                className="p-1 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors shrink-0"
+                                className="p-1 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
                                 title={t('Remove model')}
                               >
                                 <X size={14} />
@@ -625,14 +625,14 @@ export function ProviderSelector({
 
           {/* Notes */}
           {currentProvider.notes && (
-            <div className="text-xs text-muted-foreground p-2 bg-secondary/50 rounded-lg">
+            <div className="text-xs text-muted-foreground p-2 bg-secondary/50 rounded-xl">
               {currentProvider.notes}
             </div>
           )}
 
           {/* Validation Result */}
           {validationResult && (
-            <div className={`flex items-center gap-2 p-2 rounded-lg ${
+            <div className={`flex items-center gap-2 p-2 rounded-xl ${
               validationResult.valid
                 ? 'bg-green-500/10 text-green-600'
                 : 'bg-red-500/10 text-red-600'
@@ -646,14 +646,14 @@ export function ProviderSelector({
           <div className="flex gap-3 pt-2">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground rounded-xl transition-colors"
             >
               {t('Cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={isValidating || !apiKey}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl
                        hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isValidating && <Loader2 size={16} className="animate-spin" />}

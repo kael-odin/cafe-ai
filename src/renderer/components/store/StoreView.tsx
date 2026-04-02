@@ -37,7 +37,7 @@ export function StoreView() {
   // Error state
   if (storeError && !storeLoading && storeApps.length === 0) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col panel-glass rounded-[1.5rem] overflow-hidden">
         <StoreHeader />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
           <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -65,7 +65,7 @@ export function StoreView() {
   // Loading state (initial load only)
   if (storeLoading && storeApps.length === 0) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col panel-glass rounded-[1.5rem] overflow-hidden">
         <StoreHeader />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -77,7 +77,7 @@ export function StoreView() {
   // Detail view
   if (storeSelectedSlug) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden panel-glass rounded-[1.5rem]">
         <StoreDetail />
       </div>
     )
@@ -85,7 +85,7 @@ export function StoreView() {
 
   // Grid view
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden panel-glass rounded-[1.5rem]">
       <StoreHeader />
       <div className="flex-1 overflow-y-auto">
         <StoreGrid />

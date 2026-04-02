@@ -148,23 +148,30 @@ let productConfig: ProductConfig | null = null
 let productConfigPath: string | null = null
 
 /**
+ * Resolve the base application path used to locate product.json.
+ *
+ * In Electron we prefer app.getAppPath(). In test and pure-Node contexts the
+ * Electron app mock may be partial, so we gracefully fall back to process.cwd().
+ */
+function resolveAppPath(): string {
+  if (typeof app.getAppPath === 'function') {
+    try {
+      return app.getAppPath()
+    } catch (error) {
+      console.warn('[AuthLoader] app.getAppPath() failed, falling back to process.cwd():', error)
+    }
+  }
+
+  return process.cwd()
+}
+
+/**
  * Get the path to product.json
  */
 function getProductConfigPath(): string {
   if (productConfigPath) return productConfigPath
 
-  // In development, product.json is in project root
-  // In production, it's inside app.asar
-  const isDev = !app.isPackaged
-
-  if (isDev) {
-    // Development: project root (app.getAppPath() returns project root in dev)
-    productConfigPath = join(app.getAppPath(), 'product.json')
-  } else {
-    // Production: inside app.asar (app.getAppPath() returns app.asar path)
-    // Electron automatically handles app.asar paths
-    productConfigPath = join(app.getAppPath(), 'product.json')
-  }
+  productConfigPath = join(resolveAppPath(), 'product.json')
 
   return productConfigPath
 }

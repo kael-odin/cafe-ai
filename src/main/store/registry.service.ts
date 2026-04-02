@@ -50,7 +50,7 @@ const BUILTIN_REGISTRIES: RegistrySource[] = [
     url: 'https://openkursar.github.io/digital-human-protocol',
     enabled: true,
     isDefault: true,
-    sourceType: 'Cafe',
+    sourceType: 'cafe',
   },
   {
     id: 'mcp-official',
@@ -921,7 +921,11 @@ function normalizeRegistries(registries: RegistrySource[]): RegistrySource[] {
   const seenUrls = new Set<string>()
 
   for (const registry of registries) {
-    const parsed = RegistrySourceSchema.safeParse(registry)
+    const candidate = registry.sourceType === 'Cafe'
+      ? { ...registry, sourceType: 'cafe' as const }
+      : registry
+
+    const parsed = RegistrySourceSchema.safeParse(candidate)
     if (!parsed.success) {
       continue
     }

@@ -23,7 +23,7 @@ export function ScrollToBottomButton({
   visible,
   onClick,
   className
-}: ScrollToBottomButtonProps) {
+}: ScrollToBottomButtonProps): JSX.Element {
   const { t } = useTranslation()
 
   return (
@@ -32,15 +32,13 @@ export function ScrollToBottomButton({
       className={cn(
         // Base styles - absolute positioned in parent wrapper
         'absolute bottom-4 left-1/2 -translate-x-1/2 z-10',
-        'flex items-center gap-1.5 px-3 py-1.5',
-        'rounded-full shadow-md',
+        'flex items-center gap-1.5 px-3.5 py-2.5',
+        'rounded-full shadow-md floating-soft-button',
         // Colors - light and subtle
-        'bg-background/80 backdrop-blur-sm',
-        'border border-border/30',
-        'text-xs text-muted-foreground/70',
+        'text-xs text-muted-foreground/80',
         // Hover state - subtle highlight
-        'hover:bg-background/90 hover:text-muted-foreground',
-        'hover:border-border/50',
+        'hover:text-foreground',
+        'hover:border-primary/30 hover:-translate-y-0.5',
         // Transition
         'transition-all duration-200 ease-out',
         // Visibility animation
