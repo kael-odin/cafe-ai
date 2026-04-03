@@ -65,7 +65,7 @@ export function StoreHeader(): JSX.Element {
   }, [])
 
   // Type filter click triggers immediate filter
-  const handleTypeFilterClick = useCallback((typeId: string | null) => {
+  const handleTypeFilterClick = useCallback((typeId: AppType | null) => {
     setStoreTypeFilter(typeId)
     const state = useAppsPageStore.getState()
     void loadStoreApps({

@@ -150,6 +150,8 @@ export interface StoreQuery {
   type?: AppType
   /** Filter by tags */
   tags?: string[]
+  /** Filter by registry source ID (e.g., 'skillshub', 'clawhub') */
+  registryId?: string
 }
 
 /** Paginated query parameters for the new store:query IPC channel */
