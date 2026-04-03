@@ -178,6 +178,7 @@ function buildMinimalMcpSpec(entry: RegistryEntry, registryId: string): McpSpec 
     store: {
       slug: entry.slug,
       registry_id: registryId,
+      tags: entry.tags || [],
     },
   }
 }

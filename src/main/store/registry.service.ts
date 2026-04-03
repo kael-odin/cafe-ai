@@ -573,7 +573,7 @@ export async function installRequiredSkills(
  * all data needed to render the detail page (name, description, tags, etc.).
  */
 function buildPreviewSpec(entry: RegistryEntry, registryId: string): AppSpec {
-  const store = { slug: entry.slug, registry_id: registryId }
+  const store = { slug: entry.slug, registry_id: registryId, tags: entry.tags || [] }
   const requires = (entry.requires_mcps?.length || entry.requires_skills?.length)
     ? {
         mcps: entry.requires_mcps?.map(id => ({ id })),
@@ -590,6 +590,7 @@ function buildPreviewSpec(entry: RegistryEntry, registryId: string): AppSpec {
       version: entry.version,
       author: entry.author,
       description: entry.description,
+      system_prompt: '', // Populated at install time
       requires,
       i18n: entry.i18n,
       skill_files: {}, // empty — populated at install time
@@ -786,8 +787,8 @@ export function updateRegistryAdapterConfig(
  */
 export function loadConfig(): RegistryServiceConfig {
   try {
-    const CafeConfig = getConfig()
-    const storeConfig = (CafeConfig as Record<string, unknown>)[CONFIG_KEY] as Record<string, unknown> | undefined
+    const cafeConfig = getConfig()
+    const storeConfig = (cafeConfig as unknown as Record<string, unknown>)[CONFIG_KEY] as Record<string, unknown> | undefined
 
     if (!storeConfig) {
       return {
@@ -935,7 +936,9 @@ function normalizeRegistries(registries: RegistrySource[]): RegistrySource[] {
   const seenUrls = new Set<string>()
 
   for (const registry of registries) {
-    const candidate = registry.sourceType === 'Cafe'
+    // Normalize legacy 'Cafe' sourceType to 'cafe'
+    const sourceType = registry.sourceType as string | undefined
+    const candidate = (sourceType === 'Cafe' || sourceType === 'cafe')
       ? { ...registry, sourceType: 'cafe' as const }
       : registry
 
@@ -1077,6 +1080,7 @@ function withInstallStoreMetadata(spec: AppSpec, slug: string, registryId: strin
       ...(spec.store ?? {}),
       slug: spec.store?.slug ?? slug,
       registry_id: registryId,
+      tags: spec.store?.tags ?? [],
     },
   }
 }
@@ -1108,6 +1112,6 @@ function saveConfigToFile(): void {
   }
 }
 
-function isBundleFormat(entry: { format?: string }): entry is { format: 'bundle' } {
+function isBundleFormat(entry: { format?: string }): boolean {
   return entry.format === 'bundle'
 }

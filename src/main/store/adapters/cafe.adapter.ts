@@ -176,6 +176,7 @@ export class CafeAdapter implements RegistryAdapter {
           type: 'skill',
           version: '1.0',
           description: `Bundled skill from ${entry.name}`,
+          system_prompt: '', // Will be extracted from skill_files at install time
           skill_files,
         }
         result.set(skill.id, spec)

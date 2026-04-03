@@ -250,7 +250,7 @@ export function StoreDetail() {
                   {t('Unsupported package format')}
                 </button>
               ) : entry?.type === 'mcp' ? (
-                // MCP: store install disabled — manual add only
+                // MCP: install via npx
                 <>
                   {installedApp && !updateInfo ? (
                     <button
@@ -271,11 +271,11 @@ export function StoreDetail() {
                     </button>
                   ) : (
                     <button
-                      disabled
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-secondary text-muted-foreground rounded-xl cursor-not-allowed opacity-60"
-                      title={t('MCP store install is coming soon. Use Manual Add to configure MCP servers.')}
+                      onClick={() => setShowInstallDialog(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm btn-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
                     >
-                      {t('Coming Soon')}
+                      <Download className="w-4 h-4" />
+                      {t('Install')}
                     </button>
                   )}
                   {updateInstallError && (

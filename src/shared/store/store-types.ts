@@ -30,7 +30,7 @@ export interface RegistrySource {
    * Source type — determines which adapter is used to fetch and parse the index.
    * Defaults to 'cafe' when absent (backward-compatible).
    */
-  sourceType?: 'cafe' | 'mcp-registry' | 'smithery' | 'claude-skills'
+  sourceType?: 'cafe' | 'mcp-registry' | 'smithery' | 'claude-skills' | 'skillshub' | 'clawhub'
   /**
    * Adapter-specific configuration (e.g. API keys).
    * Interpreted exclusively by the adapter for this sourceType.
