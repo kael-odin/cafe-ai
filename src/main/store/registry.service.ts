@@ -47,7 +47,7 @@ const BUILTIN_REGISTRIES: RegistrySource[] = [
   {
     id: 'official',
     name: 'Digital Human Protocol',
-    url: 'https://openkursar.github.io/digital-human-protocol',
+    url: 'https://kael-odin.github.io/digital-human-protocol',
     enabled: true,
     isDefault: true,
     sourceType: 'cafe',
@@ -73,6 +73,20 @@ const BUILTIN_REGISTRIES: RegistrySource[] = [
     url: 'https://majiayu000.github.io/claude-skill-registry-core',
     enabled: true,
     sourceType: 'claude-skills',
+  },
+  {
+    id: 'skillshub',
+    name: 'SkillsHub',
+    url: 'https://skillshub.wtf',
+    enabled: true,
+    sourceType: 'skillshub',
+  },
+  {
+    id: 'clawhub',
+    name: 'ClawHub',
+    url: 'https://clawhub.io',
+    enabled: true,
+    sourceType: 'clawhub',
   },
 ]
 

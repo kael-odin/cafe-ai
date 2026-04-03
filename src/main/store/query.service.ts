@@ -1,4 +1,4 @@
-﻿/**
+/**
  * QueryService — Unified Store Query Entry Point
  *
  * Routes queries by data strategy:
@@ -106,6 +106,8 @@ function supportsType(source: RegistrySource, type?: AppType): boolean {
     case 'smithery':
       return type === 'mcp'
     case 'claude-skills':
+    case 'skillshub':
+    case 'clawhub':
       return type === 'skill'
     case 'cafe':
     default:

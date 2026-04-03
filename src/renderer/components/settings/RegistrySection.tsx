@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Registry Section Component
  * Manages App Store registry sources (view, add, remove, toggle, adapter config)
  */
@@ -16,6 +16,8 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   'mcp-registry': 'MCP',
   'smithery': 'Smithery',
   'claude-skills': 'Claude Skills',
+  'skillshub': 'SkillsHub',
+  'clawhub': 'ClawHub',
 }
 
 export function RegistrySection(): JSX.Element {
@@ -152,7 +154,7 @@ export function RegistrySection(): JSX.Element {
     }
   }
 
-  const BUILTIN_IDS = new Set(['official', 'mcp-official', 'smithery', 'claude-skills'])
+  const BUILTIN_IDS = new Set(['official', 'mcp-official', 'smithery', 'claude-skills', 'skillshub', 'clawhub'])
   const isBuiltin = (registry: RegistrySource) =>
     (registry.isDefault ?? false) || BUILTIN_IDS.has(registry.id)
 
