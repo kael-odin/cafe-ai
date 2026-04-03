@@ -158,6 +158,8 @@ export interface StoreQueryParams {
   locale?: string
   category?: string
   type?: AppType
+  /** Filter by registry source ID (e.g., 'skillshub', 'clawhub') */
+  registryId?: string
   page: number
   pageSize: number
 }

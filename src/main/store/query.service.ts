@@ -250,7 +250,7 @@ export class QueryService {
     sources: StoreQueryResponse['sources']
   } {
     const startedAt = performance.now()
-    const { search, type, category, page, pageSize } = params
+    const { search, type, category, registryId, page, pageSize } = params
     const offset = (page - 1) * pageSize
     const ftsQuery = search ? ftsEscape(search) : ''
 
@@ -264,6 +264,10 @@ export class QueryService {
     if (category) {
       conditions.push('ri.category = ?')
       bindings.push(category)
+    }
+    if (registryId) {
+      conditions.push('ri.registry_id = ?')
+      bindings.push(registryId)
     }
     if (ftsQuery) {
       conditions.push('ri.rowid IN (SELECT rowid FROM registry_items_fts WHERE registry_items_fts MATCH ?)')

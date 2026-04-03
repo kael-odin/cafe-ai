@@ -59,6 +59,7 @@ interface AppsPageState {
   storeSearchQuery: string
   storeCategory: string | null
   storeTypeFilter: AppType | null
+  storeRegistryFilter: string | null  // Filter by registry source (skillshub, clawhub)
   storePage: number
   storeHasMore: boolean
   storeSelectedSlug: string | null
@@ -87,6 +88,7 @@ interface AppsPageState {
   setStoreSearch: (query: string) => void
   setStoreCategory: (category: string | null) => void
   setStoreTypeFilter: (type: AppType | null) => void
+  setStoreRegistryFilter: (registry: string | null) => void
   selectStoreApp: (slug: string) => Promise<void>
   clearStoreSelection: () => void
   installFromStore: (slug: string, spaceId: string | null, userConfig?: Record<string, unknown>, onProgress?: (progress: StoreInstallProgress) => void) => Promise<string | null>
@@ -114,6 +116,7 @@ export const useAppsPageStore = create<AppsPageState>((set, get) => ({
   storeSearchQuery: '',
   storeCategory: null,
   storeTypeFilter: null,
+  storeRegistryFilter: null,
   storePage: 1,
   storeHasMore: false,
   storeSelectedSlug: null,
@@ -180,10 +183,22 @@ export const useAppsPageStore = create<AppsPageState>((set, get) => ({
     set({ storeLoading: true, storeError: null, storeApps: [], storePage: 1, storeHasMore: false })
     try {
       const locale = getCurrentLanguage()
+      const registryFilter = get().storeRegistryFilter
       const baseQuery = query ?? {
         search: get().storeSearchQuery || undefined,
         category: get().storeCategory ?? undefined,
         type: get().storeTypeFilter ?? undefined,
+        registryId: registryFilter ?? undefined,
+      }
+
+      // If registry filter is set, add it to the query
+      if (registryFilter && !baseQuery.registryId) {
+        baseQuery.registryId = registryFilter
+      }
+
+      // For SkillsHub/ClawHub, force type to 'skill'
+      if (registryFilter === 'skillshub' || registryFilter === 'clawhub') {
+        baseQuery.type = 'skill'
       }
 
       if (baseQuery.type) {
@@ -299,6 +314,8 @@ export const useAppsPageStore = create<AppsPageState>((set, get) => ({
   setStoreCategory: (category) => set({ storeCategory: category }),
 
   setStoreTypeFilter: (type) => set({ storeTypeFilter: type }),
+
+  setStoreRegistryFilter: (registry) => set({ storeRegistryFilter: registry }),
 
   selectStoreApp: async (slug) => {
     const requestId = ++storeDetailRequestSeq

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
 import { useAppsPageStore } from '../../stores/apps-page.store'
 import { STORE_CATEGORY_META } from '../../../shared/store/store-types'
-import { CafeLogo } from '../brand/CafeLogo'
+import { CafeLogomark } from '../brand/CafeLogo'
 import { useTranslation } from '../../i18n'
 import type { AppType } from '../../../shared/apps/spec-types'
 
@@ -20,15 +20,23 @@ const TYPE_FILTERS: Array<{ id: AppType | null; labelKey: string }> = [
   { id: 'mcp', labelKey: 'MCP' },
 ]
 
+// Registry source filters (shown as separate tabs)
+const REGISTRY_FILTERS: Array<{ id: string; labelKey: string }> = [
+  { id: 'skillshub', labelKey: 'SkillsHub' },
+  { id: 'clawhub', labelKey: 'ClawHub' },
+]
+
 export function StoreHeader(): JSX.Element {
   const { t } = useTranslation()
   const storeSearchQuery = useAppsPageStore(state => state.storeSearchQuery)
   const storeCategory = useAppsPageStore(state => state.storeCategory)
   const storeTypeFilter = useAppsPageStore(state => state.storeTypeFilter)
+  const storeRegistryFilter = useAppsPageStore(state => state.storeRegistryFilter)
   const storeLoading = useAppsPageStore(state => state.storeLoading)
   const setStoreSearch = useAppsPageStore(state => state.setStoreSearch)
   const setStoreCategory = useAppsPageStore(state => state.setStoreCategory)
   const setStoreTypeFilter = useAppsPageStore(state => state.setStoreTypeFilter)
+  const setStoreRegistryFilter = useAppsPageStore(state => state.setStoreRegistryFilter)
   const loadStoreApps = useAppsPageStore(state => state.loadStoreApps)
   const refreshStore = useAppsPageStore(state => state.refreshStore)
 
@@ -78,6 +86,19 @@ export function StoreHeader(): JSX.Element {
     })
   }, [setStoreCategory, loadStoreApps])
 
+  // Registry filter click (SkillsHub/ClawHub)
+  const handleRegistryFilterClick = useCallback((registryId: string | null) => {
+    setStoreRegistryFilter(registryId)
+    setStoreTypeFilter(registryId ? 'skill' : null)  // Force skill type for these registries
+    const state = useAppsPageStore.getState()
+    void loadStoreApps({
+      search: state.storeSearchQuery || undefined,
+      category: state.storeCategory ?? undefined,
+      type: registryId ? 'skill' : (state.storeTypeFilter ?? undefined),
+      registryId: registryId ?? undefined,
+    })
+  }, [setStoreRegistryFilter, setStoreTypeFilter, loadStoreApps])
+
   return (
     <div className="flex flex-col gap-3 px-4 py-4 border-b border-border/70 flex-shrink-0 bg-background/20 relative overflow-hidden">
       <span className="sakura-petal sakura-petal-sm sakura-float-a right-8 top-4" />
@@ -123,12 +144,30 @@ export function StoreHeader(): JSX.Element {
             key={String(tf.id)}
             onClick={() => handleTypeFilterClick(tf.id)}
             className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-xl transition-colors ${
-              storeTypeFilter === tf.id
+              storeTypeFilter === tf.id && !storeRegistryFilter
                 ? 'toolbar-chip toolbar-chip-active font-medium'
                 : 'toolbar-chip text-muted-foreground hover:text-foreground'
             }`}
           >
             {t(tf.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      {/* Registry source tabs (SkillsHub/ClawHub) */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground mr-1">{t('Sources')}:</span>
+        {REGISTRY_FILTERS.map(rf => (
+          <button
+            key={rf.id}
+            onClick={() => handleRegistryFilterClick(rf.id)}
+            className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-xl transition-colors ${
+              storeRegistryFilter === rf.id
+                ? 'toolbar-chip toolbar-chip-active font-medium'
+                : 'toolbar-chip text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t(rf.labelKey)}
           </button>
         ))}
       </div>
