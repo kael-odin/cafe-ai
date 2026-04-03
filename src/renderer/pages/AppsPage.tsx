@@ -161,14 +161,17 @@ export function AppsPage(): JSX.Element {
   const showCanvasPane = isCanvasOpen || isCanvasTransitioning
 
   useEffect(() => {
-    if (showCanvasPane) {
+    if (showCanvasPane && currentTab !== 'store') {
       void canvasLifecycle.showActiveBrowserView()
+    } else {
+      // Hide BrowserView when switching to store or canvas is closed
+      void canvasLifecycle.hideAllBrowserViews()
     }
 
     return () => {
       void canvasLifecycle.hideAllBrowserViews()
     }
-  }, [showCanvasPane])
+  }, [showCanvasPane, currentTab])
 
   // Render the right-side detail panel
   const emptyStateVariant = currentTab === 'my-apps' ? 'apps' as const : 'automation' as const

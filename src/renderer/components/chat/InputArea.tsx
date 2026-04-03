@@ -32,7 +32,6 @@ import { useTranslation } from '../../i18n'
 import { SlashCommandMenu, filterSlashCommands } from './SlashCommandMenu'
 import type { SlashCommandItem } from '../../types/slash-command'
 import { isElectron } from '../../api/transport'
-import { useKeyboard } from '../../hooks/useKeyboard'
 
 // ── @ mention helpers ──
 
@@ -122,9 +121,6 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
   // AI Browser state
   const { enabled: aiBrowserEnabled, setEnabled: setAIBrowserEnabled } = useAIBrowserStore()
-
-  // Keyboard handling for mobile
-  const { keyboardHeight, isKeyboardVisible } = useKeyboard()
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -563,7 +559,7 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
   const isInElectron = isElectron()
   const mobileSafePadding = !isInElectron
     ? {
-        paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'max(env(safe-area-inset-left), 1rem)',
         paddingRight: 'max(env(safe-area-inset-right), 1rem)',
       }

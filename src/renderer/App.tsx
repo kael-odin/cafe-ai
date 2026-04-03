@@ -1,4 +1,4 @@
-﻿/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
+/**		      	    				  	  	  	 		 		       	 	 	         	 	    					 
  * Cafe - Main App Component
  */
 
@@ -242,6 +242,53 @@ export default function App() {
     window.addEventListener('cafe:auth-expired', handleAuthExpired)
     return () => window.removeEventListener('cafe:auth-expired', handleAuthExpired)
   }, [setView])
+
+  // Capacitor: Android hardware back button handling
+  useEffect(() => {
+    if (!isCapacitor()) return
+
+    let backButton: any = null
+
+    const initBackButton = async () => {
+      try {
+        const { App } = await import('@capacitor/app')
+        backButton = App
+
+        App.addListener('backButton', () => {
+          // Get current view from store to avoid stale closure
+          const currentView = useAppStore.getState().view
+          console.log('[App] Android back button pressed, current view:', currentView)
+          
+          // Handle based on current view
+          if (currentView === 'space') {
+            useAppStore.getState().setView('home')
+          } else if (currentView === 'settings' || currentView === 'apps') {
+            const currentSpace = useSpaceStore.getState().currentSpace
+            useAppStore.getState().setView(currentSpace ? 'space' : 'home')
+          } else if (currentView === 'home') {
+            // On home page, minimize the app instead of exiting
+            App.minimizeApp().catch(() => {})
+          } else if (currentView === 'serverList' || currentView === 'serverConnect') {
+            // Don't go back from server selection screens
+            // User should stay connected
+          } else {
+            // Default: go to home
+            useAppStore.getState().setView('home')
+          }
+        })
+      } catch (error) {
+        console.warn('[App] Failed to initialize back button listener:', error)
+      }
+    }
+
+    initBackButton()
+
+    return () => {
+      if (backButton) {
+        backButton.removeAllListeners().catch(() => {})
+      }
+    }
+  }, [])
 
   // WebSocket state listener for remote/capacitor mode
   useEffect(() => {

@@ -154,9 +154,10 @@ body {
     overflow: hidden;
   }
   
-  /* Keyboard handling for mobile - use CSS environment variable when available */
+  /* Keyboard handling: Capacitor resize:'body' mode handles keyboard automatically.
+     Do NOT add padding-bottom here as it causes extra spacing between input and keyboard. */
   .app-shell {
-    padding-bottom: env(keyboard-inset-bottom, 0px);
+    padding-bottom: 0;
   }
 }
 

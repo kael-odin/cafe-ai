@@ -113,8 +113,27 @@ export async function startTunnel(localPort: number): Promise<string> {
 
       // Spawn cloudflared directly with quick tunnel args
       // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
-      const proc = spawn(binPath, ['tunnel', '--url', `http://localhost:${localPort}`, '--protocol', 'http2', '--no-autoupdate'], {
-        stdio: ['ignore', 'pipe', 'pipe']
+      // Add --edge-ip-version auto to support both IPv4 and IPv6
+      // Add --edge-bind-address to try multiple addresses for better connectivity
+      const proc = spawn(binPath, [
+        'tunnel',
+        '--url', `http://localhost:${localPort}`,
+        '--protocol', 'http2',
+        '--edge-ip-version', 'auto',
+        '--no-autoupdate'
+      ], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          // Disable proxy for cloudflared to avoid conflicts with Clash TUN mode
+          // Cloudflared needs direct connection to Cloudflare edge servers
+          NO_PROXY: '*',
+          no_proxy: '*',
+          HTTP_PROXY: '',
+          HTTPS_PROXY: '',
+          http_proxy: '',
+          https_proxy: '',
+        }
       })
 
       state.process = proc
