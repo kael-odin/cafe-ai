@@ -131,194 +131,198 @@ export async function startTunnel(localPort: number): Promise<string> {
   state.error = null
   notifyStatus()
 
-  return new Promise(async (resolve, reject) => {
-    try {
-      const cloudflared = await import('cloudflared')
-      const binPath = await getBinaryPath()
-
-      console.log('[Tunnel] Starting cloudflared...')
-      console.log('[Tunnel] Binary at:', binPath)
-
-      // Validate binary exists and is valid
-      const validation = validateBinary(binPath)
-      if (!validation.valid) {
-        console.log('[Tunnel] Binary invalid:', validation.reason)
-        console.log('[Tunnel] Attempting to reinstall binary...')
-        try {
-          await cloudflared.install(binPath)
-          // Re-validate after install
-          const reValidation = validateBinary(binPath)
-          if (!reValidation.valid) {
-            throw new Error(`Binary still invalid after reinstall: ${reValidation.reason}`)
-          }
-          console.log('[Tunnel] Binary reinstalled successfully')
-        } catch (installErr) {
-          const errMsg = `Failed to install cloudflared binary: ${installErr}`
-          console.error('[Tunnel]', errMsg)
-          state.status = 'error'
-          state.error = errMsg
-          notifyStatus()
-          reject(new Error(errMsg))
-          return
-        }
-      }
-
-      // Check Windows system proxy settings
-      // If proxy is enabled (e.g., Clash system proxy), we should use it instead of bypassing
-      // This is because the network traffic is already being routed through the proxy
-      const proxySettings = await getWindowsProxySettings()
-      console.log('[Tunnel] System proxy settings:', proxySettings)
-
-      // Spawn cloudflared directly with quick tunnel args
-      // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
-      // Add --edge-ip-version 4 to force IPv4 (more reliable through proxies)
-      const tunnelEnv: Record<string, string> = {}
-      for (const [key, value] of Object.entries(process.env)) {
-        if (value !== undefined) {
-          tunnelEnv[key] = value
-        }
-      }
-
-      // If system proxy is enabled, configure cloudflared to use it
-      // This is crucial for Clash system proxy mode to work
-      if (proxySettings.enabled && proxySettings.server) {
-        console.log('[Tunnel] Using system proxy:', proxySettings.server)
-        tunnelEnv.HTTP_PROXY = `http://${proxySettings.server}`
-        tunnelEnv.HTTPS_PROXY = `http://${proxySettings.server}`
-        tunnelEnv.http_proxy = `http://${proxySettings.server}`
-        tunnelEnv.https_proxy = `http://${proxySettings.server}`
-      } else {
-        // No system proxy, clear proxy env vars for direct connection
-        console.log('[Tunnel] No system proxy, using direct connection')
-        const proxyVars = [
-          'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
-          'ALL_PROXY', 'all_proxy', 'FTP_PROXY', 'ftp_proxy',
-          'SOCKS_PROXY', 'socks_proxy', 'PROXY_URL', 'proxy_url'
-        ]
-        for (const varName of proxyVars) {
-          delete tunnelEnv[varName]
-        }
-      }
-      // Always set NO_PROXY for localhost
-      tunnelEnv.NO_PROXY = 'localhost,127.0.0.1'
-      tunnelEnv.no_proxy = 'localhost,127.0.0.1'
-
-      const proc = spawn(binPath, [
-        'tunnel',
-        '--url', `http://localhost:${localPort}`,
-        '--protocol', 'http2',
-        '--edge-ip-version', '4',
-        '--no-autoupdate',
-        '--loglevel', 'info'
-      ], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: tunnelEnv
-      })
-
-      state.process = proc
-
-      // Register with health system for orphan detection
-      const instanceId = getCurrentInstanceId()
-      if (instanceId && proc.pid) {
-        registerProcess({
-          id: 'tunnel',
-          pid: proc.pid,
-          type: 'tunnel',
-          instanceId,
-          startedAt: Date.now()
-        })
-      }
-
-      // Set a timeout for URL to be received (increased to 60s for slow networks)
-      const timeout = setTimeout(() => {
-        console.error('[Tunnel] Timeout waiting for URL')
-        let errorMsg = 'Timeout waiting for tunnel URL. '
-        errorMsg += 'Possible causes: 1) Network blocked by firewall/proxy; '
-        errorMsg += '2) Cloudflare servers unreachable; '
-        errorMsg += '3) DNS resolution failed. '
-        errorMsg += 'Try: Disable VPN/Clash TUN mode, or check network connectivity.'
+  return new Promise((resolve, reject) => {
+    // Wrap async operations to ensure reject is always called
+    let rejected = false
+    const safeReject = (err: Error) => {
+      if (!rejected) {
+        rejected = true
         state.status = 'error'
-        state.error = errorMsg
+        state.error = err.message
         notifyStatus()
-        proc.kill()
-        reject(new Error(errorMsg))
-      }, 60000)
-
-      let urlFound = false
-      let lastError = ''
-
-      // Parse stderr for the tunnel URL and errors
-      proc.stderr?.on('data', (data: Buffer) => {
-        const output = data.toString()
-        console.log('[Tunnel] stderr:', output)
-
-        // Capture error messages
-        if (output.toLowerCase().includes('error') || output.toLowerCase().includes('failed')) {
-          lastError = output
-        }
-
-        // Look for the trycloudflare.com URL
-        // Must exclude 'api.trycloudflare.com' which appears in error messages
-        // Valid tunnel URLs have format: <random-string>.trycloudflare.com
-        const urlMatch = output.match(/https:\/\/(?!api\.)([a-zA-Z0-9-]+\.)+trycloudflare\.com/)
-        if (urlMatch && !urlFound) {
-          urlFound = true
-          clearTimeout(timeout)
-          const url = urlMatch[0]
-          console.log('[Tunnel] Got URL:', url)
-          state.url = url
-          state.status = 'running'
-          notifyStatus()
-          resolve(url)
-        }
-      })
-
-      proc.stdout?.on('data', (data: Buffer) => {
-        console.log('[Tunnel] stdout:', data.toString())
-      })
-
-      // Handle process exit
-      proc.on('exit', (code) => {
-        console.log('[Tunnel] Process exited with code:', code)
-        if (!urlFound) {
-          clearTimeout(timeout)
-          // Provide more specific error message
-          if (code !== 0 && code !== null) {
-            const exitMsg = lastError || `cloudflared exited with code ${code}`
-            state.error = exitMsg
-          }
-        }
-        // Unregister from health system
-        unregisterProcess('tunnel', 'tunnel')
-        state.process = null
-        state.url = null
-        state.status = 'stopped'
-        notifyStatus()
-      })
-
-      // Handle errors
-      proc.on('error', (error: Error) => {
-        console.error('[Tunnel] Process error:', error)
-        clearTimeout(timeout)
-        // Unregister from health system
-        unregisterProcess('tunnel', 'tunnel')
-        state.error = error.message
-        state.status = 'error'
-        state.process = null
-        notifyStatus()
-        if (!urlFound) {
-          reject(error)
-        }
-      })
-
-    } catch (error: unknown) {
-      const err = error as Error
-      console.error('[Tunnel] Failed to start:', err)
-      state.status = 'error'
-      state.error = err.message
-      notifyStatus()
-      reject(err)
+        reject(err)
+      }
     }
+
+    // Start async operations
+    ;(async () => {
+      try {
+        const cloudflared = await import('cloudflared')
+        const binPath = await getBinaryPath()
+
+        console.log('[Tunnel] Starting cloudflared...')
+        console.log('[Tunnel] Binary at:', binPath)
+
+        // Validate binary exists and is valid
+        const validation = validateBinary(binPath)
+        if (!validation.valid) {
+          console.log('[Tunnel] Binary invalid:', validation.reason)
+          console.log('[Tunnel] Attempting to reinstall binary...')
+          try {
+            await cloudflared.install(binPath)
+            // Re-validate after install
+            const reValidation = validateBinary(binPath)
+            if (!reValidation.valid) {
+              throw new Error(`Binary still invalid after reinstall: ${reValidation.reason}`)
+            }
+            console.log('[Tunnel] Binary reinstalled successfully')
+          } catch (installErr) {
+            safeReject(new Error(`Failed to install cloudflared binary: ${installErr}`))
+            return
+          }
+        }
+
+        // Check Windows system proxy settings with timeout
+        let proxySettings: WindowsProxySettings = { enabled: false, server: '', override: '' }
+        try {
+          proxySettings = await Promise.race([
+            getWindowsProxySettings(),
+            new Promise<WindowsProxySettings>((_, timeoutReject) => 
+              setTimeout(() => timeoutReject(new Error('Proxy detection timeout')), 3000)
+            )
+          ])
+        } catch {
+          console.log('[Tunnel] Could not detect proxy settings, assuming no proxy')
+        }
+        console.log('[Tunnel] System proxy settings:', proxySettings)
+
+        // Spawn cloudflared directly with quick tunnel args
+        // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
+        // Add --edge-ip-version 4 to force IPv4 (more reliable through proxies)
+        const tunnelEnv: Record<string, string> = {}
+        for (const [key, value] of Object.entries(process.env)) {
+          if (value !== undefined) {
+            tunnelEnv[key] = value
+          }
+        }
+
+        // If system proxy is enabled, configure cloudflared to use it
+        // This is crucial for Clash system proxy mode to work
+        if (proxySettings.enabled && proxySettings.server) {
+          console.log('[Tunnel] Using system proxy:', proxySettings.server)
+          tunnelEnv.HTTP_PROXY = `http://${proxySettings.server}`
+          tunnelEnv.HTTPS_PROXY = `http://${proxySettings.server}`
+          tunnelEnv.http_proxy = `http://${proxySettings.server}`
+          tunnelEnv.https_proxy = `http://${proxySettings.server}`
+        } else {
+          // No system proxy, clear proxy env vars for direct connection
+          console.log('[Tunnel] No system proxy, using direct connection')
+          const proxyVars = [
+            'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
+            'ALL_PROXY', 'all_proxy', 'FTP_PROXY', 'ftp_proxy',
+            'SOCKS_PROXY', 'socks_proxy', 'PROXY_URL', 'proxy_url'
+          ]
+          for (const varName of proxyVars) {
+            delete tunnelEnv[varName]
+          }
+        }
+        // Always set NO_PROXY for localhost
+        tunnelEnv.NO_PROXY = 'localhost,127.0.0.1'
+        tunnelEnv.no_proxy = 'localhost,127.0.0.1'
+
+        const proc = spawn(binPath, [
+          'tunnel',
+          '--url', `http://localhost:${localPort}`,
+          '--protocol', 'http2',
+          '--edge-ip-version', '4',
+          '--no-autoupdate',
+          '--loglevel', 'info'
+        ], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: tunnelEnv
+        })
+
+        state.process = proc
+
+        // Register with health system for orphan detection
+        const instanceId = getCurrentInstanceId()
+        if (instanceId && proc.pid) {
+          registerProcess({
+            id: 'tunnel',
+            pid: proc.pid,
+            type: 'tunnel',
+            instanceId,
+            startedAt: Date.now()
+          })
+        }
+
+        // Set a timeout for URL to be received (increased to 60s for slow networks)
+        const timeout = setTimeout(() => {
+          console.error('[Tunnel] Timeout waiting for URL')
+          let errorMsg = 'Timeout waiting for tunnel URL. '
+          errorMsg += 'Possible causes: 1) Network blocked by firewall/proxy; '
+          errorMsg += '2) Cloudflare servers unreachable; '
+          errorMsg += '3) DNS resolution failed. '
+          errorMsg += 'Try: Disable VPN/Clash TUN mode, or check network connectivity.'
+          proc.kill()
+          safeReject(new Error(errorMsg))
+        }, 60000)
+
+        let urlFound = false
+        let lastError = ''
+
+        // Parse stderr for the tunnel URL and errors
+        proc.stderr?.on('data', (data: Buffer) => {
+          const output = data.toString()
+          console.log('[Tunnel] stderr:', output)
+
+          // Capture error messages
+          if (output.toLowerCase().includes('error') || output.toLowerCase().includes('failed')) {
+            lastError = output
+          }
+
+          // Look for the trycloudflare.com URL
+          // Must exclude 'api.trycloudflare.com' which appears in error messages
+          // Valid tunnel URLs have format: <random-string>.trycloudflare.com
+          const urlMatch = output.match(/https:\/\/(?!api\.)([a-zA-Z0-9-]+\.)+trycloudflare\.com/)
+          if (urlMatch && !urlFound) {
+            urlFound = true
+            clearTimeout(timeout)
+            const url = urlMatch[0]
+            console.log('[Tunnel] Got URL:', url)
+            state.url = url
+            state.status = 'running'
+            notifyStatus()
+            resolve(url)
+          }
+        })
+
+        proc.stdout?.on('data', (data: Buffer) => {
+          console.log('[Tunnel] stdout:', data.toString())
+        })
+
+        // Handle process exit
+        proc.on('exit', (code) => {
+          console.log('[Tunnel] Process exited with code:', code)
+          clearTimeout(timeout)
+          if (!urlFound) {
+            // Provide more specific error message
+            const exitMsg = lastError || `cloudflared exited with code ${code}`
+            safeReject(new Error(exitMsg))
+          }
+          // Unregister from health system
+          unregisterProcess('tunnel', 'tunnel')
+          state.process = null
+          state.url = null
+          state.status = 'stopped'
+          notifyStatus()
+        })
+
+        // Handle errors
+        proc.on('error', (error: Error) => {
+          console.error('[Tunnel] Process error:', error)
+          clearTimeout(timeout)
+          // Unregister from health system
+          unregisterProcess('tunnel', 'tunnel')
+          safeReject(error)
+        })
+
+      } catch (error: unknown) {
+        const err = error as Error
+        console.error('[Tunnel] Failed to start:', err)
+        safeReject(err)
+      }
+    })()
   })
 }
 
