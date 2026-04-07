@@ -48,10 +48,41 @@ export default defineConfig({
         'electron-log',
         'electron-log/renderer',
         'electron-log/renderer.js'
-      ]
+      ],
+      output: {
+        // Manual chunks for better caching and faster initial load
+        manualChunks: {
+          // React core
+          'react-vendor': ['react', 'react-dom'],
+          // Zustand state management
+          'zustand': ['zustand'],
+          // CodeMirror editor (large, load on demand)
+          'codemirror': [
+            '@codemirror/state',
+            '@codemirror/view',
+            '@codemirror/commands',
+            '@codemirror/search',
+            '@codemirror/language'
+          ],
+          // Syntax highlighting (large, load on demand)
+          'shiki': ['shiki'],
+          // Mermaid diagrams (very large, load on demand)
+          'mermaid': ['mermaid'],
+          // Markdown rendering
+          'markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight'],
+          // UI utilities
+          'ui-utils': ['clsx', 'tailwind-merge', 'lucide-react'],
+        }
+      }
     },
     // Smaller chunks for faster mobile loading
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Minify for production
+    minify: 'esbuild',
+    // Target modern browsers for smaller bundles
+    target: 'es2020'
   },
 
   // CSS processing uses the same postcss/tailwind config
