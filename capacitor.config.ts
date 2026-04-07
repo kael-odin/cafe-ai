@@ -22,9 +22,12 @@ const config: CapacitorConfig = {
       showSpinner: false
     },
     Keyboard: {
-      // Resize content when keyboard appears
-      resize: 'body' as any,
-      resizeOnFullScreen: true
+      // Use 'ionic' resize mode for proper keyboard handling
+      // This resizes the WebView and updates safe-area-inset-bottom
+      resize: 'ionic' as any,
+      resizeOnFullScreen: true,
+      // Keep keyboard open when tapping outside
+      hideFormAccessoryBar: false
     },
     LocalNotifications: {
       // Use default notification channel

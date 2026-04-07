@@ -144,25 +144,31 @@ body {
     overflow: hidden;
   }
 
-  /* #root uses inset to handle safe areas globally on mobile */
+  /* #root uses inset to handle safe areas globally on mobile
+     When keyboard appears with resize:'ionic', safe-area-inset-bottom becomes 0
+     and the viewport shrinks, so the input area sits directly above keyboard */
   #root {
     position: fixed;
-    top: var(--sat);
-    right: var(--sar);
-    left: var(--sal);
-    bottom: var(--sab);
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    padding-top: var(--sat);
+    padding-right: var(--sar);
+    padding-left: var(--sal);
+    padding-bottom: var(--sab);
     overflow: hidden;
   }
   
-  /* Keyboard handling: When keyboard appears, the viewport shrinks
-     and safe-area-inset-bottom becomes 0. This allows the input
-     to sit directly above the keyboard without extra spacing. */
+  /* Keyboard handling: When keyboard appears with resize:'ionic',
+     the viewport shrinks and safe-area-inset-bottom becomes 0.
+     This allows the input to sit directly above the keyboard. */
   .app-shell {
     padding-bottom: 0;
   }
 
   /* Input area should not add extra safe-area padding since
-     #root already handles it via bottom: var(--sab) */
+     #root already handles it via padding-bottom: var(--sab) */
   .input-area-container {
     padding-bottom: 0 !important;
   }

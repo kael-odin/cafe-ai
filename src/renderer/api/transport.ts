@@ -295,8 +295,13 @@ export function connectWebSocket(): void {
     console.log('[WS] Connected')
     wsReconnectAttempt = 0 // reset backoff on success
     emitWsState('connected')
-    // Authenticate
-    wsConnection?.send(JSON.stringify({ type: 'auth', payload: { token } }))
+    // Authenticate - use setTimeout to ensure WebSocket is fully open
+    // Some browsers trigger onopen before readyState is OPEN
+    setTimeout(() => {
+      if (wsConnection?.readyState === WebSocket.OPEN) {
+        wsConnection.send(JSON.stringify({ type: 'auth', payload: { token } }))
+      }
+    }, 0)
   }
 
   wsConnection.onmessage = (event) => {
