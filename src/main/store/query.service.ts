@@ -472,6 +472,16 @@ export class QueryService {
       }
     }
 
+    // Deduplicate items by slug to avoid React key conflicts
+    const seenItemSlugs = new Set<string>()
+    const uniqueItems: RegistryEntry[] = []
+    for (const item of allItems) {
+      if (!seenItemSlugs.has(item.slug)) {
+        seenItemSlugs.add(item.slug)
+        uniqueItems.push(item)
+      }
+    }
+
     // Deduplicate sources
     const seenSources = new Set<string>()
     const uniqueSources = allSources.filter(s => {
@@ -481,7 +491,7 @@ export class QueryService {
     })
 
     return {
-      items: allItems,
+      items: uniqueItems,
       hasMore: groups.some(g => g.hasMore),
       groups,
       sources: uniqueSources,
