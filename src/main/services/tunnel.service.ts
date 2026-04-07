@@ -6,6 +6,7 @@
 import { ChildProcess, spawn } from 'child_process'
 import { existsSync, statSync } from 'fs'
 import { registerProcess, unregisterProcess, getCurrentInstanceId } from './health'
+import { execSync } from 'child_process'
 
 // Tunnel state
 interface TunnelState {
@@ -28,6 +29,105 @@ let statusCallback: StatusCallback | null = null
 
 // Minimum valid binary size (Windows ~60MB, others ~30MB)
 const MIN_BINARY_SIZE = 30 * 1024 * 1024 // 30 MB
+
+/**
+ * Windows system proxy settings
+ */
+interface WindowsProxySettings {
+  enabled: boolean
+  server: string
+  override: string
+}
+
+/**
+ * Get Windows system proxy settings
+ */
+function getWindowsProxySettings(): WindowsProxySettings {
+  try {
+    const result = execSync(
+      'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /v ProxyServer /v ProxyOverride 2>nul',
+      { encoding: 'utf8', timeout: 5000 }
+    )
+    
+    let enabled = false
+    let server = ''
+    let override = ''
+    
+    const lines = result.split('\n')
+    for (const line of lines) {
+      if (line.includes('ProxyEnable')) {
+        const match = line.match(/ProxyEnable\s+REG_DWORD\s+0x([0-9a-f]+)/i)
+        if (match) {
+          enabled = parseInt(match[1], 16) === 1
+        }
+      } else if (line.includes('ProxyServer')) {
+        const match = line.match(/ProxyServer\s+REG_SZ\s+(.+)/i)
+        if (match) {
+          server = match[1].trim()
+        }
+      } else if (line.includes('ProxyOverride')) {
+        const match = line.match(/ProxyOverride\s+REG_SZ\s+(.+)/i)
+        if (match) {
+          override = match[1].trim()
+        }
+      }
+    }
+    
+    return { enabled, server, override }
+  } catch {
+    return { enabled: false, server: '', override: '' }
+  }
+}
+
+/**
+ * Disable Windows system proxy temporarily
+ */
+function disableWindowsProxy(): WindowsProxySettings | null {
+  if (process.platform !== 'win32') return null
+  
+  const settings = getWindowsProxySettings()
+  if (!settings.enabled) return null
+  
+  console.log('[Tunnel] Temporarily disabling Windows system proxy:', settings.server)
+  
+  try {
+    // Disable proxy
+    execSync(
+      'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f',
+      { encoding: 'utf8', timeout: 5000 }
+    )
+    console.log('[Tunnel] Windows system proxy disabled')
+    return settings
+  } catch (err) {
+    console.error('[Tunnel] Failed to disable Windows proxy:', err)
+    return null
+  }
+}
+
+/**
+ * Restore Windows system proxy settings
+ */
+function restoreWindowsProxy(settings: WindowsProxySettings | null): void {
+  if (!settings || process.platform !== 'win32') return
+  
+  console.log('[Tunnel] Restoring Windows system proxy:', settings.server)
+  
+  try {
+    if (settings.enabled && settings.server) {
+      // Re-enable proxy
+      execSync(
+        `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f`,
+        { encoding: 'utf8', timeout: 5000 }
+      )
+      console.log('[Tunnel] Windows system proxy restored')
+    }
+  } catch (err) {
+    console.error('[Tunnel] Failed to restore Windows proxy:', err)
+  }
+}
+
+// Store original proxy settings for restoration
+let originalProxySettings: WindowsProxySettings | null = null
 
 /**
  * Get the correct binary path (handles asar unpacking)
@@ -109,6 +209,14 @@ export async function startTunnel(localPort: number): Promise<string> {
           reject(new Error(errMsg))
           return
         }
+      }
+
+      // Disable Windows system proxy temporarily to allow cloudflared direct connection
+      originalProxySettings = disableWindowsProxy()
+      
+      // Wait a moment for proxy settings to take effect
+      if (originalProxySettings) {
+        await new Promise(r => setTimeout(r, 500))
       }
 
       // Spawn cloudflared directly with quick tunnel args
@@ -199,6 +307,9 @@ export async function startTunnel(localPort: number): Promise<string> {
           state.url = url
           state.status = 'running'
           notifyStatus()
+          // Restore proxy settings after tunnel is established
+          restoreWindowsProxy(originalProxySettings)
+          originalProxySettings = null
           resolve(url)
         }
       })
@@ -210,6 +321,9 @@ export async function startTunnel(localPort: number): Promise<string> {
       // Handle process exit
       proc.on('exit', (code) => {
         console.log('[Tunnel] Process exited with code:', code)
+        // Restore proxy settings if not already restored
+        restoreWindowsProxy(originalProxySettings)
+        originalProxySettings = null
         if (!urlFound) {
           clearTimeout(timeout)
           // Provide more specific error message
@@ -230,6 +344,9 @@ export async function startTunnel(localPort: number): Promise<string> {
       proc.on('error', (error: Error) => {
         console.error('[Tunnel] Process error:', error)
         clearTimeout(timeout)
+        // Restore proxy settings
+        restoreWindowsProxy(originalProxySettings)
+        originalProxySettings = null
         // Unregister from health system
         unregisterProcess('tunnel', 'tunnel')
         state.error = error.message
@@ -244,6 +361,9 @@ export async function startTunnel(localPort: number): Promise<string> {
     } catch (error: unknown) {
       const err = error as Error
       console.error('[Tunnel] Failed to start:', err)
+      // Restore proxy settings
+      restoreWindowsProxy(originalProxySettings)
+      originalProxySettings = null
       state.status = 'error'
       state.error = err.message
       notifyStatus()
@@ -261,6 +381,10 @@ export async function stopTunnel(): Promise<void> {
 
     // Unregister from health system first
     unregisterProcess('tunnel', 'tunnel')
+
+    // Restore proxy settings
+    restoreWindowsProxy(originalProxySettings)
+    originalProxySettings = null
 
     try {
       state.process.kill('SIGTERM')
