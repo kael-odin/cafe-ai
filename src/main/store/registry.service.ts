@@ -112,7 +112,7 @@ const RegistrySourceSchema = z.object({
   url: z.string().url(),
   enabled: z.boolean(),
   isDefault: z.boolean().optional(),
-  sourceType: z.enum(['cafe', 'mcp-registry', 'smithery', 'claude-skills']).optional(),
+  sourceType: z.enum(['cafe', 'mcp-registry', 'smithery', 'claude-skills', 'skillshub', 'clawhub']).optional(),
   adapterConfig: z.record(z.string(), z.unknown()).optional(),
 })
 

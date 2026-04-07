@@ -197,8 +197,11 @@ export const useAppsPageStore = create<AppsPageState>((set, get) => ({
       }
 
       // For SkillsHub/ClawHub, force type to 'skill'
-      if (registryFilter === 'skillshub' || registryFilter === 'clawhub') {
+      // Check both the query's registryId and the store's registryFilter
+      const effectiveRegistryId = baseQuery.registryId || registryFilter
+      if (effectiveRegistryId === 'skillshub' || effectiveRegistryId === 'clawhub') {
         baseQuery.type = 'skill'
+        baseQuery.registryId = effectiveRegistryId
       }
 
       if (baseQuery.type) {

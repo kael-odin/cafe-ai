@@ -225,7 +225,7 @@ export class QueryService {
 
       const adapter = getAdapter(targetRegistry)
       
-      if (adapter.strategy === 'proxy') {
+      if (adapter?.strategy === 'proxy' && adapter.query) {
         // Proxy source: query directly
         try {
           const result = await adapter.query(targetRegistry, params)
@@ -233,7 +233,7 @@ export class QueryService {
             items: result.items,
             total: result.total ?? result.items.length,
             hasMore: result.hasMore,
-            sources: [{ id: targetRegistry.id, count: result.items.length }],
+            sources: [{ registryId: targetRegistry.id, count: result.items.length }],
           }
         } catch (err) {
           console.error(`[StoreQuery] Proxy query failed for ${targetRegistry.id}:`, err)
