@@ -113,32 +113,38 @@ export async function startTunnel(localPort: number): Promise<string> {
 
       // Spawn cloudflared directly with quick tunnel args
       // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
-      // Add --edge-ip-version auto to support both IPv4 and IPv6
-      // Add --edge-bind-address to try multiple addresses for better connectivity
-      // Add --name-server to use Cloudflare DNS directly (bypass local DNS/proxy)
+      // Add --edge-ip-version 4 to force IPv4 (more reliable through proxies)
+      // Create clean environment without any proxy settings
+      const cleanEnv: Record<string, string> = {}
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          cleanEnv[key] = value
+        }
+      }
+      // Remove all proxy-related environment variables
+      const proxyVars = [
+        'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
+        'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
+        'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy',
+        'PROXY_URL', 'proxy_url', 'ELECTRON_RUN_AS_NODE'
+      ]
+      for (const varName of proxyVars) {
+        delete cleanEnv[varName]
+      }
+      // Set NO_PROXY to bypass all proxies
+      cleanEnv.NO_PROXY = '*'
+      cleanEnv.no_proxy = '*'
+
       const proc = spawn(binPath, [
         'tunnel',
         '--url', `http://localhost:${localPort}`,
         '--protocol', 'http2',
-        '--edge-ip-version', 'auto',
-        '--name-server', '1.1.1.1',
-        '--name-server', '8.8.8.8',
-        '--no-autoupdate'
+        '--edge-ip-version', '4',
+        '--no-autoupdate',
+        '--loglevel', 'info'
       ], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          // Disable proxy for cloudflared to avoid conflicts with Clash TUN mode
-          // Cloudflared needs direct connection to Cloudflare edge servers
-          NO_PROXY: '*',
-          no_proxy: '*',
-          HTTP_PROXY: '',
-          HTTPS_PROXY: '',
-          http_proxy: '',
-          https_proxy: '',
-          ALL_PROXY: '',
-          all_proxy: '',
-        }
+        env: cleanEnv
       })
 
       state.process = proc
