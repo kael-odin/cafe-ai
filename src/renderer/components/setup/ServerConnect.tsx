@@ -557,7 +557,7 @@ export function ServerConnect({ onServerAdded, onBack }: ServerConnectProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-6 pb-6 text-center">
+      <div className="px-6 pb-6 text-center mobile-safe-bottom">
         <p className="text-xs text-muted-foreground/50">
           {t('Make sure Cafe is running on your computer with Remote Access enabled')}
         </p>

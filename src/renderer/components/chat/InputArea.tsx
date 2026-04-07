@@ -557,9 +557,10 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
   const hasImages = images.length > 0
 
   const isInElectron = isElectron()
+  // Mobile safe padding is handled by globals.css (#root bottom: var(--sab))
+  // Do NOT add extra padding here to avoid double spacing between keyboard and input
   const mobileSafePadding = !isInElectron
     ? {
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'max(env(safe-area-inset-left), 1rem)',
         paddingRight: 'max(env(safe-area-inset-right), 1rem)',
       }

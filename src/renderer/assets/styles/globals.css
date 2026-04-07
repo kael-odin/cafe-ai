@@ -166,6 +166,12 @@ body {
   .input-area-container {
     padding-bottom: 0 !important;
   }
+
+  /* Mobile safe bottom class for elements that need to be above keyboard
+     When keyboard is open, safe-area-inset-bottom becomes 0 */
+  .mobile-safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Desktop: No positioning to preserve Electron drag functionality
