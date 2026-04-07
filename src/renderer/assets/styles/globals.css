@@ -150,14 +150,21 @@ body {
     top: var(--sat);
     right: var(--sar);
     left: var(--sal);
-    bottom: 0;
+    bottom: var(--sab);
     overflow: hidden;
   }
   
-  /* Keyboard handling: Capacitor resize:'body' mode handles keyboard automatically.
-     Do NOT add padding-bottom here as it causes extra spacing between input and keyboard. */
+  /* Keyboard handling: When keyboard appears, the viewport shrinks
+     and safe-area-inset-bottom becomes 0. This allows the input
+     to sit directly above the keyboard without extra spacing. */
   .app-shell {
     padding-bottom: 0;
+  }
+
+  /* Input area should not add extra safe-area padding since
+     #root already handles it via bottom: var(--sab) */
+  .input-area-container {
+    padding-bottom: 0 !important;
   }
 }
 
