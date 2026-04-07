@@ -82,56 +82,6 @@ async function getWindowsProxySettings(): Promise<WindowsProxySettings> {
 }
 
 /**
- * Disable Windows system proxy temporarily
- */
-async function disableWindowsProxy(): Promise<WindowsProxySettings | null> {
-  if (process.platform !== 'win32') return null
-  
-  const settings = await getWindowsProxySettings()
-  if (!settings.enabled) return null
-  
-  console.log('[Tunnel] Temporarily disabling Windows system proxy:', settings.server)
-  
-  try {
-    // Disable proxy
-    await execAsync(
-      'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f',
-      { timeout: 5000 }
-    )
-    console.log('[Tunnel] Windows system proxy disabled')
-    return settings
-  } catch (err) {
-    console.error('[Tunnel] Failed to disable Windows proxy:', err)
-    return null
-  }
-}
-
-/**
- * Restore Windows system proxy settings
- */
-async function restoreWindowsProxy(settings: WindowsProxySettings | null): Promise<void> {
-  if (!settings || process.platform !== 'win32') return
-  
-  console.log('[Tunnel] Restoring Windows system proxy:', settings.server)
-  
-  try {
-    if (settings.enabled && settings.server) {
-      // Re-enable proxy
-      await execAsync(
-        `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f`,
-        { timeout: 5000 }
-      )
-      console.log('[Tunnel] Windows system proxy restored')
-    }
-  } catch (err) {
-    console.error('[Tunnel] Failed to restore Windows proxy:', err)
-  }
-}
-
-// Store original proxy settings for restoration
-let originalProxySettings: WindowsProxySettings | null = null
-
-/**
  * Get the correct binary path (handles asar unpacking)
  */
 async function getBinaryPath(): Promise<string> {
@@ -213,37 +163,45 @@ export async function startTunnel(localPort: number): Promise<string> {
         }
       }
 
-      // Disable Windows system proxy temporarily to allow cloudflared direct connection
-      originalProxySettings = await disableWindowsProxy()
-      
-      // Wait a moment for proxy settings to take effect
-      if (originalProxySettings) {
-        await new Promise(r => setTimeout(r, 500))
-      }
+      // Check Windows system proxy settings
+      // If proxy is enabled (e.g., Clash system proxy), we should use it instead of bypassing
+      // This is because the network traffic is already being routed through the proxy
+      const proxySettings = await getWindowsProxySettings()
+      console.log('[Tunnel] System proxy settings:', proxySettings)
 
       // Spawn cloudflared directly with quick tunnel args
       // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
       // Add --edge-ip-version 4 to force IPv4 (more reliable through proxies)
-      // Create clean environment without any proxy settings
-      const cleanEnv: Record<string, string> = {}
+      const tunnelEnv: Record<string, string> = {}
       for (const [key, value] of Object.entries(process.env)) {
         if (value !== undefined) {
-          cleanEnv[key] = value
+          tunnelEnv[key] = value
         }
       }
-      // Remove all proxy-related environment variables
-      const proxyVars = [
-        'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
-        'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
-        'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy',
-        'PROXY_URL', 'proxy_url', 'ELECTRON_RUN_AS_NODE'
-      ]
-      for (const varName of proxyVars) {
-        delete cleanEnv[varName]
+
+      // If system proxy is enabled, configure cloudflared to use it
+      // This is crucial for Clash system proxy mode to work
+      if (proxySettings.enabled && proxySettings.server) {
+        console.log('[Tunnel] Using system proxy:', proxySettings.server)
+        tunnelEnv.HTTP_PROXY = `http://${proxySettings.server}`
+        tunnelEnv.HTTPS_PROXY = `http://${proxySettings.server}`
+        tunnelEnv.http_proxy = `http://${proxySettings.server}`
+        tunnelEnv.https_proxy = `http://${proxySettings.server}`
+      } else {
+        // No system proxy, clear proxy env vars for direct connection
+        console.log('[Tunnel] No system proxy, using direct connection')
+        const proxyVars = [
+          'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
+          'ALL_PROXY', 'all_proxy', 'FTP_PROXY', 'ftp_proxy',
+          'SOCKS_PROXY', 'socks_proxy', 'PROXY_URL', 'proxy_url'
+        ]
+        for (const varName of proxyVars) {
+          delete tunnelEnv[varName]
+        }
       }
-      // Set NO_PROXY to bypass all proxies
-      cleanEnv.NO_PROXY = '*'
-      cleanEnv.no_proxy = '*'
+      // Always set NO_PROXY for localhost
+      tunnelEnv.NO_PROXY = 'localhost,127.0.0.1'
+      tunnelEnv.no_proxy = 'localhost,127.0.0.1'
 
       const proc = spawn(binPath, [
         'tunnel',
@@ -254,7 +212,7 @@ export async function startTunnel(localPort: number): Promise<string> {
         '--loglevel', 'info'
       ], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: cleanEnv
+        env: tunnelEnv
       })
 
       state.process = proc
@@ -300,7 +258,9 @@ export async function startTunnel(localPort: number): Promise<string> {
         }
 
         // Look for the trycloudflare.com URL
-        const urlMatch = output.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/)
+        // Must exclude 'api.trycloudflare.com' which appears in error messages
+        // Valid tunnel URLs have format: <random-string>.trycloudflare.com
+        const urlMatch = output.match(/https:\/\/(?!api\.)([a-zA-Z0-9-]+\.)+trycloudflare\.com/)
         if (urlMatch && !urlFound) {
           urlFound = true
           clearTimeout(timeout)
@@ -309,9 +269,6 @@ export async function startTunnel(localPort: number): Promise<string> {
           state.url = url
           state.status = 'running'
           notifyStatus()
-          // Restore proxy settings after tunnel is established (fire and forget)
-          void restoreWindowsProxy(originalProxySettings)
-          originalProxySettings = null
           resolve(url)
         }
       })
@@ -323,9 +280,6 @@ export async function startTunnel(localPort: number): Promise<string> {
       // Handle process exit
       proc.on('exit', (code) => {
         console.log('[Tunnel] Process exited with code:', code)
-        // Restore proxy settings if not already restored (fire and forget)
-        void restoreWindowsProxy(originalProxySettings)
-        originalProxySettings = null
         if (!urlFound) {
           clearTimeout(timeout)
           // Provide more specific error message
@@ -346,9 +300,6 @@ export async function startTunnel(localPort: number): Promise<string> {
       proc.on('error', (error: Error) => {
         console.error('[Tunnel] Process error:', error)
         clearTimeout(timeout)
-        // Restore proxy settings (fire and forget)
-        void restoreWindowsProxy(originalProxySettings)
-        originalProxySettings = null
         // Unregister from health system
         unregisterProcess('tunnel', 'tunnel')
         state.error = error.message
@@ -363,9 +314,6 @@ export async function startTunnel(localPort: number): Promise<string> {
     } catch (error: unknown) {
       const err = error as Error
       console.error('[Tunnel] Failed to start:', err)
-      // Restore proxy settings (fire and forget)
-      void restoreWindowsProxy(originalProxySettings)
-      originalProxySettings = null
       state.status = 'error'
       state.error = err.message
       notifyStatus()
@@ -383,10 +331,6 @@ export async function stopTunnel(): Promise<void> {
 
     // Unregister from health system first
     unregisterProcess('tunnel', 'tunnel')
-
-    // Restore proxy settings
-    await restoreWindowsProxy(originalProxySettings)
-    originalProxySettings = null
 
     try {
       state.process.kill('SIGTERM')
