@@ -115,11 +115,14 @@ export async function startTunnel(localPort: number): Promise<string> {
       // Use --protocol http2 to avoid QUIC/UDP being blocked by firewalls/proxies
       // Add --edge-ip-version auto to support both IPv4 and IPv6
       // Add --edge-bind-address to try multiple addresses for better connectivity
+      // Add --name-server to use Cloudflare DNS directly (bypass local DNS/proxy)
       const proc = spawn(binPath, [
         'tunnel',
         '--url', `http://localhost:${localPort}`,
         '--protocol', 'http2',
         '--edge-ip-version', 'auto',
+        '--name-server', '1.1.1.1',
+        '--name-server', '8.8.8.8',
         '--no-autoupdate'
       ], {
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -133,6 +136,8 @@ export async function startTunnel(localPort: number): Promise<string> {
           HTTPS_PROXY: '',
           http_proxy: '',
           https_proxy: '',
+          ALL_PROXY: '',
+          all_proxy: '',
         }
       })
 
@@ -150,22 +155,33 @@ export async function startTunnel(localPort: number): Promise<string> {
         })
       }
 
-      // Set a timeout for URL to be received
+      // Set a timeout for URL to be received (increased to 60s for slow networks)
       const timeout = setTimeout(() => {
         console.error('[Tunnel] Timeout waiting for URL')
+        let errorMsg = 'Timeout waiting for tunnel URL. '
+        errorMsg += 'Possible causes: 1) Network blocked by firewall/proxy; '
+        errorMsg += '2) Cloudflare servers unreachable; '
+        errorMsg += '3) DNS resolution failed. '
+        errorMsg += 'Try: Disable VPN/Clash TUN mode, or check network connectivity.'
         state.status = 'error'
-        state.error = 'Timeout waiting for tunnel URL'
+        state.error = errorMsg
         notifyStatus()
         proc.kill()
-        reject(new Error('Timeout waiting for tunnel URL'))
-      }, 30000)
+        reject(new Error(errorMsg))
+      }, 60000)
 
       let urlFound = false
+      let lastError = ''
 
-      // Parse stderr for the tunnel URL
+      // Parse stderr for the tunnel URL and errors
       proc.stderr?.on('data', (data: Buffer) => {
         const output = data.toString()
         console.log('[Tunnel] stderr:', output)
+
+        // Capture error messages
+        if (output.toLowerCase().includes('error') || output.toLowerCase().includes('failed')) {
+          lastError = output
+        }
 
         // Look for the trycloudflare.com URL
         const urlMatch = output.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/)
@@ -190,6 +206,11 @@ export async function startTunnel(localPort: number): Promise<string> {
         console.log('[Tunnel] Process exited with code:', code)
         if (!urlFound) {
           clearTimeout(timeout)
+          // Provide more specific error message
+          if (code !== 0 && code !== null) {
+            const exitMsg = lastError || `cloudflared exited with code ${code}`
+            state.error = exitMsg
+          }
         }
         // Unregister from health system
         unregisterProcess('tunnel', 'tunnel')

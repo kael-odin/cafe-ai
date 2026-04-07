@@ -1,4 +1,4 @@
-﻿import { resolve } from 'path'
+import { resolve } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
@@ -114,6 +114,7 @@ export default defineConfig({
       force: true
     },
     server: {
+      host: '0.0.0.0',
       // Allow serving files from project root and node_modules
       fs: {
         // Allow all paths (needed for /@fs/ paths in development)
