@@ -24,13 +24,37 @@
  *     "page": [...]
  *   }
  * }
+ *
+ * Skill content download:
+ * - File manifest: GET https://api.skillhub.tencent.com/api/v1/skills/{slug}/files
+ * - Content: GET https://skillhub-1388575217.cos.accelerate.myqcloud.com/skills/{slug}/{version}/files/SKILL.md
+ *
+ * Proxy strategy: queries forwarded on demand, results not cached in SQLite.
+ * Only SKILL.md is downloaded at install time.
  */
 
+import { fetchWithTimeout } from './cafe.adapter'
 import type { RegistrySource, RegistryEntry, StoreQueryParams } from '../../../shared/store/store-types'
 import type { AppSpec, SkillSpec } from '../../apps/spec/schema'
 import type { RegistryAdapter, AdapterQueryResult } from './types'
 
-// ClawHub API 响应类型
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const CONVEX_API_BASE = 'https://wry-manatee-359.convex.cloud/api'
+const SKILLHUB_API_BASE = 'https://api.skillhub.tencent.com'
+const COS_BASE = 'https://skillhub-1388575217.cos.accelerate.myqcloud.com'
+const DEFAULT_HEADERS: Record<string, string> = {
+  'Accept': 'application/json',
+  'User-Agent': 'Cafe-Store/1.0',
+}
+const CONVEX_HEADERS: Record<string, string> = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'convex-client': 'npm-1.34.1',
+}
+
+// ── External API types ─────────────────────────────────────────────────────
+
 interface ClawHubSkill {
   skill: {
     _id: string
@@ -76,9 +100,20 @@ interface ClawHubResponse {
   errorMessage?: string
 }
 
+interface SkillsHubFilesResponse {
+  count: number
+  version: string
+  files: Array<{
+    path: string
+    sha256?: string
+    size?: number
+  }>
+}
+
+// ── Adapter ────────────────────────────────────────────────────────────────
+
 export class ClawHubAdapter implements RegistryAdapter {
   readonly strategy = 'proxy' as const
-  private readonly API_BASE = 'https://wry-manatee-359.convex.cloud/api'
 
   async query(source: RegistrySource, params: StoreQueryParams): Promise<AdapterQueryResult> {
     const { search, page = 1, pageSize = 30 } = params
@@ -103,13 +138,9 @@ export class ClawHubAdapter implements RegistryAdapter {
     console.log(`[ClawHub] Fetching page ${page}, pageSize ${pageSize}`)
 
     try {
-      const response = await fetch(`${this.API_BASE}/query`, {
+      const response = await fetchWithTimeout(`${CONVEX_API_BASE}/query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'convex-client': 'npm-1.34.1',
-        },
+        headers: CONVEX_HEADERS,
         body: JSON.stringify(requestBody),
       })
 
@@ -140,23 +171,56 @@ export class ClawHubAdapter implements RegistryAdapter {
   }
 
   async fetchSpec(source: RegistrySource, entry: RegistryEntry): Promise<AppSpec> {
-    // ClawHub 的技能详情可能需要额外的 API 调用
-    // 目前使用基本信息构建 spec
+    const slug = entry.slug
+    const t0 = performance.now()
+
+    // Step 1: Get the files manifest via SkillsHub API to resolve the current version
+    // ClawHub and SkillsHub share the same OpenClaw skill ecosystem
+    const filesUrl = `${SKILLHUB_API_BASE}/api/v1/skills/${slug}/files`
+    const filesRes = await fetchWithTimeout(filesUrl, { headers: DEFAULT_HEADERS })
+    if (!filesRes.ok) {
+      throw new Error(`ClawHub files API error HTTP ${filesRes.status} for "${slug}"`)
+    }
+
+    const filesData = await filesRes.json() as SkillsHubFilesResponse
+    const version = filesData.version
+    if (!version) {
+      throw new Error(`ClawHub files API returned no version for "${slug}"`)
+    }
+
+    // Step 2: Download SKILL.md from Tencent COS (open CORS, no auth)
+    const skillMdUrl = `${COS_BASE}/skills/${slug}/${version}/files/SKILL.md`
+    const mdRes = await fetchWithTimeout(skillMdUrl, {
+      headers: { 'User-Agent': 'Cafe-Store/1.0' },
+    })
+
+    if (!mdRes.ok) {
+      throw new Error(
+        `ClawHub: failed to download SKILL.md for "${slug}" v${version}: HTTP ${mdRes.status}`
+      )
+    }
+
+    const skillMdContent = await mdRes.text()
+
+    const dt = performance.now() - t0
+    console.log(`[ClawHub] fetched spec for "${slug}" v${version} (${dt.toFixed(0)}ms)`)
+
     const spec: SkillSpec = {
       spec_version: '1',
       name: entry.name,
       type: 'skill',
       version: entry.version,
-      author: entry.author,
       description: entry.description,
-      system_prompt: `# ${entry.name}\n\n${entry.description}\n\n## Installation\n\n\`\`\`bash\nnpx clawhub@latest install ${entry.slug}\n\`\`\``,
-      skill_content: `# ${entry.name}\n\n${entry.description}\n\n## Installation\n\n\`\`\`bash\nnpx clawhub@latest install ${entry.slug}\n\`\`\``,
+      author: entry.author,
+      skill_files: {
+        'SKILL.md': skillMdContent,
+      },
       store: {
         slug: entry.slug,
         registry_id: source.id,
-        tags: entry.tags || [],
       },
     }
+
     return spec
   }
 
@@ -169,10 +233,10 @@ export class ClawHubAdapter implements RegistryAdapter {
       name: skill.skill.displayName,
       version: skill.latestVersion?.version || '1.0.0',
       author: skill.owner.displayName || skill.ownerHandle || 'Unknown',
-      description: skill.skill.summary || '',
+      description: skill.skill.summary || skill.skill.displayName,
       type: 'skill',
       format: 'bundle',
-      path: '', // ClawHub 使用 slug 而非路径
+      path: skill.skill.slug,
       category: 'other',
       tags: skill.skill.tags ? Object.keys(skill.skill.tags) : [],
       icon: skill.owner.image,
@@ -218,13 +282,9 @@ export class ClawHubAdapter implements RegistryAdapter {
         }],
       }
 
-      const response = await fetch(`${this.API_BASE}/query`, {
+      const response = await fetchWithTimeout(`${CONVEX_API_BASE}/query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'convex-client': 'npm-1.34.1',
-        },
+        headers: CONVEX_HEADERS,
         body: JSON.stringify(requestBody),
       })
 

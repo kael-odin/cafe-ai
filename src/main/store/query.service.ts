@@ -449,18 +449,30 @@ export class QueryService {
         pageSize: ALL_TAB_PREVIEW_LIMIT,
       }
 
-      if (t === 'mcp') {
-        // Proxy sources for MCP
-        const proxy = await this.queryProxySources(previewParams, proxyRegistries)
-        allItems.push(...proxy.items)
-        allSources.push(...proxy.sources)
+      if (t === 'mcp' || t === 'skill') {
+        // Proxy sources for MCP and skill (skillshub, clawhub, etc.)
+        const proxyForType = proxyRegistries.filter(r => supportsType(r, t))
+        const proxy = await this.queryProxySources(previewParams, proxyForType)
+        // Mirror sources for skill (claude-skills)
+        const mirror = this.queryMirror(previewParams)
+        // Merge mirror + proxy, deduplicate by slug
+        const seenSlugs = new Set<string>()
+        const mergedItems: RegistryEntry[] = []
+        for (const item of [...mirror.items, ...proxy.items]) {
+          if (!seenSlugs.has(item.slug)) {
+            seenSlugs.add(item.slug)
+            mergedItems.push(item)
+          }
+        }
+        allItems.push(...mergedItems)
+        allSources.push(...mirror.sources, ...proxy.sources)
         groups.push({
           type: t,
-          count: proxy.total ?? proxy.items.length,
-          hasMore: proxy.hasMore,
+          count: (mirror.total + (proxy.total ?? proxy.items.length)),
+          hasMore: mirror.hasMore || proxy.hasMore,
         })
       } else {
-        // Mirror sources for automation/skill
+        // Mirror sources for automation
         const mirror = this.queryMirror(previewParams)
         allItems.push(...mirror.items)
         allSources.push(...mirror.sources)

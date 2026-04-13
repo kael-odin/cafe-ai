@@ -5,8 +5,9 @@
  * 
  * API 端点:
  * - 列表: GET https://api.skillhub.tencent.com/api/skills
- * - 参数: page, pageSize, sortBy, order
- * - 搜索: 通过 keyword 参数实现
+ * - 参数: page, pageSize, sortBy, order, keyword
+ * - 文件清单: GET https://api.skillhub.tencent.com/api/v1/skills/{slug}/files
+ * - 内容下载: GET https://skillhub-1388575217.cos.accelerate.myqcloud.com/skills/{slug}/{version}/files/SKILL.md
  * 
  * 响应格式:
  * {
@@ -19,13 +20,27 @@
  *   },
  *   message: 'success'
  * }
+ *
+ * Proxy strategy: queries forwarded on demand, results not cached in SQLite.
+ * Only SKILL.md is downloaded at install time.
  */
 
+import { fetchWithTimeout } from './cafe.adapter'
 import type { RegistrySource, RegistryEntry, StoreQueryParams } from '../../../shared/store/store-types'
 import type { AppSpec, SkillSpec } from '../../apps/spec/schema'
 import type { RegistryAdapter, AdapterQueryResult } from './types'
 
-// SkillsHub API 响应类型
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const API_BASE = 'https://api.skillhub.tencent.com'
+const COS_BASE = 'https://skillhub-1388575217.cos.accelerate.myqcloud.com'
+const DEFAULT_HEADERS: Record<string, string> = {
+  'Accept': 'application/json',
+  'User-Agent': 'Cafe-Store/1.0',
+}
+
+// ── External API types ─────────────────────────────────────────────────────
+
 interface SkillsHubSkill {
   name: string
   slug: string
@@ -41,6 +56,7 @@ interface SkillsHubSkill {
   score: number
   stars?: number
   source?: string
+  iconUrl?: string | null
   created_at: number
   updated_at: number
 }
@@ -58,15 +74,28 @@ interface SkillsHubResponse {
   message: string
 }
 
+interface SkillsHubFileEntry {
+  path: string
+  sha256?: string
+  size?: number
+}
+
+interface SkillsHubFilesResponse {
+  count: number
+  version: string
+  files: SkillsHubFileEntry[]
+}
+
+// ── Adapter ────────────────────────────────────────────────────────────────
+
 export class SkillsHubAdapter implements RegistryAdapter {
   readonly strategy = 'proxy' as const
-  private readonly API_BASE = 'https://api.skillhub.tencent.com/api'
 
   async query(source: RegistrySource, params: StoreQueryParams): Promise<AdapterQueryResult> {
     const { search, page = 1, pageSize = 30 } = params
 
     // 构建 URL
-    const url = new URL(`${this.API_BASE}/skills`)
+    const url = new URL(`${API_BASE}/api/skills`)
     url.searchParams.set('page', String(page))
     url.searchParams.set('pageSize', String(pageSize))
     url.searchParams.set('sortBy', 'score')
@@ -80,12 +109,9 @@ export class SkillsHubAdapter implements RegistryAdapter {
     console.log(`[SkillsHub] Fetching: ${url.toString()}`)
 
     try {
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithTimeout(url.toString(), {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: DEFAULT_HEADERS,
       })
 
       if (!response.ok) {
@@ -102,7 +128,9 @@ export class SkillsHubAdapter implements RegistryAdapter {
       const skillList = data.data.list || data.data.skills || data.data.items || []
       
       // 转换为 RegistryEntry 格式
-      const items: RegistryEntry[] = skillList.map(skill => this.skillToEntry(skill))
+      const items: RegistryEntry[] = skillList
+        .map(skill => this.skillToEntry(skill))
+        .filter((e): e is RegistryEntry => e !== null)
 
       console.log(`[SkillsHub] Fetched ${items.length} skills, total: ${data.data.total}`)
 
@@ -118,32 +146,66 @@ export class SkillsHubAdapter implements RegistryAdapter {
   }
 
   async fetchSpec(source: RegistrySource, entry: RegistryEntry): Promise<AppSpec> {
-    // SkillsHub 的技能详情可能需要额外的 API 调用
-    // 目前使用基本信息构建 spec
+    const slug = entry.slug
+    const t0 = performance.now()
+
+    // Step 1: Get the files manifest to resolve the current version
+    const filesUrl = `${API_BASE}/api/v1/skills/${slug}/files`
+    const filesRes = await fetchWithTimeout(filesUrl, { headers: DEFAULT_HEADERS })
+    if (!filesRes.ok) {
+      throw new Error(`SkillsHub files API error HTTP ${filesRes.status} for "${slug}"`)
+    }
+
+    const filesData = await filesRes.json() as SkillsHubFilesResponse
+    const version = filesData.version
+    if (!version) {
+      throw new Error(`SkillsHub files API returned no version for "${slug}"`)
+    }
+
+    // Step 2: Download SKILL.md from Tencent COS (open CORS, no auth)
+    const skillMdUrl = `${COS_BASE}/skills/${slug}/${version}/files/SKILL.md`
+    const mdRes = await fetchWithTimeout(skillMdUrl, {
+      headers: { 'User-Agent': 'Cafe-Store/1.0' },
+    })
+
+    if (!mdRes.ok) {
+      throw new Error(
+        `SkillsHub: failed to download SKILL.md for "${slug}" v${version}: HTTP ${mdRes.status}`
+      )
+    }
+
+    const skillMdContent = await mdRes.text()
+
+    const dt = performance.now() - t0
+    console.log(`[SkillsHub] fetched spec for "${slug}" v${version} (${dt.toFixed(0)}ms)`)
+
     const spec: SkillSpec = {
       spec_version: '1',
       name: entry.name,
       type: 'skill',
       version: entry.version,
-      author: entry.author,
       description: entry.description,
-      system_prompt: `# ${entry.name}\n\n${entry.description}\n\n## Installation\n\n\`\`\`bash\nskillhub install ${entry.slug}\n\`\`\``,
-      skill_content: `# ${entry.name}\n\n${entry.description}\n\n## Installation\n\n\`\`\`bash\nskillhub install ${entry.slug}\n\`\`\``,
+      author: entry.author,
+      skill_files: {
+        'SKILL.md': skillMdContent,
+      },
       store: {
         slug: entry.slug,
         registry_id: source.id,
-        tags: entry.tags || [],
       },
     }
+
     return spec
   }
 
   /**
    * 将 SkillsHub 技能转换为 RegistryEntry 格式
    */
-  private skillToEntry(skill: SkillsHubSkill): RegistryEntry {
+  private skillToEntry(skill: SkillsHubSkill): RegistryEntry | null {
+    if (!skill.slug || !skill.name) return null
+
     // 优先使用中文描述，如果不存在则使用英文描述
-    const description = skill.description_zh || skill.description || ''
+    const description = skill.description_zh || skill.description || skill.name
     
     return {
       slug: skill.slug,
@@ -153,12 +215,15 @@ export class SkillsHubAdapter implements RegistryAdapter {
       description,
       type: 'skill',
       format: 'bundle',
-      path: '', // SkillsHub 使用 slug 而非路径
+      path: skill.slug,
       category: skill.category || 'other',
       tags: skill.tags || [],
-      icon: skill.homepage,
+      icon: skill.iconUrl ?? skill.homepage,
       created_at: new Date(skill.created_at).toISOString(),
       updated_at: new Date(skill.updated_at).toISOString(),
+      i18n: skill.description_zh
+        ? { 'zh-CN': { description: skill.description_zh } }
+        : undefined,
       meta: {
         downloads: skill.downloads,
         installs: skill.installs,

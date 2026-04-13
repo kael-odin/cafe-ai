@@ -69,6 +69,9 @@ export {
   type BuiltinProvider
 } from '../../shared/constants/providers';
 
+// Re-export vision support detection
+export { supportsVision } from '../../shared/constants/model-capabilities';
+
 // Permission Level
 export type PermissionLevel = 'allow' | 'ask' | 'deny';
 
@@ -535,6 +538,24 @@ export interface Thought {
     isError: boolean;
     timestamp: string;
   };
+  // Sub-agent support: links this thought to a parent Task tool_use
+  parentToolUseId?: string;
+  // Task/Agent tool progress (updated via task_started/task_progress/task_notification)
+  taskProgress?: TaskProgress;
+}
+
+/**
+ * Progress tracking for a Task/Agent tool_use thought.
+ * Updated in real-time via SDK task lifecycle events.
+ */
+export interface TaskProgress {
+  taskId: string;
+  status: 'running' | 'completed' | 'failed' | 'stopped';
+  lastToolName?: string;
+  toolCount: number;
+  durationMs: number;
+  summary?: string;
+  totalTokens?: number;
 }
 
 // Legacy alias for backwards compatibility

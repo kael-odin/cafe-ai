@@ -61,6 +61,7 @@ import { processImage, isValidImageType, formatFileSize } from '../../utils/imag
 import { processDocumentFile, isValidDocumentType, getAcceptedFileTypes } from '../../utils/fileProcessor'
 
 import type { ImageAttachment, FileAttachment } from '../../types'
+import { getCurrentSource, supportsVision } from '../../types'
 
 import { useTranslation } from '../../i18n'
 
@@ -137,6 +138,16 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
   const { t } = useTranslation()
 
   const sendKeyMode = useAppStore(state => state.config?.chat?.sendKeyMode ?? 'enter')
+
+  // Vision support detection — block image input for non-multimodal models
+  const aiSources = useAppStore(state => state.config?.aiSources)
+  const visionEnabled = useMemo(() => {
+    if (!aiSources) return true
+    const source = getCurrentSource(aiSources)
+    if (!source) return true
+    const model = source.availableModels.find(m => m.id === source.model)
+    return model ? supportsVision(model) : true
+  }, [aiSources])
 
   const [content, setContent] = useState('')
 
@@ -510,7 +521,15 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
       e.preventDefault()  // Prevent default only if we're handling images
 
-      await addImages(imageFiles)
+      if (!visionEnabled) {
+
+        showError(t('Current model does not support image input'))
+
+      } else {
+
+        await addImages(imageFiles)
+
+      }
 
     }
 
@@ -584,11 +603,19 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
 
 
-    // Process images
+    // Process images (only if model supports vision)
 
     if (imageFiles.length > 0) {
 
-      await addImages(imageFiles)
+      if (!visionEnabled) {
+
+        showError(t('Current model does not support image input'))
+
+      } else {
+
+        await addImages(imageFiles)
+
+      }
 
     }
 
@@ -614,7 +641,15 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
     if (fileList.length > 0) {
 
-      await addImages(fileList)
+      if (!visionEnabled) {
+
+        showError(t('Current model does not support image input'))
+
+      } else {
+
+        await addImages(fileList)
+
+      }
 
     }
 
@@ -659,6 +694,14 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
   const handleImageButtonClick = () => {
 
     setShowAttachMenu(false)
+
+    if (!visionEnabled) {
+
+      showError(t('Current model does not support image input'))
+
+      return
+
+    }
 
     imageInputRef.current?.click()
 
@@ -1352,6 +1395,8 @@ export function InputArea({ onSend, onStop, isGenerating, placeholder, isCompact
 
             onFileClick={handleFileButtonClick}
 
+            visionEnabled={visionEnabled}
+
             imageCount={images.length}
 
             maxImages={MAX_IMAGES}
@@ -1420,6 +1465,8 @@ interface InputToolbarProps {
 
   onFileClick: () => void
 
+  visionEnabled: boolean
+
   imageCount: number
 
   maxImages: number
@@ -1465,6 +1512,8 @@ function InputToolbar({
   onImageClick,
 
   onFileClick,
+
+  visionEnabled,
 
   imageCount,
 
@@ -1546,13 +1595,13 @@ function InputToolbar({
 
                   onClick={onImageClick}
 
-                  disabled={imageCount >= maxImages}
+                  disabled={imageCount >= maxImages || !visionEnabled}
 
                   className={`w-full px-3 py-2 flex items-center gap-3 text-sm
 
                     transition-colors duration-150
 
-                    ${imageCount >= maxImages
+                    ${imageCount >= maxImages || !visionEnabled
 
                       ? 'text-muted-foreground/40 cursor-not-allowed'
 

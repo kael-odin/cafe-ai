@@ -58,7 +58,7 @@ export class ImSessionRegistry {
     channel: string,
     chatId: string,
     chatType: 'direct' | 'group',
-    opts?: { displayName?: string; lastSender?: string; lastMessage?: string }
+    opts?: { displayName?: string; lastSender?: string; lastMessage?: string; instanceId?: string }
   ): void {
     const key = this.buildKey(appId, channel, chatId)
     const existing = this.sessions.get(key)
@@ -72,6 +72,7 @@ export class ImSessionRegistry {
       this.sessions.set(key, {
         appId,
         channel,
+        instanceId: opts?.instanceId ?? '',
         chatId,
         chatType,
         displayName: opts?.displayName || chatId,

@@ -137,7 +137,12 @@ export interface WecomBotConfig {
  * Settings that apply across all bidirectional IM channels.
  */
 export interface ImChannelsConfig {
-  /** Default digital human (App) ID for routing inbound IM messages */
+  /** All configured IM channel instances */
+  instances?: import('./im-channel').ImChannelInstanceConfig[]
+  /**
+   * @deprecated Legacy field — migrated to instances[].appId on load.
+   * Kept for backward compatibility during migration.
+   */
   defaultAppId?: string
 }
 

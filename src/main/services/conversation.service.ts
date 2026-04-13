@@ -88,6 +88,7 @@ interface Message {
     fileChanges?: FileChangesSummary
   }
   error?: string  // Error message when assistant response failed (e.g., 429 rate limit)
+  source?: string  // How the message entered the conversation (e.g., 'injection')
 }
 
 interface ToolCall {

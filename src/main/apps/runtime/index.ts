@@ -53,6 +53,7 @@ import { getConfig } from '../../services/config.service'
 import { getDataFolderName } from '../../services/ai-sources/auth-loader'
 import type { AppRuntimeService } from './types'
 import type { ImChannelAdapter } from '../../shared/types/im-channel'
+import { ImChannelManager, WecomBotProvider } from './im-channels'
 
 // Re-export types for consumers
 export type {
@@ -90,11 +91,13 @@ export {
   stopAppChat,
   isAppChatGenerating,
   loadAppChatMessages,
+  loadImChatMessages,
   getAppChatSessionState,
   getAppChatConversationId,
   buildImSessionKey,
   cleanupAppChatBrowserContext,
   clearAppChat,
+  clearImSession,
 } from './app-chat'
 export type { AppChatRequest } from './app-chat'
 
@@ -104,6 +107,8 @@ export { dispatchInboundMessage } from './dispatch-inbound'
 // Re-export IM session registry accessor
 export { getImSessionRegistry } from './im-session-registry'
 export { ImSessionRegistry } from './im-session-registry'
+// Re-export IM channel manager
+export { ImChannelManager } from './im-channels'
 
 // ============================================
 // Module State
@@ -114,6 +119,7 @@ let memoryServiceRef: MemoryService | null = null
 let activityStoreRef: ActivityStore | null = null
 let eventRouterInstance: EventRouter | null = null
 let wecomBotSourceInstance: WecomBotSource | null = null
+let imChannelManagerInstance: ImChannelManager | null = null
 let imSessionRegistryInstance: ImSessionRegistry | null = null
 
 /** Channel adapter registry: channel identifier → adapter instance */
@@ -289,6 +295,14 @@ export function getActivityStore(): ActivityStore | null {
  */
 export function getWecomBotSource(): WecomBotSource | null {
   return wecomBotSourceInstance
+}
+
+/**
+ * Get the ImChannelManager instance for external use
+ * (e.g., status queries, reconnect, config reload from IPC/HTTP).
+ */
+export function getImChannelManager(): ImChannelManager | null {
+  return imChannelManagerInstance
 }
 
 /**

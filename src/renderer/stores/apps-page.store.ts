@@ -16,6 +16,7 @@ import { api } from '../api'
 import { getCurrentLanguage } from '../i18n'
 import type { RegistryEntry, StoreAppDetail, UpdateInfo, StoreQuery, StoreQueryResponse, StoreInstallProgress } from '../../shared/store/store-types'
 import type { AppType } from '../../shared/apps/spec-types'
+import type { ImSessionRecord } from '../../shared/types/im-channel'
 
 let storeListRequestSeq = 0
 let storeDetailRequestSeq = 0
@@ -66,6 +67,15 @@ interface AppsPageState {
   storeSelectedDetail: StoreAppDetail | null
   storeDetailLoading: boolean
   storeDetailError: string | null
+
+
+  // ── IM Session State ──────────────────────
+  imPanelOpen: boolean
+  selectedImSession: ImSessionRecord | null
+  imSessions: ImSessionRecord[]
+  toggleImPanel: () => void
+  selectImSession: (session: ImSessionRecord | null) => void
+  fetchImSessions: (appId: string) => void
 
   // ── Update Info ────────────────────────────
   availableUpdates: UpdateInfo[]
@@ -171,7 +181,25 @@ export const useAppsPageStore = create<AppsPageState>((set, get) => ({
     storeSelectedDetail: null,
     storeDetailLoading: false,
     storeDetailError: null,
-    availableUpdates: [],
+    
+  // ── IM Session State ──────────────────────
+  imPanelOpen: false,
+  selectedImSession: null,
+  imSessions: [],
+
+  toggleImPanel: () => set(s => ({ imPanelOpen: !s.imPanelOpen })),
+  selectImSession: (session) => set({ selectedImSession: session }),
+  fetchImSessions: (appId) => {
+    api.imSessionsList(appId).then(res => {
+      if (res.success && res.data) {
+        set({ imSessions: res.data as ImSessionRecord[] })
+      }
+    }).catch(err => {
+      console.error('[AppsPageStore] fetchImSessions error:', err)
+    })
+  },
+
+  availableUpdates: [],
   }),
 
   // ── Store Actions ──────────────────────────

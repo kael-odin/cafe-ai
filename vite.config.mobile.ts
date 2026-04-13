@@ -66,8 +66,6 @@ export default defineConfig({
           ],
           // Syntax highlighting (large, load on demand)
           'shiki': ['shiki'],
-          // Mermaid diagrams (very large, load on demand)
-          'mermaid': ['mermaid'],
           // Markdown rendering
           'markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight'],
           // UI utilities

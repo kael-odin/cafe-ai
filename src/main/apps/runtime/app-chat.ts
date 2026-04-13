@@ -35,6 +35,7 @@ import {
 } from '../../services/agent/helpers'
 import { emitAgentEvent } from '../../services/agent/events'
 import { resolveCredentialsForSdk, buildBaseSdkOptions } from '../../services/agent/sdk-config'
+import { createCanUseTool } from '../../services/agent/permission-handler'
 import { createAIBrowserMcpServer, createScopedBrowserContext } from '../../services/ai-browser'
 import type { BrowserContext } from '../../services/ai-browser/context'
 import { processStream } from '../../services/agent/stream-processor'
@@ -70,6 +71,19 @@ export interface AppChatRequest {
   images?: Array<{ type: string; media_type: string; data: string }>
   /** Enable extended thinking mode */
   thinkingEnabled?: boolean
+  /**
+   * Optional callback invoked with the AI's final response text.
+   * Used by external bridges (e.g., WeCom Bot) to auto-reply
+   * the result back to the originating chat.
+   */
+  onReply?: (finalContent: string) => void
+  /**
+   * Optional override for the conversation/session ID.
+   * When provided, this is used instead of the default "app-chat:{appId}".
+   * Used by IM channel adapters to achieve per-chat session isolation:
+   *   "app-chat:{appId}:{channel}:{chatType}:{chatId}"
+   */
+  conversationId?: string
 }
 
 // ============================================
@@ -78,6 +92,22 @@ export interface AppChatRequest {
 
 /** Fixed runId used for chat session JSONL storage */
 const CHAT_RUN_ID = 'chat'
+
+/**
+ * Derive a storage-safe JSONL runId from a conversationId.
+ *
+ * - Native ("app-chat:{appId}") → "chat"
+ * - IM channel ("app-chat:{appId}:wecom-bot:group:xxx") → "chat-wecom-bot-group-xxx"
+ */
+function deriveRunId(conversationId: string, appId: string): string {
+  const defaultPrefix = `app-chat:${appId}`
+  if (conversationId === defaultPrefix) {
+    return CHAT_RUN_ID
+  }
+  // Strip "app-chat:{appId}:" prefix, replace colons with dashes
+  const suffix = conversationId.slice(defaultPrefix.length + 1)
+  return `chat-${suffix.replace(/:/g, '-')}`
+}
 
 /**
  * Build the virtual conversationId for app chat.
@@ -126,8 +156,8 @@ const scopedContexts = new Map<string, BrowserContext>()
 export async function sendAppChatMessage(
   request: AppChatRequest
 ): Promise<void> {
-  const { appId, spaceId, message, images, thinkingEnabled } = request
-  const conversationId = getAppChatConversationId(appId)
+  const { appId, spaceId, message, images, thinkingEnabled, onReply } = request
+  const conversationId = request.conversationId ?? getAppChatConversationId(appId)
 
   console.log(`[AppChat][${appId}] sendMessage: "${message.substring(0, 100)}"`)
 
@@ -213,6 +243,17 @@ export async function sendAppChatMessage(
 
   // Override for app chat context
   sdkOptions.systemPrompt = systemPrompt
+
+  // Non-native sessions (IM channels, etc.) are non-interactive — the user
+  // cannot respond to interactive tool prompts, so deny them preemptively
+  const defaultConvId = getAppChatConversationId(appId)
+  if (conversationId !== defaultConvId) {
+    sdkOptions.canUseTool = createCanUseTool({
+      spaceId,
+      conversationId,
+      nonInteractive: true,
+    })
+  }
 
   try {
     const t0 = Date.now()
@@ -425,4 +466,89 @@ export async function clearAppChat(appId: string, spaceId: string): Promise<void
     }
     console.log(`[AppChat][${appId}] Chat history cleared`)
   }
+}
+
+/**
+ * Load persisted chat messages for an IM session.
+ *
+ * Constructs the conversationId from IM session parameters, derives the
+ * corresponding JSONL runId, and reads the persisted messages.
+ */
+export function loadImChatMessages(
+  spacePath: string,
+  appId: string,
+  channel: string,
+  chatType: 'direct' | 'group',
+  chatId: string
+): any[] {
+  const conversationId = buildImSessionKey(appId, channel, chatType, chatId)
+  const runId = deriveRunId(conversationId, appId)
+  return readSessionMessages(spacePath, appId, runId)
+}
+
+// ============================================
+// Session Clear (shared logic)
+// ============================================
+
+/**
+ * Internal: clear a chat session by its conversationId.
+ *
+ * Shared by clearAppChat() and clearImSession(). Steps:
+ * 1. If the session is actively generating, abort it first
+ * 2. Close the V2 session (forces fresh session on next message)
+ * 3. Destroy scoped browser context (if any)
+ * 4. Empty the JSONL persistence file
+ *
+ * Idempotent: safe to call even if the session doesn't exist.
+ */
+async function clearSessionByConversationId(
+  conversationId: string,
+  appId: string,
+  spaceId: string
+): Promise<void> {
+  // 1. Abort active generation (if any) before closing
+  if (activeSessions.has(conversationId)) {
+    console.log(`[AppChat][${appId}] Session is generating, aborting first...`)
+    await stopGeneration(conversationId)
+  }
+
+  // 2. Close V2 session to force fresh session on next message
+  closeV2Session(conversationId)
+
+  // 3. Clean up scoped browser context
+  const ctx = scopedContexts.get(conversationId)
+  if (ctx) {
+    ctx.destroy()
+    scopedContexts.delete(conversationId)
+    console.log(`[AppChat][${appId}] Scoped browser context cleaned up`)
+  }
+
+  // 4. Clear the JSONL file
+  const space = getSpace(spaceId)
+  if (space?.path) {
+    const runId = deriveRunId(conversationId, appId)
+    const filePath = join(space.path, '.cafe', 'apps', appId, 'runs', `${runId}.jsonl`)
+    try {
+      await writeFile(filePath, '', 'utf8')
+    } catch {
+      // File may not exist yet, that's fine
+    }
+  }
+}
+
+/**
+ * Clear an IM session's chat history, resetting to a fresh session.
+ * Aborts active generation, closes the V2 session, cleans up browser context,
+ * and empties the JSONL file.
+ */
+export async function clearImSession(
+  appId: string,
+  spaceId: string,
+  channel: string,
+  chatType: 'direct' | 'group',
+  chatId: string
+): Promise<void> {
+  const conversationId = buildImSessionKey(appId, channel, chatType, chatId)
+  await clearSessionByConversationId(conversationId, appId, spaceId)
+  console.log(`[AppChat][${appId}] IM session cleared: ${conversationId}`)
 }

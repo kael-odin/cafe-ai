@@ -9,9 +9,10 @@
 import path from 'path'
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'fs'
 import { app } from 'electron'
+import { resolveClaudeConfigDir } from '../config.service'
 import { ensureOpenAICompatRouter, encodeBackendConfig } from '../../openai-compat-router'
 import type { ApiCredentials } from './types'
-import { inferOpenAIWireApi } from './helpers'
+import { inferOpenAIWireApi, credentialsToBackendConfig } from './helpers'
 import { buildSystemPrompt, DEFAULT_ALLOWED_TOOLS } from './system-prompt'
 import { createCanUseTool } from './permission-handler'
 
@@ -55,6 +56,12 @@ export interface ResolvedSdkCredentials {
 export interface SdkEnvParams {
   anthropicApiKey: string
   anthropicBaseUrl: string
+  /** Claude CLI config directory mode */
+  configDirMode?: 'cafe' | 'cc' | 'custom'
+  /** Custom config dir path (when configDirMode === 'custom') */
+  customConfigDir?: string
+  /** Enable Agent Teams (multi-agent collaboration) */
+  enableTeams?: boolean
 }
 
 /**
@@ -71,8 +78,8 @@ export interface BaseSdkOptionsParams {
   spaceId: string
   /** Conversation ID */
   conversationId: string
-  /** Abort controller for cancellation */
-  abortController: AbortController
+  /** Optional abort controller for cancellation (legacy callers only) */
+  abortController?: AbortController
   /** Optional stderr handler (for error accumulation) */
   stderrHandler?: (data: string) => void
   /** Optional MCP servers configuration */
@@ -81,6 +88,12 @@ export interface BaseSdkOptionsParams {
   maxTurns?: number
   /** System prompt profile ('official' | 'Cafe') */
   promptProfile?: 'official' | 'Cafe'
+  /** Claude CLI config directory mode */
+  configDirMode?: 'cafe' | 'cc' | 'custom'
+  /** Custom config dir path (when configDirMode === 'custom') */
+  customConfigDir?: string
+  /** Enable Agent Teams (multi-agent collaboration) */
+  enableTeams?: boolean
 }
 
 // ============================================
@@ -125,15 +138,7 @@ export async function resolveCredentialsForSdk(
     const apiType = credentials.apiType
       || (credentials.provider === 'oauth' ? 'chat_completions' : inferOpenAIWireApi(credentials.baseUrl))
 
-    anthropicApiKey = encodeBackendConfig({
-      url: credentials.baseUrl,
-      key: credentials.apiKey,
-      model: credentials.model,
-      headers: credentials.customHeaders,
-      apiType,
-      forceStream: credentials.forceStream,
-      filterContent: credentials.filterContent
-    })
+    anthropicApiKey = encodeBackendConfig(credentialsToBackendConfig(credentials, { apiType }))
 
     // Pass a fake Claude model to CC for normal request handling
     sdkModel = 'claude-sonnet-4-20250514'
@@ -159,15 +164,7 @@ async function resolveAnthropicPassthrough(
   const router = await ensureOpenAICompatRouter({ debug: false })
   const configUrl = credentials.baseUrl.replace(/\/+$/, '') + '/v1/messages'
 
-  const anthropicApiKey = encodeBackendConfig({
-    url: configUrl,
-    key: credentials.apiKey,
-    model: credentials.model,
-    headers: credentials.customHeaders,
-    apiType: 'anthropic_passthrough',
-    forceStream: credentials.forceStream,
-    filterContent: credentials.filterContent
-  })
+  const anthropicApiKey = encodeBackendConfig(credentialsToBackendConfig(credentials, { url: configUrl, apiType: 'anthropic_passthrough' }))
 
   console.log(`[SDK Config] Anthropic passthrough: routing via ${router.baseUrl}`)
 
@@ -284,9 +281,9 @@ export function buildSdkEnv(params: SdkEnvParams): Record<string, string | numbe
     ANTHROPIC_API_KEY: params.anthropicApiKey,
     ANTHROPIC_BASE_URL: params.anthropicBaseUrl,
 
-    // Cafe's own config dir (avoid conflicts with CC's ~/.claude)
+    // Claude config dir: resolved from configDirMode (cafe default / cc default / custom)
     CLAUDE_CONFIG_DIR: (() => {
-      const configDir = path.join(app.getPath('userData'), 'claude-config')
+      const configDir = resolveClaudeConfigDir(params.configDirMode, params.customConfigDir)
       ensureSandboxSettings(configDir)
       return configDir
     })(),
@@ -301,11 +298,20 @@ export function buildSdkEnv(params: SdkEnvParams): Record<string, string | numbe
     DISABLE_COST_WARNINGS: '1',
     CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK: '1',
 
+    // Align entrypoint with hardcoded User-Agent (external, cli) so billing header
+    // and User-Agent are consistent — matches a regular CLI OAuth user's fingerprint.
+    // Without this, main.tsx would auto-set it to 'sdk-cli' (non-interactive mode).
+    CLAUDE_CODE_ENTRYPOINT: 'cli',
+
     // Performance: skip warmup calls + raise V8 heap ceiling
     CLAUDE_CODE_REMOTE: 'true',
 
     // Performance: skip file snapshot I/O (Cafe doesn't expose /rewind)
     CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING: '1',
+
+    // Enable Agent Teams (multi-agent collaboration with named teammates)
+    // Only set when explicitly enabled via Settings > Advanced
+    ...(params.enableTeams ? { CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' } : {}),
 
     // Windows: pass through Git Bash path (set by git-bash.service during startup)
     // This was stripped by getCleanUserEnv() along with all CLAUDE_* vars
@@ -334,6 +340,56 @@ export function buildSdkEnv(params: SdkEnvParams): Record<string, string | numbe
 }
 
 // ============================================
+// Claude Code CLI Path Resolution
+// ============================================
+
+const CLI_RELATIVE = 'node_modules/@anthropic-ai/claude-code/cli.js'
+
+/**
+ * Resolve the path to the Claude Code CLI executable.
+ *
+ * Three runtime environments need to be handled:
+ *
+ * 1. **Packaged** (`app.isPackaged === true`): electron-builder bundles node_modules
+ *    alongside app.asar. `app.getAppPath()` returns the asar root, so the CLI is
+ *    always at `<appPath>/node_modules/...`. This path is guaranteed to exist.
+ *
+ * 2. **Dev** (`npm run dev`): Vite runs the main process from the project root.
+ *    `app.getAppPath()` returns the project root, so the CLI is at
+ *    `<projectRoot>/node_modules/...`.
+ *
+ * 3. **Built but unpackaged** (`npm run build` + run `out/main/index.mjs`, i.e. E2E):
+ *    Electron resolves `app.getAppPath()` to `out/main/` (the entry file's directory),
+ *    which has no `node_modules`. The CLI must be found at the project root instead.
+ *
+ * Using `app.isPackaged` cleanly separates case 1 from 2/3. For the unpackaged cases,
+ * `existsSync` picks whichever candidate path actually exists, covering both dev and E2E
+ * without any hardcoded relative-path assumptions.
+ */
+function resolveClaudeCodeCliPath(): string {
+  if (app.isPackaged) {
+    // Packaged: node_modules is bundled inside the asar alongside the app
+    return path.join(app.getAppPath(), CLI_RELATIVE)
+  }
+
+  // Unpackaged (dev or E2E build): search candidate locations
+  const candidates = [
+    // Dev mode: app.getAppPath() === project root
+    path.join(app.getAppPath(), CLI_RELATIVE),
+    // E2E build mode: app.getAppPath() === out/main/, project root is two levels up
+    path.join(app.getAppPath(), '..', '..', CLI_RELATIVE),
+  ]
+
+  const resolved = candidates.find(existsSync)
+  if (!resolved) {
+    throw new Error(
+      `[SDK Config] Claude Code CLI not found. Searched:\n${candidates.join('\n')}`
+    )
+  }
+  return resolved
+}
+
+// ============================================
 // SDK Options Builder
 // ============================================
 
@@ -353,29 +409,28 @@ export function buildBaseSdkOptions(params: BaseSdkOptionsParams): Record<string
     electronPath,
     spaceId,
     conversationId,
-    abortController,
     stderrHandler,
     mcpServers
   } = params
 
-  console.log(`[SDK Config] buildBaseSdkOptions: workDir="${workDir}", spaceId="${spaceId}"`)
+  console.log(`[SDK Config] buildBaseSdkOptions: workDir="${workDir}", spaceId="${spaceId}", configDirMode="${params.configDirMode ?? 'cafe'}"`)
 
   // Build environment variables
   const env = buildSdkEnv({
     anthropicApiKey: credentials.anthropicApiKey,
-    anthropicBaseUrl: credentials.anthropicBaseUrl
+    anthropicBaseUrl: credentials.anthropicBaseUrl,
+    configDirMode: params.configDirMode,
+    customConfigDir: params.customConfigDir,
+    enableTeams: params.enableTeams,
   })
 
   // Build base options
   const sdkOptions: Record<string, any> = {
     model: credentials.sdkModel,
     cwd: workDir,
-    abortController,
+    ...(params.abortController ? { abortController: params.abortController } : {}),
     env,
-    // CRITICAL FIX: Use claude-code/cli.js instead of SDK's bundled CLI
-    // SDK's bundled CLI has a bug where skills without user-invocable: true return empty
-    // Use app.getAppPath() to get reliable path to node_modules
-    pathToClaudeCodeExecutable: path.join(app.getAppPath(), 'node_modules/@anthropic-ai/claude-code/cli.js'),
+    pathToClaudeCodeExecutable: resolveClaudeCodeCliPath(),
     extraArgs: {
       'dangerously-skip-permissions': null
     },

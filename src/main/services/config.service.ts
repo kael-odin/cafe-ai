@@ -351,6 +351,11 @@ interface CafeConfig {
   agent?: {
     maxTurns: number
     promptProfile?: 'official' | 'Cafe'
+    enableTeams?: boolean
+    configDirMode?: 'cafe' | 'cc' | 'custom'
+    customConfigDir?: string
+    /** Experimental: switch agent engine. 'cc' = Claude Code SDK (default), 'halo' = Halo SDK. */
+    sdkEngine?: 'cc' | 'halo'
   }
   remoteAccess: {
     enabled: boolean
@@ -364,6 +369,10 @@ interface CafeConfig {
   isFirstLaunch: boolean
   // External notification channels (email, WeCom, DingTalk, Feishu, webhook)
   notificationChannels?: import('../../shared/types/notification-channels').NotificationChannelsConfig
+  /** @deprecated Migrated to imChannels.instances[] on startup. Kept for backward-compatible migration. */
+  wecomBot?: import('../../shared/types/notification-channels').WecomBotConfig
+  // IM channel configuration (multi-instance: WeCom Bot, Feishu Bot, DingTalk Bot, etc.)
+  imChannels?: import('../../shared/types/notification-channels').ImChannelsConfig
   // Analytics configuration (auto-generated on first launch)
   analytics?: AnalyticsConfig
   // Global layout preferences (panel sizes and visibility)
@@ -393,6 +402,24 @@ interface CafeConfig {
   // Network configuration (proxy settings)
   network?: {
     proxy?: string  // Manual proxy URL (e.g. http://host:port, socks5://host:port). Empty = use system proxy.
+  }
+  // GitHub Copilot configuration (identity + simulation parameters)
+  copilot?: {
+    /** Persistent device identity (generated once, never rotated) */
+    identity?: {
+      /** 64-char lowercase hex — sent as vscode-machineid */
+      machineId: string
+      /** UUID v4 — sent as editor-device-id */
+      deviceId: string
+    }
+    /** ID rotation simulation parameters */
+    simulation?: {
+      idReuseMin?: number
+      idReuseMax?: number
+      idReuseHighMin?: number
+      idReuseHighWeight?: number
+      idMaxAgeMinutes?: number
+    }
   }
 }
 
@@ -863,6 +890,10 @@ export function saveConfig(config: Partial<CafeConfig>): CafeConfig {
   // layout: shallow merge (panel sizes and visibility)
   if (config.layout !== undefined) {
     newConfig.layout = { ...currentConfig.layout, ...config.layout }
+  }
+  // copilot: shallow merge (identity + simulation)
+  if (config.copilot !== undefined) {
+    newConfig.copilot = { ...currentConfig.copilot, ...config.copilot }
   }
   // network: shallow merge (proxy, future fields)
   if (config.network !== undefined) {

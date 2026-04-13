@@ -21,6 +21,8 @@ import { getAppManager } from '../manager'
 import { getConfig } from '../../services/config.service'
 import { sendAppChatMessage, buildImSessionKey } from './app-chat'
 import { getImSessionRegistry } from './im-session-registry'
+import { stopGeneration } from '../../services/agent/control'
+import { activeSessions } from '../../services/agent/session-manager'
 
 // ============================================
 // Constants
@@ -30,6 +32,17 @@ const LOG_TAG = '[Dispatch]'
 
 /** Maximum reply length (platform-safe limit for most IM channels) */
 const MAX_REPLY_LENGTH = 4000
+
+/**
+ * Commands that abort the current generation.
+ * Slash-prefixed to avoid false triggers from normal conversation.
+ */
+const STOP_COMMANDS = new Set(['/cafe-stop', '/cafe-cancel'])
+
+/** Check whether a message is a stop command (case-insensitive, trimmed). */
+function isStopCommand(body: string): boolean {
+  return STOP_COMMANDS.has(body.trim().toLowerCase())
+}
 
 // ============================================
 // Routing
@@ -147,6 +160,24 @@ export async function dispatchInboundMessage(
       lastSender: msg.fromName,
       lastMessage: msg.body.slice(0, 50),
     })
+  }
+
+  // ── Stop command: abort a stuck or running generation ──
+  if (isStopCommand(msg.body)) {
+    const isActive = activeSessions.has(conversationId)
+    if (isActive) {
+      console.log(`${LOG_TAG} Stop command received: channel=${msg.channel}, chatId=${msg.chatId}, session=${conversationId}`)
+      try {
+        await stopGeneration(conversationId)
+        await reply.send('Generation stopped.')
+      } catch (err) {
+        console.error(`${LOG_TAG} Failed to stop generation: session=${conversationId}`, err)
+        await reply.send('Failed to stop generation.').catch(() => {})
+      }
+    } else {
+      await reply.send('No active generation to stop.').catch(() => {})
+    }
+    return
   }
 
   // For group chats, prefix sender name so the AI knows who is speaking

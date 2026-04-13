@@ -87,6 +87,13 @@ export const api = {
     return httpRequest('POST', '/api/auth/start-login', { providerType })
   },
 
+  authOpenLoginWindow: async (providerType: string, loginUrl: string, redirectUri: string): Promise<ApiResponse> => {
+    if (isElectron()) {
+      return window.Cafe.authOpenLoginWindow(providerType, loginUrl, redirectUri)
+    }
+    return httpRequest('POST', '/api/auth/open-login-window', { providerType, loginUrl, redirectUri })
+  },
+
   authCompleteLogin: async (providerType: string, state: string): Promise<ApiResponse> => {
     if (isElectron()) {
       return window.Cafe.authCompleteLogin(providerType, state)
@@ -840,6 +847,28 @@ export const api = {
     return window.Cafe.reconnectWecomBot()
   },
 
+
+  // ===== IM Channels (multi-instance, Electron only) =====
+  imChannelsStatus: async (): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imChannelsStatus()
+  },
+  imChannelsInstanceStatus: async (instanceId: string): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imChannelsInstanceStatus(instanceId)
+  },
+  imChannelsReconnect: async (instanceId: string): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imChannelsReconnect(instanceId)
+  },
+  imChannelsReload: async (): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imChannelsReload()
+  },
+  imChannelsProviders: async (): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imChannelsProviders()
+  },
   // ===== Window (Electron only) =====
   setTitleBarOverlay: async (options: {
     color: string
@@ -1749,6 +1778,28 @@ export const api = {
       return window.Cafe.onStoreSyncStatusChanged(callback)
     }
     return onEvent('store:sync-status-changed', callback)
+  },
+
+
+  // ===== IM Session Chat (Electron only) =====
+  imSessionsList: async (appId?: string): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.imSessionsList(appId)
+  },
+
+  appImChatMessages: async (appId: string, spaceId: string, channel: string, chatType: 'direct' | 'group', chatId: string): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.appImChatMessages(appId, spaceId, channel, chatType, chatId)
+  },
+
+  appImChatClear: async (appId: string, spaceId: string, channel: string, chatType: 'direct' | 'group', chatId: string): Promise<ApiResponse> => {
+    if (!isElectron()) { return { success: false, error: 'Only available in desktop app' } }
+    return window.Cafe.appImChatClear(appId, spaceId, channel, chatType, chatId)
+  },
+
+  onImSessionUpdated: (callback: (data: unknown) => void) => {
+    if (!isElectron()) { return () => { } }
+    return window.Cafe.onImSessionUpdated(callback)
   },
 
   // ===== CLI Config (desktop-only) =====

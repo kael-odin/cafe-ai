@@ -456,8 +456,8 @@ export const SkillSpecSchema = AppSpecCommonSchema.extend({
   mcp_server: z.never().optional(),
   subscriptions: z.never().optional(),
   memory_schema: z.never().optional(),
-  /** Core system prompt for skills. */
-  system_prompt: nonEmptyString,
+  /** Core system prompt for skills. Optional — registry installs provide skill_files instead. */
+  system_prompt: z.string().optional(),
   /** Optional output formatting configuration for skills. */
   output: OutputConfigSchema.optional(),
   /** Single-file content (manual add / legacy). Used when skill is a single .md file. */

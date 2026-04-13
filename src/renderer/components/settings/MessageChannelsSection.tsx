@@ -1,714 +1,981 @@
-/**
- * Message Channels Section Component (消息渠道)
- *
- * Unified settings section that merges:
- * - Notification Channels (one-way push: email, wecom app, dingtalk, feishu, webhook)
- * - WeCom Intelligent Bot (bidirectional WebSocket)
- *
- * Each channel is an expandable card showing:
- * - Channel name, description, direction badge (one-way / bidirectional)
- * - Status indicator (configured/connected/unconfigured)
- * - Credential fields when expanded
- *
- * IM Sessions are NOT shown here — they live in the digital human config.
- */
-
-import { useState, useCallback, useRef, useEffect } from 'react'
-import {
-  Mail, MessageSquare, Bell, Webhook, Loader2,
-  CheckCircle, XCircle, ChevronDown, RefreshCw, Bot,
-} from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { api } from '../../api'
-import { useAppsStore } from '../../stores/apps.store'
-import { CafeLogo } from '../brand/CafeLogo'
-import type { CafeConfig } from '../../types'
-import { NOTIFICATION_CHANNEL_META } from '../../../shared/types/notification-channels'
-import type {
-  NotificationChannelType,
-} from '../../../shared/types/notification-channels'
-
-// ============================================
-// Types
-// ============================================
-
-interface MessageChannelsSectionProps {
-  config: CafeConfig | null
-  setConfig: (config: CafeConfig) => void
-}
-
-interface TestResult {
-  success: boolean
-  error?: string
-}
-
-/** Field descriptor for data-driven form rendering */
-interface FieldDef {
-  key: string
-  label: string
-  type: 'text' | 'password' | 'number' | 'toggle' | 'select'
-  placeholder?: string
-  required?: boolean
-  options?: { value: string; label: string }[]
-  nested?: string
-}
-
-/** Unified channel descriptor */
-interface ChannelDef {
-  /** Unique channel key */
-  id: string
-  /** Channel type for notification channels, or 'wecom-bot' for the bot */
-  notifyType?: NotificationChannelType
-  icon: typeof Mail
-  labelKey: string
-  descriptionKey: string
-  /** 'one-way' = push only, 'bidirectional' = send + receive */
-  direction: 'one-way' | 'bidirectional'
-  fields: FieldDef[]
-  defaults: Record<string, unknown>
-}
-
-// ============================================
-// Channel Definitions
-// ============================================
-
-function buildChannelDefs(): ChannelDef[] {
-  return [
-    // ── Bidirectional channels ──
-    {
-      id: 'wecom-bot',
-      icon: MessageSquare,
-      labelKey: 'WeCom Intelligent Bot',
-      descriptionKey: 'Bidirectional messaging via WeCom AI Bot WebSocket',
-      direction: 'bidirectional',
-      fields: [
-        { key: 'botId', label: 'Bot ID', type: 'text', placeholder: 'aib-xxx', required: true },
-        { key: 'secret', label: 'Secret', type: 'password', required: true },
-        { key: 'wsUrl', label: 'WebSocket URL', type: 'text', placeholder: 'wss://openws.work.weixin.qq.com' },
-      ],
-      defaults: { enabled: false, botId: '', secret: '', wsUrl: '' },
-    },
-    // ── One-way notification channels ──
-    {
-      id: 'email',
-      notifyType: 'email',
-      icon: Mail,
-      labelKey: NOTIFICATION_CHANNEL_META.email.labelKey,
-      descriptionKey: NOTIFICATION_CHANNEL_META.email.descriptionKey,
-      direction: 'one-way',
-      fields: [
-        { key: 'smtp.host', label: 'SMTP Host', type: 'text', placeholder: 'smtp.gmail.com', required: true, nested: 'smtp.host' },
-        { key: 'smtp.port', label: 'SMTP Port', type: 'number', placeholder: '465', required: true, nested: 'smtp.port' },
-        { key: 'smtp.secure', label: 'Use SSL/TLS', type: 'toggle', nested: 'smtp.secure' },
-        { key: 'smtp.user', label: 'Username', type: 'text', placeholder: 'user@example.com', required: true, nested: 'smtp.user' },
-        { key: 'smtp.password', label: 'Password', type: 'password', placeholder: 'App password', required: true, nested: 'smtp.password' },
-        { key: 'defaultTo', label: 'Default Recipient', type: 'text', placeholder: 'recipient@example.com', required: true },
-      ],
-      defaults: { enabled: false, smtp: { host: '', port: 465, secure: true, user: '', password: '' }, defaultTo: '' },
-    },
-    {
-      id: 'wecom',
-      notifyType: 'wecom',
-      icon: MessageSquare,
-      labelKey: NOTIFICATION_CHANNEL_META.wecom.labelKey,
-      descriptionKey: NOTIFICATION_CHANNEL_META.wecom.descriptionKey,
-      direction: 'one-way',
-      fields: [
-        { key: 'corpId', label: 'Corp ID', type: 'text', placeholder: 'ww...', required: true },
-        { key: 'agentId', label: 'Agent ID', type: 'number', placeholder: '1000002', required: true },
-        { key: 'secret', label: 'Secret', type: 'password', required: true },
-        { key: 'defaultToUser', label: 'Default User ID', type: 'text', placeholder: 'userid (optional)' },
-        { key: 'defaultToParty', label: 'Default Party ID', type: 'text', placeholder: 'party id (optional)' },
-      ],
-      defaults: { enabled: false, corpId: '', agentId: 0, secret: '', defaultToUser: '', defaultToParty: '' },
-    },
-    {
-      id: 'dingtalk',
-      notifyType: 'dingtalk',
-      icon: Bell,
-      labelKey: NOTIFICATION_CHANNEL_META.dingtalk.labelKey,
-      descriptionKey: NOTIFICATION_CHANNEL_META.dingtalk.descriptionKey,
-      direction: 'one-way',
-      fields: [
-        { key: 'appKey', label: 'App Key', type: 'text', required: true },
-        { key: 'appSecret', label: 'App Secret', type: 'password', required: true },
-        { key: 'agentId', label: 'Agent ID', type: 'number', placeholder: '0', required: true },
-        { key: 'robotCode', label: 'Robot Code', type: 'text', placeholder: 'Robot code (optional)' },
-        { key: 'defaultChatId', label: 'Default Chat ID', type: 'text', placeholder: 'Chat ID (optional)' },
-      ],
-      defaults: { enabled: false, appKey: '', appSecret: '', agentId: 0, robotCode: '', defaultChatId: '' },
-    },
-    {
-      id: 'feishu',
-      notifyType: 'feishu',
-      icon: MessageSquare,
-      labelKey: NOTIFICATION_CHANNEL_META.feishu.labelKey,
-      descriptionKey: NOTIFICATION_CHANNEL_META.feishu.descriptionKey,
-      direction: 'one-way',
-      fields: [
-        { key: 'appId', label: 'App ID', type: 'text', required: true },
-        { key: 'appSecret', label: 'App Secret', type: 'password', required: true },
-        { key: 'defaultChatId', label: 'Default Chat ID', type: 'text', placeholder: 'Chat ID (optional)' },
-        { key: 'defaultUserId', label: 'Default User ID', type: 'text', placeholder: 'User open_id (optional)' },
-      ],
-      defaults: { enabled: false, appId: '', appSecret: '', defaultChatId: '', defaultUserId: '' },
-    },
-    {
-      id: 'webhook',
-      notifyType: 'webhook',
-      icon: Webhook,
-      labelKey: NOTIFICATION_CHANNEL_META.webhook.labelKey,
-      descriptionKey: NOTIFICATION_CHANNEL_META.webhook.descriptionKey,
-      direction: 'one-way',
-      fields: [
-        { key: 'url', label: 'URL', type: 'text', placeholder: 'https://example.com/webhook', required: true },
-        {
-          key: 'method', label: 'Method', type: 'select',
-          options: [{ value: 'POST', label: 'POST' }, { value: 'PUT', label: 'PUT' }],
-        },
-        { key: 'headers', label: 'Headers (JSON)', type: 'text', placeholder: '{"Authorization": "Bearer ..."}' },
-        { key: 'secret', label: 'HMAC Secret', type: 'password', placeholder: 'Signing secret (optional)' },
-      ],
-      defaults: { enabled: false, url: '', method: 'POST', headers: undefined, secret: '' },
-    },
-  ]
-}
-
-const CHANNEL_DEFS = buildChannelDefs()
-
-// ============================================
-// Helpers
-// ============================================
-
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  const parts = path.split('.')
-  let current: unknown = obj
-  for (const part of parts) {
-    if (current == null || typeof current !== 'object') return undefined
-    current = (current as Record<string, unknown>)[part]
-  }
-  return current
-}
-
-function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
-  const parts = path.split('.')
-  if (parts.length === 1) {
-    return { ...obj, [parts[0]]: value }
-  }
-  const [head, ...rest] = parts
-  const child = (obj[head] != null && typeof obj[head] === 'object') ? obj[head] as Record<string, unknown> : {}
-  return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) }
-}
-
-// ============================================
-// Channel Field Renderer
-// ============================================
-
-interface ChannelFieldProps {
-  field: FieldDef
-  value: unknown
-  onChange: (value: unknown) => void
-}
-
-function ChannelField({ field, value, onChange }: ChannelFieldProps) {
-  const { t } = useTranslation()
-
-  if (field.type === 'toggle') {
-    const checked = Boolean(value)
-    return (
-      <div className="flex items-center justify-between">
-        <label className="text-sm text-muted-foreground">{t(field.label)}</label>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => onChange(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
-            <div
-              className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                checked ? 'translate-x-5' : 'translate-x-0.5'
-              } mt-0.5`}
-            />
-          </div>
-        </label>
-      </div>
-    )
-  }
-
-  if (field.type === 'select') {
-    return (
-      <div className="space-y-1">
-        <label className="text-sm text-muted-foreground">{t(field.label)}</label>
-        <select
-          value={(value as string | undefined) ?? field.options?.[0]?.value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          className="form-input-soft w-full px-3 py-2 text-sm"
-        >
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    )
-  }
-
-  const inputType = field.type === 'number' ? 'number' : field.type === 'password' ? 'password' : 'text'
-
-  let displayValue: string
-  if (field.key === 'headers' && typeof value === 'object' && value !== null) {
-    displayValue = JSON.stringify(value)
-  } else {
-    displayValue = value != null ? String(value) : ''
-  }
-
-  const handleChange = (raw: string) => {
-    if (field.type === 'number') {
-      onChange(raw === '' ? 0 : Number(raw))
-    } else if (field.key === 'headers') {
-      onChange(raw === '' ? undefined : raw)
-    } else {
-      onChange(raw)
-    }
-  }
-
-  const handleBlur = () => {
-    if (field.key === 'headers' && typeof value === 'string' && value.trim()) {
-      try {
-        const parsed = JSON.parse(value)
-        onChange(parsed)
-      } catch {
-        // Keep as raw string
-      }
-    }
-  }
-
-  return (
-    <div className="space-y-1">
-      <label className="text-sm text-muted-foreground">
-        {t(field.label)}
-        {field.required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      <input
-        type={inputType}
-        value={displayValue}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
-        placeholder={field.placeholder ? t(field.placeholder) : undefined}
-        className="form-input-soft w-full px-3 py-2 text-sm"
-      />
-    </div>
-  )
-}
-
-// ============================================
-// Channel Card
-// ============================================
-
-interface ChannelCardProps {
-  def: ChannelDef
-  channelConfig: Record<string, unknown>
-  isExpanded: boolean
-  onToggleExpand: () => void
-  onSave: (def: ChannelDef, config: Record<string, unknown>) => Promise<void>
-  onTest?: (channelType: string) => void
-  isTesting?: boolean
-  testResult?: TestResult
-  /** WeCom Bot specific: connection status */
-  botStatus?: { connected: boolean }
-  onReconnect?: () => void
-  /** Custom content rendered after fields (e.g. default digital human selector) */
-  children?: React.ReactNode
-}
-
-function ChannelCard({
-  def,
-  channelConfig,
-  isExpanded,
-  onToggleExpand,
-  onSave,
-  onTest,
-  isTesting,
-  testResult,
-  botStatus,
-  onReconnect,
-  children,
-}: ChannelCardProps) {
-  const { t } = useTranslation()
-  const Icon = def.icon
-  const isEnabled = Boolean(channelConfig.enabled)
-
-  // Local draft state for debounced saves
-  const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const currentConfig = draft ?? channelConfig
-
-  const scheduleSave = useCallback((updated: Record<string, unknown>) => {
-    setDraft(updated)
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => {
-      void onSave(def, updated)
-      setDraft(null)
-      saveTimerRef.current = null
-    }, 500)
-  }, [def, onSave])
-
-  const handleToggleEnabled = async () => {
-    const updated = { ...currentConfig, enabled: !isEnabled }
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    setDraft(null)
-    await onSave(def, updated)
-  }
-
-  const handleFieldChange = (fieldKey: string, value: unknown, nested?: string) => {
-    const path = nested ?? fieldKey
-    const updated = setNestedValue({ ...currentConfig }, path, value)
-    scheduleSave(updated)
-  }
-
-  const getFieldValue = (field: FieldDef): unknown => {
-    const path = field.nested ?? field.key
-    return getNestedValue(currentConfig, path)
-  }
-
-  // Status display
-  const statusLabel = def.id === 'wecom-bot'
-    ? (isEnabled && botStatus?.connected ? t('Connected') : isEnabled ? t('Disconnected') : t('Not configured'))
-    : (isEnabled ? t('Configured') : t('Not configured'))
-
-  const statusColor = def.id === 'wecom-bot'
-    ? (isEnabled && botStatus?.connected ? 'bg-green-500' : isEnabled ? 'bg-amber-500' : 'bg-muted-foreground/30')
-    : (isEnabled ? 'bg-green-500' : 'bg-muted-foreground/30')
-
-  return (
-    <div className="subsection-soft-panel rounded-[1rem] overflow-hidden">
-      {/* Card Header */}
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <Icon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-          <div className="text-left min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm">{t(def.labelKey)}</p>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                def.direction === 'bidirectional'
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-                {def.direction === 'bidirectional' ? t('Bidirectional') : t('One-way')}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">{t(def.descriptionKey)}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{statusLabel}</span>
-          <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-          <ChevronDown
-            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-          />
-        </div>
-      </button>
-
-      {/* Card Body */}
-      {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-border space-y-4 animate-in slide-in-from-top-1 duration-150">
-          {/* Enable toggle */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">{t('Enabled')}</p>
-              <p className="text-xs text-muted-foreground">{t('Enable this channel')}</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isEnabled}
-                onChange={() => { void handleToggleEnabled() }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
-                <div
-                  className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                    isEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                  } mt-0.5`}
-                />
-              </div>
-            </label>
-          </div>
-
-          {/* Channel fields */}
-          <div className="space-y-3">
-            {def.fields.map((field) => (
-              <ChannelField
-                key={field.key}
-                field={field}
-                value={getFieldValue(field)}
-                onChange={(value) => handleFieldChange(field.key, value, field.nested)}
-              />
-            ))}
-          </div>
-
-          {/* Custom content (e.g. default digital human selector) */}
-          {children}
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-3 pt-2 flex-wrap">
-            {/* Test button (notification channels only) */}
-            {onTest && def.notifyType && (
-              <button
-                type="button"
-                onClick={() => { void onTest(def.notifyType) }}
-                disabled={(isTesting ?? false) || !isEnabled}
-                className="flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isTesting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Bell className="w-4 h-4" />
-                )}
-                {isTesting ? t('Testing...') : t('Test')}
-              </button>
-            )}
-
-            {/* Reconnect button (WeCom Bot only) */}
-            {def.id === 'wecom-bot' && isEnabled && onReconnect && (
-              <button
-                type="button"
-                onClick={() => { void onReconnect() }}
-                className="flex items-center gap-2 px-3 py-2 text-sm surface-subtle text-primary rounded-xl transition-colors hover:bg-secondary"
-              >
-                <RefreshCw className="w-4 h-4" />
-                {t('Reconnect')}
-              </button>
-            )}
-
-            {/* Test result */}
-            {testResult && (
-              <div className={`flex items-center gap-1.5 text-sm ${testResult.success ? 'text-green-500' : 'text-red-500'}`}>
-                {testResult.success ? (
-                  <CheckCircle className="w-4 h-4" />
-                ) : (
-                  <XCircle className="w-4 h-4" />
-                )}
-                <span>
-                  {testResult.success
-                    ? t('Test passed')
-                    : testResult.error ?? t('Test failed')}
-                </span>
-              </div>
-            )}
-
-            {/* WeCom Bot connection status detail */}
-            {def.id === 'wecom-bot' && isEnabled && botStatus && (
-              <div className={`flex items-center gap-1.5 text-sm ${botStatus.connected ? 'text-green-500' : 'text-amber-500'}`}>
-                <div className={`w-2 h-2 rounded-full ${botStatus.connected ? 'bg-green-500' : 'bg-amber-500'}`} />
-                <span>{botStatus.connected ? t('Connected') : t('Disconnected')}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// Main Component
-// ============================================
-
-export function MessageChannelsSection({ config, setConfig }: MessageChannelsSectionProps): JSX.Element {
-  const { t } = useTranslation()
-
-  const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set())
-  const [testingChannel, setTestingChannel] = useState<string | null>(null)
-  const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
-  const [botStatus, setBotStatus] = useState<{ connected: boolean }>({ connected: false })
-
-  // Load automation apps for the default digital human selector
-  const { apps, loadApps } = useAppsStore()
-  const automationApps = apps.filter(a => a.spec.type === 'automation')
-
-  useEffect(() => {
-    void loadApps()
-  }, [loadApps])
-
-  // Poll WeCom Bot status
-  useEffect(() => {
-    let cancelled = false
-    async function fetchBotStatus() {
-      try {
-        const res = await api.getWecomBotStatus() as { success: boolean; data?: { connected: boolean } }
-        if (!cancelled && res.success && res.data) {
-          setBotStatus({ connected: res.data.connected })
-        }
-      } catch {
-        // Ignore
-      }
-    }
-    void fetchBotStatus()
-    const interval = setInterval(() => { void fetchBotStatus() }, 10_000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [])
-
-  const toggleExpanded = useCallback((channelId: string) => {
-    setExpandedChannels((prev) => {
-      const next = new Set(prev)
-      if (next.has(channelId)) {
-        next.delete(channelId)
-      } else {
-        next.add(channelId)
-      }
-      return next
-    })
-  }, [])
-
-  const handleSaveChannel = useCallback(async (def: ChannelDef, channelConfig: Record<string, unknown>) => {
-    if (!config) return
-
-    if (def.id === 'wecom-bot') {
-      // Save WeCom Bot config
-      const updatedConfig = {
-        ...config,
-        wecomBot: channelConfig,
-      } as CafeConfig
-      try {
-        await api.setConfig({ wecomBot: updatedConfig.wecomBot })
-        setConfig(updatedConfig)
-      } catch (error) {
-        console.error('[MessageChannelsSection] Failed to save WeCom Bot config:', error)
-      }
-    } else if (def.notifyType) {
-      // Save notification channel config
-      const updatedConfig = {
-        ...config,
-        notificationChannels: {
-          ...config.notificationChannels,
-          [def.notifyType]: channelConfig,
-        },
-      } as CafeConfig
-      try {
-        await api.setConfig({ notificationChannels: updatedConfig.notificationChannels })
-        setConfig(updatedConfig)
-        api.clearNotificationChannelCache().catch(() => {})
-      } catch (error) {
-        console.error('[MessageChannelsSection] Failed to save channel config:', error)
-      }
-    }
-  }, [config, setConfig])
-
-  const handleTestChannel = useCallback(async (channelType: string) => {
-    setTestingChannel(channelType)
-    setTestResults((prev) => {
-      const next = { ...prev }
-      delete next[channelType]
-      return next
-    })
-    try {
-      const result = await api.testNotificationChannel(channelType) as { data: TestResult }
-      setTestResults((prev) => ({ ...prev, [channelType]: result.data }))
-    } catch {
-      setTestResults((prev) => ({ ...prev, [channelType]: { success: false, error: t('Test failed') } }))
-    } finally {
-      setTestingChannel(null)
-    }
-  }, [t])
-
-  const handleReconnect = useCallback(async () => {
-    try {
-      await api.reconnectWecomBot()
-    } catch {
-      // Ignore
-    }
-  }, [])
-
-  const handleDefaultAppChange = useCallback(async (appId: string) => {
-    if (!config) return
-    const imChannels = { ...config.imChannels, defaultAppId: appId || undefined }
-    try {
-      await api.setConfig({ imChannels })
-      setConfig({ ...config, imChannels } as CafeConfig)
-    } catch (error) {
-      console.error('[MessageChannelsSection] Failed to save default app:', error)
-    }
-  }, [config, setConfig])
-
-  const getChannelConfig = (def: ChannelDef): Record<string, unknown> => {
-    if (def.id === 'wecom-bot') {
-      const bot = config?.wecomBot as Record<string, unknown> | undefined
-      return bot ?? {}
-    }
-    if (def.notifyType) {
-      const channels = config?.notificationChannels
-      if (!channels) return {}
-      const raw = channels[def.notifyType]
-      return raw ? (raw as Record<string, unknown>) : {}
-    }
-    return {}
-  }
-
-  return (
-      <section id="message-channels" className="panel-glass section-frame rounded-[1.5rem] p-4 sm:p-6 relative overflow-hidden">
-      <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
-      <div className="flex items-center gap-3 mb-4">
-        <CafeLogo size={28} animated={false} />
-        <div>
-          <h2 className="text-lg font-medium">{t('Message Channels')}</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-          {t('Configure channels for sending and receiving messages with digital humans')}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {CHANNEL_DEFS.map((def) => (
-          <ChannelCard
-            key={def.id}
-            def={def}
-            channelConfig={getChannelConfig(def)}
-            isExpanded={expandedChannels.has(def.id)}
-            onToggleExpand={() => toggleExpanded(def.id)}
-            onSave={handleSaveChannel}
-            onTest={def.notifyType ? (channelType) => { void handleTestChannel(channelType) } : undefined}
-            isTesting={testingChannel === def.notifyType}
-            testResult={def.notifyType ? testResults[def.notifyType] : undefined}
-            botStatus={def.id === 'wecom-bot' ? botStatus : undefined}
-            onReconnect={def.id === 'wecom-bot' ? () => { void handleReconnect() } : undefined}
-          >
-            {/* Default Digital Human selector — WeCom Bot only */}
-            {def.id === 'wecom-bot' && (
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">
-                  {t('Default Digital Human')}
-                </label>
-                <div className="relative">
-                  <Bot className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <select
-                    value={config?.imChannels?.defaultAppId ?? ''}
-                    onChange={(e) => { void handleDefaultAppChange(e.target.value) }}
-                    className="form-input-soft w-full pl-9 pr-3 py-2 text-sm appearance-none cursor-pointer"
-                  >
-                    <option value="">{t('Not configured')}</option>
-                    {automationApps.map(app => (
-                      <option key={app.id} value={app.id}>
-                        {app.spec.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('Inbound messages will be routed to this digital human for conversation')}
-                </p>
-              </div>
-            )}
-          </ChannelCard>
-        ))}
-      </div>
-    </section>
-  )
-}
+/**
+ * Message Channels Section Component (消息渠道)
+ *
+ * Unified settings section that merges:
+ * - IM Channels (bidirectional, multi-instance: WeCom Bot, Feishu Bot, etc.)
+ * - Notification Channels (one-way push: email, wecom app, dingtalk, feishu, webhook)
+ *
+ * IM Channels support multiple instances per provider type, each bound to
+ * a specific digital human. Instances are rendered as an accordion list
+ * inside the provider's card.
+ *
+ * IM Sessions are NOT shown here — they live in the digital human config.
+ */
+
+import { useState, useCallback, useRef, useEffect } from 'react'
+import {
+  Mail, MessageSquare, Bell, Webhook, Loader2,
+  CheckCircle, XCircle, ChevronDown, RefreshCw, Bot,
+  Plus, Trash2, MoreVertical,
+} from 'lucide-react'
+import { useTranslation } from '../../i18n'
+import { api } from '../../api'
+import { useAppsStore } from '../../stores/apps.store'
+import { CafeLogo } from '../brand/CafeLogo'
+import type { CafeConfig } from '../../types'
+import { NOTIFICATION_CHANNEL_META } from '../../../shared/types/notification-channels'
+import type {
+  NotificationChannelType,
+  NotificationChannelsConfig,
+} from '../../../shared/types/notification-channels'
+import type {
+  ImChannelInstanceConfig,
+  ImChannelInstanceStatus,
+} from '../../../shared/types/im-channel'
+
+// ============================================
+// Types
+// ============================================
+
+interface MessageChannelsSectionProps {
+  config: CafeConfig | null
+  setConfig: (config: CafeConfig) => void
+}
+
+interface TestResult {
+  success: boolean
+  error?: string
+}
+
+/** Field descriptor for data-driven form rendering */
+interface FieldDef {
+  key: string
+  label: string
+  type: 'text' | 'password' | 'number' | 'toggle' | 'select'
+  placeholder?: string
+  required?: boolean
+  options?: { value: string; label: string }[]
+  nested?: string
+}
+
+/** Notification channel descriptor */
+interface NotifyChannelDef {
+  id: string
+  notifyType: NotificationChannelType
+  icon: typeof Mail
+  labelKey: string
+  descriptionKey: string
+  fields: FieldDef[]
+  defaults: Record<string, unknown>
+}
+
+// ============================================
+// Notification Channel Definitions
+// ============================================
+
+function buildNotifyChannelDefs(): NotifyChannelDef[] {
+  return [
+    {
+      id: 'email',
+      notifyType: 'email',
+      icon: Mail,
+      labelKey: NOTIFICATION_CHANNEL_META.email.labelKey,
+      descriptionKey: NOTIFICATION_CHANNEL_META.email.descriptionKey,
+      fields: [
+        { key: 'smtp.host', label: 'SMTP Host', type: 'text', placeholder: 'smtp.gmail.com', required: true, nested: 'smtp.host' },
+        { key: 'smtp.port', label: 'SMTP Port', type: 'number', placeholder: '465', required: true, nested: 'smtp.port' },
+        { key: 'smtp.secure', label: 'Use SSL/TLS', type: 'toggle', nested: 'smtp.secure' },
+        { key: 'smtp.user', label: 'Username', type: 'text', placeholder: 'user@example.com', required: true, nested: 'smtp.user' },
+        { key: 'smtp.password', label: 'Password', type: 'password', placeholder: 'App password', required: true, nested: 'smtp.password' },
+        { key: 'defaultTo', label: 'Default Recipient', type: 'text', placeholder: 'recipient@example.com', required: true },
+      ],
+      defaults: { enabled: false, smtp: { host: '', port: 465, secure: true, user: '', password: '' }, defaultTo: '' },
+    },
+    {
+      id: 'wecom',
+      notifyType: 'wecom',
+      icon: MessageSquare,
+      labelKey: NOTIFICATION_CHANNEL_META.wecom.labelKey,
+      descriptionKey: NOTIFICATION_CHANNEL_META.wecom.descriptionKey,
+      fields: [
+        { key: 'corpId', label: 'Corp ID', type: 'text', placeholder: 'ww...', required: true },
+        { key: 'agentId', label: 'Agent ID', type: 'number', placeholder: '1000002', required: true },
+        { key: 'secret', label: 'Secret', type: 'password', required: true },
+        { key: 'defaultToUser', label: 'Default User ID', type: 'text', placeholder: 'userid (optional)' },
+        { key: 'defaultToParty', label: 'Default Party ID', type: 'text', placeholder: 'party id (optional)' },
+      ],
+      defaults: { enabled: false, corpId: '', agentId: 0, secret: '', defaultToUser: '', defaultToParty: '' },
+    },
+    {
+      id: 'dingtalk',
+      notifyType: 'dingtalk',
+      icon: Bell,
+      labelKey: NOTIFICATION_CHANNEL_META.dingtalk.labelKey,
+      descriptionKey: NOTIFICATION_CHANNEL_META.dingtalk.descriptionKey,
+      fields: [
+        { key: 'appKey', label: 'App Key', type: 'text', required: true },
+        { key: 'appSecret', label: 'App Secret', type: 'password', required: true },
+        { key: 'agentId', label: 'Agent ID', type: 'number', placeholder: '0', required: true },
+        { key: 'robotCode', label: 'Robot Code', type: 'text', placeholder: 'Robot code (optional)' },
+        { key: 'defaultChatId', label: 'Default Chat ID', type: 'text', placeholder: 'Chat ID (optional)' },
+      ],
+      defaults: { enabled: false, appKey: '', appSecret: '', agentId: 0, robotCode: '', defaultChatId: '' },
+    },
+    {
+      id: 'feishu',
+      notifyType: 'feishu',
+      icon: MessageSquare,
+      labelKey: NOTIFICATION_CHANNEL_META.feishu.labelKey,
+      descriptionKey: NOTIFICATION_CHANNEL_META.feishu.descriptionKey,
+      fields: [
+        { key: 'appId', label: 'App ID', type: 'text', required: true },
+        { key: 'appSecret', label: 'App Secret', type: 'password', required: true },
+        { key: 'defaultChatId', label: 'Default Chat ID', type: 'text', placeholder: 'Chat ID (optional)' },
+        { key: 'defaultUserId', label: 'Default User ID', type: 'text', placeholder: 'User open_id (optional)' },
+      ],
+      defaults: { enabled: false, appId: '', appSecret: '', defaultChatId: '', defaultUserId: '' },
+    },
+    {
+      id: 'webhook',
+      notifyType: 'webhook',
+      icon: Webhook,
+      labelKey: NOTIFICATION_CHANNEL_META.webhook.labelKey,
+      descriptionKey: NOTIFICATION_CHANNEL_META.webhook.descriptionKey,
+      fields: [
+        { key: 'url', label: 'URL', type: 'text', placeholder: 'https://example.com/webhook', required: true },
+        {
+          key: 'method', label: 'Method', type: 'select',
+          options: [{ value: 'POST', label: 'POST' }, { value: 'PUT', label: 'PUT' }],
+        },
+        { key: 'headers', label: 'Headers (JSON)', type: 'text', placeholder: '{"Authorization": "Bearer ..."}' },
+        { key: 'secret', label: 'HMAC Secret', type: 'password', placeholder: 'Signing secret (optional)' },
+      ],
+      defaults: { enabled: false, url: '', method: 'POST', headers: undefined, secret: '' },
+    },
+  ]
+}
+
+const NOTIFY_CHANNEL_DEFS = buildNotifyChannelDefs()
+
+// ============================================
+// Helpers
+// ============================================
+
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = path.split('.')
+  let current: unknown = obj
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') return undefined
+    current = (current as Record<string, unknown>)[part]
+  }
+  return current
+}
+
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
+  const parts = path.split('.')
+  if (parts.length === 1) {
+    return { ...obj, [parts[0]]: value }
+  }
+  const [head, ...rest] = parts
+  const child = (obj[head] != null && typeof obj[head] === 'object') ? obj[head] as Record<string, unknown> : {}
+  return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) }
+}
+
+function generateId(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function truncateId(id: string, len = 12): string {
+  if (id.length <= len) return id
+  return id.slice(0, len) + '...'
+}
+
+// ============================================
+// Channel Field Renderer
+// ============================================
+
+interface ChannelFieldProps {
+  field: FieldDef
+  value: unknown
+  onChange: (value: unknown) => void
+}
+
+function ChannelField({ field, value, onChange }: ChannelFieldProps) {
+  const { t } = useTranslation()
+
+  if (field.type === 'toggle') {
+    const checked = Boolean(value)
+    return (
+      <div className="flex items-center justify-between">
+        <label className="text-sm text-muted-foreground">{t(field.label)}</label>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
+            <div
+              className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
+                checked ? 'translate-x-5' : 'translate-x-0.5'
+              } mt-0.5`}
+            />
+          </div>
+        </label>
+      </div>
+    )
+  }
+
+  if (field.type === 'select') {
+    return (
+      <div className="space-y-1">
+        <label className="text-sm text-muted-foreground">{t(field.label)}</label>
+        <select
+          value={(value as string | undefined) ?? field.options?.[0]?.value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="form-input-soft w-full px-3 py-2 text-sm"
+        >
+          {field.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    )
+  }
+
+  const inputType = field.type === 'number' ? 'number' : field.type === 'password' ? 'password' : 'text'
+
+  let displayValue: string
+  if (field.key === 'headers' && typeof value === 'object' && value !== null) {
+    displayValue = JSON.stringify(value)
+  } else {
+    displayValue = value != null ? String(value) : ''
+  }
+
+  const handleChange = (raw: string) => {
+    if (field.type === 'number') {
+      onChange(raw === '' ? 0 : Number(raw))
+    } else if (field.key === 'headers') {
+      onChange(raw === '' ? undefined : raw)
+    } else {
+      onChange(raw)
+    }
+  }
+
+  const handleBlur = () => {
+    if (field.key === 'headers' && typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value)
+        onChange(parsed)
+      } catch {
+        // Keep as raw string
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <label className="text-sm text-muted-foreground">
+        {t(field.label)}
+        {field.required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      <input
+        type={inputType}
+        value={displayValue}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        placeholder={field.placeholder ? t(field.placeholder) : undefined}
+        className="form-input-soft w-full px-3 py-2 text-sm"
+      />
+    </div>
+  )
+}
+
+// ============================================
+// IM Channel Instance Card (Sub-card)
+// ============================================
+
+interface InstanceCardProps {
+  instance: ImChannelInstanceConfig
+  status: ImChannelInstanceStatus | undefined
+  automationApps: { id: string; spec: { name: string } }[]
+  isExpanded: boolean
+  onToggle: () => void
+  onChange: (instance: ImChannelInstanceConfig) => void
+  onDelete: () => void
+  onReconnect: () => void
+}
+
+function InstanceCard({
+  instance,
+  status,
+  automationApps,
+  isExpanded,
+  onToggle,
+  onChange,
+  onDelete,
+  onReconnect,
+}: InstanceCardProps) {
+  const { t } = useTranslation()
+  const isConnected = status?.connected ?? false
+  const isEnabled = instance.enabled
+  const cfg = instance.config as Record<string, unknown>
+  const botId = (cfg.botId as string) || ''
+
+  // Resolve bound app name
+  const boundApp = automationApps.find(a => a.id === instance.appId)
+  const displayName = boundApp?.spec.name || t('Not bound')
+
+  // Status indicator
+  const statusDot = !isEnabled
+    ? 'bg-muted-foreground/30'
+    : isConnected
+      ? 'bg-green-500'
+      : 'bg-amber-500'
+
+  const statusText = !isEnabled
+    ? t('Disabled')
+    : isConnected
+      ? t('Connected')
+      : t('Disconnected')
+
+  const [showMenu, setShowMenu] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+        setShowDeleteConfirm(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMenu])
+
+  // Debounced save for config fields.
+  // pendingSaveRef always holds the most-recent unsaved value so we can
+  // flush it synchronously on unmount (e.g. card collapsed within 500 ms).
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSaveRef = useRef<ImChannelInstanceConfig | null>(null)
+  // Keep a stable ref to onChange so the unmount cleanup can call it without
+  // adding onChange to the flush effect's dependency array.
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+
+  const scheduleChange = useCallback((updated: ImChannelInstanceConfig) => {
+    pendingSaveRef.current = updated
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      onChangeRef.current(updated)
+      pendingSaveRef.current = null
+      saveTimerRef.current = null
+    }, 500)
+  }, [])
+
+  // Flush any pending debounced save when the card unmounts
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current !== null && pendingSaveRef.current !== null) {
+        clearTimeout(saveTimerRef.current)
+        onChangeRef.current(pendingSaveRef.current)
+        saveTimerRef.current = null
+        pendingSaveRef.current = null
+      }
+    }
+  }, [])
+
+  // Use local draft to avoid cursor jumping
+  const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
+  const currentCfg = draft ?? cfg
+
+  const handleConfigChange = (key: string, value: unknown) => {
+    const newCfg = { ...currentCfg, [key]: value }
+    setDraft(newCfg)
+    scheduleChange({ ...instance, config: newCfg })
+  }
+
+  const handleEnabledChange = () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setDraft(null)
+    onChange({ ...instance, enabled: !isEnabled })
+  }
+
+  const handleAppChange = (appId: string) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setDraft(null)
+    onChange({ ...instance, appId })
+  }
+
+  return (
+    <div className="border border-border/60 rounded-lg overflow-hidden bg-card/50">
+      {/* Instance header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot}`} />
+          <div className="text-left min-w-0">
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              Bot ID: {truncateId(botId) || t('Not set')}
+              {!isEnabled ? '' : isConnected ? '' : ` · ${statusText}`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Context menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
+              className="p-1 rounded hover:bg-muted transition-colors"
+            >
+              <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg z-10 min-w-[140px] py-1">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(false); onReconnect() }}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  disabled={!isEnabled}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  {t('Reconnect')}
+                </button>
+                {showDeleteConfirm ? (
+                  <div className="px-3 py-2 space-y-1.5">
+                    <p className="text-xs text-muted-foreground">{t('Delete this instance?')}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowMenu(false); setShowDeleteConfirm(false); onDelete() }}
+                        className="flex-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      >
+                        {t('Confirm')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false) }}
+                        className="flex-1 px-2 py-1 text-xs rounded hover:bg-muted text-muted-foreground transition-colors"
+                      >
+                        {t('Cancel')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true) }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted text-destructive transition-colors flex items-center gap-2"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t('Delete')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
+
+      {/* Instance body */}
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-2 border-t border-border/60 space-y-3 animate-in slide-in-from-top-1 duration-150">
+          {/* Enable toggle */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{t('Enabled')}</p>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isEnabled}
+                onChange={handleEnabledChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
+                <div
+                  className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
+                    isEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  } mt-0.5`}
+                />
+              </div>
+            </label>
+          </div>
+
+          {/* Config fields */}
+          <div className="space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-sm text-muted-foreground">
+                Bot ID <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={(currentCfg.botId as string) ?? ''}
+                onChange={(e) => handleConfigChange('botId', e.target.value)}
+                placeholder="aib-xxx"
+                className="form-input-soft w-full px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-muted-foreground">
+                Secret <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="password"
+                value={(currentCfg.secret as string) ?? ''}
+                onChange={(e) => handleConfigChange('secret', e.target.value)}
+                className="form-input-soft w-full px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-muted-foreground">WebSocket URL</label>
+              <input
+                type="text"
+                value={(currentCfg.wsUrl as string) ?? ''}
+                onChange={(e) => handleConfigChange('wsUrl', e.target.value)}
+                placeholder="wss://openws.work.weixin.qq.com"
+                className="form-input-soft w-full px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Digital Human selector */}
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">
+              {t('Digital Human')} <span className="text-red-400">*</span>
+            </label>
+            <div className="relative">
+              <Bot className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <select
+                value={instance.appId || ''}
+                onChange={(e) => handleAppChange(e.target.value)}
+                className="form-input-soft w-full pl-9 pr-3 py-2 text-sm appearance-none cursor-pointer"
+              >
+                <option value="">{t('Select digital human')}</option>
+                {automationApps.map(app => (
+                  <option key={app.id} value={app.id}>
+                    {app.spec.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t('All messages from this Bot will be handled by this digital human')}
+            </p>
+          </div>
+
+          {/* Connection status */}
+          {isEnabled && (
+            <div className={`flex items-center gap-1.5 text-sm ${isConnected ? 'text-green-500' : 'text-amber-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`} />
+              <span>{isConnected ? t('Connected') : t('Disconnected')}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// Notification Channel Card
+// ============================================
+
+interface NotifyChannelCardProps {
+  def: NotifyChannelDef
+  channelConfig: Record<string, unknown>
+  isExpanded: boolean
+  onToggleExpand: () => void
+  onSave: (def: NotifyChannelDef, config: Record<string, unknown>) => Promise<void>
+  onTest: (channelType: string) => void
+  isTesting: boolean
+  testResult?: TestResult
+}
+
+function NotifyChannelCard({
+  def,
+  channelConfig,
+  isExpanded,
+  onToggleExpand,
+  onSave,
+  onTest,
+  isTesting,
+  testResult,
+}: NotifyChannelCardProps) {
+  const { t } = useTranslation()
+  const Icon = def.icon
+  const isEnabled = Boolean(channelConfig?.enabled)
+
+  const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentConfig = draft ?? channelConfig
+
+  const scheduleSave = useCallback((updated: Record<string, unknown>) => {
+    setDraft(updated)
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      void onSave(def, updated)
+      setDraft(null)
+      saveTimerRef.current = null
+    }, 500)
+  }, [def, onSave])
+
+  const handleToggleEnabled = async () => {
+    const updated = { ...currentConfig, enabled: !isEnabled }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setDraft(null)
+    await onSave(def, updated)
+  }
+
+  const handleFieldChange = (fieldKey: string, value: unknown, nested?: string) => {
+    const path = nested ?? fieldKey
+    const updated = setNestedValue({ ...currentConfig }, path, value)
+    scheduleSave(updated)
+  }
+
+  const getFieldValue = (field: FieldDef): unknown => {
+    const path = field.nested ?? field.key
+    return getNestedValue(currentConfig || {}, path)
+  }
+
+  const statusLabel = isEnabled ? t('Configured') : t('Not configured')
+  const statusColor = isEnabled ? 'bg-green-500' : 'bg-muted-foreground/30'
+
+  return (
+    <div className="subsection-soft-panel rounded-[1rem] overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          <div className="text-left min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-sm">{t(def.labelKey)}</p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                {t('One-way')}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">{t(def.descriptionKey)}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <span className="text-xs text-muted-foreground hidden sm:inline">{statusLabel}</span>
+          <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-2 border-t border-border space-y-4 animate-in slide-in-from-top-1 duration-150">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{t('Enabled')}</p>
+              <p className="text-xs text-muted-foreground">{t('Enable this channel')}</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={isEnabled} onChange={() => { void handleToggleEnabled() }} className="sr-only peer" />
+              <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors">
+                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`} />
+              </div>
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            {def.fields.map((field) => (
+              <ChannelField
+                key={field.key}
+                field={field}
+                value={getFieldValue(field)}
+                onChange={(value) => handleFieldChange(field.key, value, field.nested)}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => onTest(def.notifyType)}
+              disabled={isTesting || !isEnabled}
+              className="flex items-center gap-2 px-3 py-2 text-sm btn-primary text-primary-foreground rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+              {isTesting ? t('Testing...') : t('Test')}
+            </button>
+            {testResult && (
+              <div className={`flex items-center gap-1.5 text-sm ${testResult.success ? 'text-green-500' : 'text-red-500'}`}>
+                {testResult.success ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                <span>{testResult.success ? t('Test passed') : testResult.error ?? t('Test failed')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// Main Component
+// ============================================
+
+export function MessageChannelsSection({ config, setConfig }: MessageChannelsSectionProps): JSX.Element {
+  const { t } = useTranslation()
+
+  const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set())
+  const [expandedInstances, setExpandedInstances] = useState<Set<string>>(new Set())
+  const [testingChannel, setTestingChannel] = useState<string | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
+  const [imStatuses, setImStatuses] = useState<ImChannelInstanceStatus[]>([])
+
+  // Load automation apps for the digital human selector
+  const { apps, loadApps } = useAppsStore()
+  const automationApps = apps.filter(a => a.spec.type === 'automation')
+
+  useEffect(() => { void loadApps() }, [loadApps])
+
+  // Poll IM channel statuses
+  useEffect(() => {
+    let cancelled = false
+    async function fetchStatuses() {
+      try {
+        const res = await api.imChannelsStatus() as { success: boolean; data?: ImChannelInstanceStatus[] }
+        if (!cancelled && res.success && res.data) {
+          setImStatuses(res.data)
+        }
+      } catch { /* ignore */ }
+    }
+    void fetchStatuses()
+    const interval = setInterval(() => { void fetchStatuses() }, 10_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  // ── IM Channel instances from config ────────────────────────────
+  const instances = config?.imChannels?.instances ?? []
+
+  const saveInstances = useCallback(async (newInstances: ImChannelInstanceConfig[]) => {
+    if (!config) return
+    const imChannels = { ...config.imChannels, instances: newInstances }
+    try {
+      await api.setConfig({ imChannels })
+      setConfig({ ...config, imChannels } as CafeConfig)
+      // Reload instances in the backend so new config takes effect
+      api.imChannelsReload().catch(() => {})
+    } catch (error) {
+      console.error('[MessageChannelsSection] Failed to save IM instances:', error)
+    }
+  }, [config, setConfig])
+
+  const handleInstanceChange = useCallback((updated: ImChannelInstanceConfig) => {
+    const newInstances = instances.map(i => i.id === updated.id ? updated : i)
+    void saveInstances(newInstances)
+  }, [instances, saveInstances])
+
+  const handleAddInstance = useCallback(() => {
+    const newInstance: ImChannelInstanceConfig = {
+      id: generateId(),
+      type: 'wecom-bot',
+      enabled: false,
+      appId: '',
+      config: { botId: '', secret: '', wsUrl: '' },
+    }
+    const newInstances = [...instances, newInstance]
+    void saveInstances(newInstances)
+    setExpandedInstances(prev => new Set(prev).add(newInstance.id))
+  }, [instances, saveInstances])
+
+  const handleDeleteInstance = useCallback((instanceId: string) => {
+    const newInstances = instances.filter(i => i.id !== instanceId)
+    void saveInstances(newInstances)
+  }, [instances, saveInstances])
+
+  const handleReconnectInstance = useCallback(async (instanceId: string) => {
+    try {
+      await api.imChannelsReconnect(instanceId)
+    } catch { /* ignore */ }
+  }, [])
+
+  // ── Notification channel handling ──────────────────────────────
+  const toggleExpanded = useCallback((channelId: string) => {
+    setExpandedChannels(prev => {
+      const next = new Set(prev)
+      if (next.has(channelId)) next.delete(channelId)
+      else next.add(channelId)
+      return next
+    })
+  }, [])
+
+  const toggleInstanceExpanded = useCallback((instanceId: string) => {
+    setExpandedInstances(prev => {
+      const next = new Set(prev)
+      if (next.has(instanceId)) next.delete(instanceId)
+      else next.add(instanceId)
+      return next
+    })
+  }, [])
+
+  const handleSaveNotifyChannel = useCallback(async (def: NotifyChannelDef, channelConfig: Record<string, unknown>) => {
+    if (!config) return
+    const updatedConfig = {
+      ...config,
+      notificationChannels: {
+        ...config.notificationChannels,
+        [def.notifyType]: channelConfig,
+      },
+    } as CafeConfig
+    try {
+      await api.setConfig({ notificationChannels: updatedConfig.notificationChannels })
+      setConfig(updatedConfig)
+      api.clearNotificationChannelCache().catch(() => {})
+    } catch (error) {
+      console.error('[MessageChannelsSection] Failed to save channel config:', error)
+    }
+  }, [config, setConfig])
+
+  const handleTestChannel = useCallback(async (channelType: string) => {
+    setTestingChannel(channelType)
+    setTestResults(prev => { const next = { ...prev }; delete next[channelType]; return next })
+    try {
+      const result = await api.testNotificationChannel(channelType) as { data: TestResult }
+      setTestResults(prev => ({ ...prev, [channelType]: result.data }))
+    } catch {
+      setTestResults(prev => ({ ...prev, [channelType]: { success: false, error: t('Test failed') } }))
+    } finally {
+      setTestingChannel(null)
+    }
+  }, [t])
+
+  const getNotifyConfig = (def: NotifyChannelDef): Record<string, unknown> => {
+    const channels = config?.notificationChannels as NotificationChannelsConfig | undefined
+    if (!channels) return {}
+    const raw = channels[def.notifyType]
+    return raw ? (raw as unknown as Record<string, unknown>) : {}
+  }
+
+  // Summary for the IM channel card header
+  const wecomInstances = instances.filter(i => i.type === 'wecom-bot')
+  const connectedCount = imStatuses.filter(s => s.connected).length
+  const imStatusSummary = wecomInstances.length === 0
+    ? t('Not configured')
+    : connectedCount > 0
+      ? `${connectedCount} ${t('connected')}`
+      : t('Disconnected')
+
+  const imStatusColor = wecomInstances.length === 0
+    ? 'bg-muted-foreground/30'
+    : connectedCount > 0
+      ? 'bg-green-500'
+      : 'bg-amber-500'
+
+  const isImExpanded = expandedChannels.has('im-wecom-bot')
+
+  return (
+    <section id="message-channels" className="panel-glass section-frame rounded-[1.5rem] p-4 sm:p-6 relative overflow-hidden">
+      <span className="sakura-petal sakura-petal-sm sakura-float-b right-8 top-6" />
+      <div className="flex items-center gap-3 mb-4">
+        <CafeLogo size={28} animated={false} />
+        <div>
+          <h2 className="text-lg font-medium">{t('Message Channels')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('Configure channels for sending and receiving messages with digital humans')}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {/* ── WeCom Intelligent Bot (multi-instance) ─────────────────── */}
+        <div className="subsection-soft-panel rounded-[1rem] overflow-hidden">
+          {/* Provider card header */}
+          <button
+            type="button"
+            onClick={() => toggleExpanded('im-wecom-bot')}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <MessageSquare className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <div className="text-left min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-sm">{t('WeCom Intelligent Bot')}</p>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                    {t('Bidirectional')}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">
+                  {t('Bidirectional messaging via WeCom AI Bot WebSocket')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <span className="text-xs text-muted-foreground hidden sm:inline">{imStatusSummary}</span>
+              <div className={`w-2 h-2 rounded-full ${imStatusColor}`} />
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isImExpanded ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Instance list */}
+          {isImExpanded && (
+            <div className="px-4 pb-4 pt-2 border-t border-border space-y-2.5 animate-in slide-in-from-top-1 duration-150">
+              {wecomInstances.length === 0 && (
+                <p className="text-sm text-muted-foreground py-2 text-center">
+                  {t('No Bot instances configured. Click the button below to add one.')}
+                </p>
+              )}
+
+              {wecomInstances.map(inst => (
+                <InstanceCard
+                  key={inst.id}
+                  instance={inst}
+                  status={imStatuses.find(s => s.id === inst.id)}
+                  automationApps={automationApps}
+                  isExpanded={expandedInstances.has(inst.id)}
+                  onToggle={() => toggleInstanceExpanded(inst.id)}
+                  onChange={handleInstanceChange}
+                  onDelete={() => handleDeleteInstance(inst.id)}
+                  onReconnect={() => void handleReconnectInstance(inst.id)}
+                />
+              ))}
+
+              {/* Add instance button */}
+              <button
+                type="button"
+                onClick={handleAddInstance}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm border border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-muted/30 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                {t('Add Bot')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Notification channels (one-way) ───────────────────────── */}
+        {NOTIFY_CHANNEL_DEFS.map((def) => (
+          <NotifyChannelCard
+            key={def.id}
+            def={def}
+            channelConfig={getNotifyConfig(def)}
+            isExpanded={expandedChannels.has(def.id)}
+            onToggleExpand={() => toggleExpanded(def.id)}
+            onSave={handleSaveNotifyChannel}
+            onTest={(channelType) => { void handleTestChannel(channelType) }}
+            isTesting={testingChannel === def.notifyType}
+            testResult={testResults[def.notifyType]}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}

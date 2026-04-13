@@ -23,7 +23,7 @@ export function normalizeOpenAIChatCompletionsUrl(apiUrl: string): string {
  * Normalize OpenAI Responses API URL
  */
 export function normalizeOpenAIResponsesUrl(apiUrl: string): string {
-  const trimSlash = (s: string) => s.replace(/\/+$/, '')
+  const trimSlash = (s: string) => s.replace(/\s/g, '').replace(/\/+$/, '')
   let normalized = trimSlash(apiUrl)
   
   if (normalized.endsWith('/responses')) {
@@ -56,7 +56,7 @@ export function normalizeAnthropicMessagesUrl(apiUrl: string): string {
  * @returns Normalized URL ready for use
  */
 export function normalizeApiUrl(apiUrl: string, provider: 'anthropic' | 'openai'): string {
-  const trimSlash = (s: string) => s.replace(/\/+$/, '')
+  const trimSlash = (s: string) => s.replace(/\s/g, '').replace(/\/+$/, '')
   let normalized = trimSlash(apiUrl)
 
   if (provider === 'anthropic') {

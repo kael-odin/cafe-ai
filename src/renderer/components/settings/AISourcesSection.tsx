@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Check, ChevronRight, Edit2, Trash2, LogOut, Loader2, Key, Globe,
   LogIn, User, Cloud, Server, Shield, Lock, Zap, MessageSquare, Wrench, Github,
+  Brain, Copy, ExternalLink,
   type LucideIcon
 } from 'lucide-react'
 import type {
@@ -73,7 +74,8 @@ const iconMap: Record<string, LucideIcon> = {
   'zap': Zap,
   'message-square': MessageSquare,
   'wrench': Wrench,
-  'github': Github
+  'github': Github,
+  'brain': Brain
 }
 
 /**
@@ -96,6 +98,17 @@ interface OAuthLoginState {
   verificationUri?: string
 }
 
+// Claude OAuth login dialog state
+interface ClaudeLoginState {
+  loginUrl: string
+  state: string
+  manualCode: string
+  autoLoginInProgress: boolean
+  error: string | null
+  copied: boolean
+  submitting: boolean
+}
+
 export function AISourcesSection({ config, setConfig }: AISourcesSectionProps): JSX.Element {
   const { t } = useTranslation()
 
@@ -111,6 +124,9 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps): 
   // OAuth state
   const [loginState, setLoginState] = useState<OAuthLoginState | null>(null)
   const [loggingOutSourceId, setLoggingOutSourceId] = useState<string | null>(null)
+
+  // Claude OAuth dialog state
+  const [claudeLogin, setClaudeLogin] = useState<ClaudeLoginState | null>(null)
 
   // Dynamic OAuth providers from product.json
   const [oauthProviders, setOAuthProviders] = useState<AuthProviderConfig[]>([])
@@ -213,13 +229,29 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps): 
         return
       }
 
-      const { state, userCode, verificationUri } = result.data as {
+      const { loginUrl, state, userCode, verificationUri } = result.data as {
         loginUrl: string
         state: string
         userCode?: string
         verificationUri?: string
       }
 
+      // Claude OAuth: show dual-mode login dialog
+      if (providerType === 'claude' && loginUrl && !userCode) {
+        setLoginState(null)
+        setClaudeLogin({
+          loginUrl,
+          state,
+          manualCode: '',
+          autoLoginInProgress: false,
+          error: null,
+          copied: false,
+          submitting: false
+        })
+        return
+      }
+
+      // Device code flow (GitHub Copilot, etc.)
       setLoginState({
         provider: providerType,
         status: userCode ? t('Enter the code in your browser') : t('Waiting for login...'),
@@ -241,6 +273,56 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps): 
       console.error('[AISourcesSection] OAuth login error:', err)
       setLoginState(null)
     }
+  }
+
+  // Claude: Direct Login button handler
+  const handleClaudeDirectLogin = async (): Promise<void> => {
+    if (!claudeLogin) return
+    setClaudeLogin(prev => prev ? { ...prev, autoLoginInProgress: true, error: null } : null)
+    try {
+      const redirectUri = 'https://console.anthropic.com/oauth/code/callback'
+      const windowResult = await api.authOpenLoginWindow('claude', claudeLogin.loginUrl, redirectUri)
+      if (!windowResult.success) {
+        const errMsg = windowResult.error || t('Login failed')
+        if (errMsg === 'Login window closed') {
+          setClaudeLogin(prev => prev ? { ...prev, autoLoginInProgress: false } : null)
+          return
+        }
+        setClaudeLogin(prev => prev ? { ...prev, autoLoginInProgress: false, error: errMsg } : null)
+        return
+      }
+      await reloadConfig()
+      setClaudeLogin(null)
+    } catch (err) {
+      setClaudeLogin(prev => prev ? { ...prev, autoLoginInProgress: false, error: err instanceof Error ? err.message : t('Login failed') } : null)
+    }
+  }
+
+  // Claude: Submit Code button handler
+  const handleClaudeManualLogin = async (): Promise<void> => {
+    if (!claudeLogin || !claudeLogin.manualCode.trim()) return
+    setClaudeLogin(prev => prev ? { ...prev, submitting: true, error: null } : null)
+    try {
+      const completeResult = await api.authCompleteLogin('claude', claudeLogin.manualCode.trim())
+      if (!completeResult.success) {
+        setClaudeLogin(prev => prev ? { ...prev, submitting: false, error: completeResult.error || t('Login failed') } : null)
+        return
+      }
+      await reloadConfig()
+      setClaudeLogin(null)
+    } catch (err) {
+      setClaudeLogin(prev => prev ? { ...prev, submitting: false, error: err instanceof Error ? err.message : t('Login failed') } : null)
+    }
+  }
+
+  // Claude: Copy URL to clipboard
+  const handleClaudeCopyUrl = async (): Promise<void> => {
+    if (!claudeLogin) return
+    try {
+      await navigator.clipboard.writeText(claudeLogin.loginUrl)
+      setClaudeLogin(prev => prev ? { ...prev, copied: true } : null)
+      setTimeout(() => { setClaudeLogin(prev => prev ? { ...prev, copied: false } : null) }, 2000)
+    } catch {}
   }
 
   // Handle OAuth logout
@@ -468,6 +550,64 @@ export function AISourcesSection({ config, setConfig }: AISourcesSectionProps): 
             {t('Delete')}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  // Show Claude OAuth dual-mode login dialog
+  if (claudeLogin) {
+    return (
+      <div className="panel-glass section-frame p-4 rounded-xl space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(217, 119, 87, 0.15)' }}>
+            <Brain size={20} style={{ color: '#d97757' }} />
+          </div>
+          <div>
+            <h3 className="font-medium text-text-primary">{t('Claude Login')}</h3>
+            <p className="text-xs text-text-tertiary">{t('Choose a login method')}</p>
+          </div>
+        </div>
+        {claudeLogin.error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+            <p className="text-sm text-red-500">{claudeLogin.error}</p>
+          </div>
+        )}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-text-secondary">{t('Option 1: Direct Login')}</h4>
+          <p className="text-xs text-text-tertiary">{t('Requires access to claude.ai (with proxy or direct connection)')}</p>
+          <button onClick={handleClaudeDirectLogin} disabled={claudeLogin.autoLoginInProgress || claudeLogin.submitting}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#d97757] hover:bg-[#c5684a] disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium">
+            {claudeLogin.autoLoginInProgress ? (<><Loader2 size={16} className="animate-spin" />{t('Logging in...')}</>) : (<><ExternalLink size={16} />{t('Open Login Window')}</>)}
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-border-secondary" />
+          <span className="text-xs text-text-tertiary">{t('or')}</span>
+          <div className="flex-1 h-px bg-border-secondary" />
+        </div>
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-text-secondary">{t('Option 2: Partner-Assisted Login')}</h4>
+          <p className="text-xs text-text-tertiary">{t('Copy the link below and send it to your service provider')}</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 p-2.5 subsection-soft-panel rounded-md border border-border-secondary font-mono text-xs text-text-secondary break-all select-all overflow-hidden max-h-16 overflow-y-auto">{claudeLogin.loginUrl}</div>
+            <button onClick={handleClaudeCopyUrl} className="shrink-0 flex items-center gap-1 px-3 py-2.5 text-sm surface-subtle hover:bg-secondary border border-border-secondary rounded-md transition-colors" title={t('Copy link')}>
+              <Copy size={14} className={claudeLogin.copied ? 'text-green-500' : 'text-text-secondary'} />
+              <span className={"text-xs " + (claudeLogin.copied ? 'text-green-500' : 'text-text-secondary')}>{claudeLogin.copied ? t('Copied') : t('Copy')}</span>
+            </button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs text-text-tertiary">{t('Paste the authorization code from your service provider')}</p>
+            <input type="text" value={claudeLogin.manualCode} onChange={(e) => setClaudeLogin(prev => prev ? { ...prev, manualCode: e.target.value } : null)} placeholder={t('Paste authorization code here')}
+              className="w-full px-3 py-2.5 subsection-soft-panel border border-border-secondary rounded-md text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-mono"
+              disabled={claudeLogin.submitting} onKeyDown={(e) => { if (e.key === 'Enter' && claudeLogin.manualCode.trim()) { handleClaudeManualLogin() } }} />
+          </div>
+          <button onClick={handleClaudeManualLogin} disabled={!claudeLogin.manualCode.trim() || claudeLogin.submitting || claudeLogin.autoLoginInProgress}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 btn-primary disabled:opacity-50 text-primary-foreground rounded-lg transition-colors text-sm font-medium">
+            {claudeLogin.submitting ? (<><Loader2 size={16} className="animate-spin" />{t('Verifying...')}</>) : (<><Check size={16} />{t('Complete Login')}</>)}
+          </button>
+        </div>
+        <button onClick={() => setClaudeLogin(null)} disabled={claudeLogin.autoLoginInProgress || claudeLogin.submitting}
+          className="w-full px-4 py-2 text-sm text-text-secondary hover:bg-secondary rounded-md transition-colors">{t('Cancel')}</button>
       </div>
     )
   }

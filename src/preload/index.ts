@@ -19,6 +19,7 @@ export interface CafeAPI {
   authGetProviders: () => Promise<IpcResponse>
   authGetBuiltinProviders: () => Promise<IpcResponse>
   authStartLogin: (providerType: string) => Promise<IpcResponse>
+  authOpenLoginWindow: (providerType: string, loginUrl: string, redirectUri: string) => Promise<IpcResponse>
   authCompleteLogin: (providerType: string, state: string) => Promise<IpcResponse>
   authRefreshToken: (sourceId: string) => Promise<IpcResponse>
   authCheckToken: (sourceId: string) => Promise<IpcResponse>
@@ -417,6 +418,13 @@ export interface CafeAPI {
   storeUpdateRegistryAdapterConfig: (input: { registryId: string; adapterConfig: Record<string, unknown> }) => Promise<IpcResponse>
   onStoreSyncStatusChanged: (callback: (data: { registryId: string; status: string; appCount: number; error?: string }) => void) => () => void
 
+
+  // IM Session Chat
+  imSessionsList: (appId?: string) => Promise<IpcResponse>
+  appImChatMessages: (appId: string, spaceId: string, channel: string, chatType: 'direct' | 'group', chatId: string) => Promise<IpcResponse>
+  appImChatClear: (appId: string, spaceId: string, channel: string, chatType: 'direct' | 'group', chatId: string) => Promise<IpcResponse>
+  onImSessionUpdated: (callback: (data: unknown) => void) => () => void
+
   // CLI Config (Skills + MCP migration, config dir mode)
   cliConfigGetPaths: () => Promise<IpcResponse>
   cliConfigScanSkills: () => Promise<IpcResponse>
@@ -455,6 +463,7 @@ const api: CafeAPI = {
   authGetProviders: () => ipcRenderer.invoke('auth:get-providers'),
   authGetBuiltinProviders: () => ipcRenderer.invoke('auth:get-builtin-providers'),
   authStartLogin: (providerType) => ipcRenderer.invoke('auth:start-login', providerType),
+  authOpenLoginWindow: (providerType, loginUrl, redirectUri) => ipcRenderer.invoke('auth:open-login-window', providerType, loginUrl, redirectUri),
   authCompleteLogin: (providerType, state) => ipcRenderer.invoke('auth:complete-login', providerType, state),
   authRefreshToken: (sourceId) => ipcRenderer.invoke('auth:refresh-token', sourceId),
   authCheckToken: (sourceId) => ipcRenderer.invoke('auth:check-token', sourceId),
@@ -758,6 +767,15 @@ const api: CafeAPI = {
   storeToggleRegistry: (input) => ipcRenderer.invoke('store:toggle-registry', input),
   storeUpdateRegistryAdapterConfig: (input) => ipcRenderer.invoke('store:update-registry-adapter-config', input),
   onStoreSyncStatusChanged: (callback) => createEventListener('store:sync-status-changed', callback as (data: unknown) => void),
+
+
+  // IM Session Chat
+  imSessionsList: (appId) => ipcRenderer.invoke('im-sessions:list', appId),
+  appImChatMessages: (appId, spaceId, channel, chatType, chatId) =>
+    ipcRenderer.invoke('app:im-chat-messages', { appId, spaceId, channel, chatType, chatId }),
+  appImChatClear: (appId, spaceId, channel, chatType, chatId) =>
+    ipcRenderer.invoke('app:im-chat-clear', { appId, spaceId, channel, chatType, chatId }),
+  onImSessionUpdated: (callback) => createEventListener('app:im-session-updated', callback),
 
   // CLI Config
   cliConfigGetPaths: () => ipcRenderer.invoke('cli-config:get-paths'),
