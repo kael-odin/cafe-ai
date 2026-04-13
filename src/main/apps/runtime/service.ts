@@ -35,6 +35,9 @@ import type {
 import { AppNotRunnableError, NoSubscriptionsError, EscalationNotFoundError, ConcurrencyLimitError } from './errors'
 import { Semaphore } from './concurrency'
 import { executeRun } from './execute'
+import { readSessionMessages } from './session-store'
+import { getSpace } from '../../services/space.service'
+import type { ImSessionRecord } from '../../../shared/types/im-channel'
 import { broadcastToAll } from '../../http/websocket'
 import { sendToRenderer } from '../../services/window.service'
 import { notifyAppEvent } from '../../services/notification.service'
@@ -61,6 +64,20 @@ const ESCALATION_CHECK_INTERVAL_MS = 5 * 60 * 1000
 /** Minimum interval between data prune runs (24 hours) */
 const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
+/** Max IM conversation history turns per session */
+const IM_HISTORY_TURN_LIMIT = 5
+
+/** Max total characters of IM history injected into trigger context */
+const IM_HISTORY_MAX_CHARS = 3000
+
+/** Max characters per individual message line (truncate long bot responses) */
+const IM_MESSAGE_TRUNCATE = 500
+
+/** Max characters for IM push result */
+const MAX_PUSH_LENGTH = 4000
+
+const IM_TRIGGER_PREFIXES = ['[schedule]', '[event]', '[manual]']
+
 // ============================================
 // Service Factory
 // ============================================
@@ -76,6 +93,8 @@ const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000
  */
 export function createAppRuntimeService(deps: AppRuntimeDeps): AppRuntimeService {
   const { store, appManager, scheduler, eventRouter, memory, background } = deps
+  const imSessionRegistry = deps.imSessionRegistry ?? null
+  const getChannelAdapter = deps.getChannelAdapter ?? (() => null)
 
   // ── Internal State ──────────────────────────────────
   const activations = new Map<string, ActivationState>()
@@ -100,6 +119,119 @@ export function createAppRuntimeService(deps: AppRuntimeDeps): AppRuntimeService
   let escalationCheckInterval: ReturnType<typeof setInterval> | null = null
   /** Timestamp of last successful prune (avoid running too frequently) */
   let lastPruneAtMs = 0
+
+  // ── Helper: IM proactive push ───────────────────────
+
+  function buildImContextForTrigger(
+    app: InstalledApp,
+    sessions: ImSessionRecord[]
+  ): string | null {
+    const space = app.spaceId ? getSpace(app.spaceId) : null
+    if (!space?.path) return null
+
+    const sections: string[] = []
+
+    for (const session of sessions) {
+      const chatRunId = `chat-${session.channel}-${session.chatType}-${session.chatId}`
+      const messages = readSessionMessages(space.path, app.id, chatRunId)
+      if (messages.length === 0) continue
+
+      const turns: Array<{ user: string; botFinal: string }> = []
+      let pendingUser: string | null = null
+      let pendingBotFinal: string | null = null
+
+      for (const m of messages) {
+        if (m.role === 'user') {
+          if (pendingUser !== null && pendingBotFinal !== null) {
+            turns.push({ user: pendingUser, botFinal: pendingBotFinal })
+          }
+          if (IM_TRIGGER_PREFIXES.some(p => m.content.startsWith(p))) {
+            pendingUser = null
+            pendingBotFinal = null
+            continue
+          }
+          pendingUser = m.content
+          pendingBotFinal = null
+        } else {
+          if (pendingUser !== null) {
+            pendingBotFinal = m.content
+          }
+        }
+      }
+      if (pendingUser !== null && pendingBotFinal !== null) {
+        turns.push({ user: pendingUser, botFinal: pendingBotFinal })
+      }
+
+      if (turns.length === 0) continue
+
+      const recentTurns = turns.slice(-IM_HISTORY_TURN_LIMIT)
+      let totalChars = 0
+      const lines: string[] = []
+
+      for (const turn of recentTurns) {
+        const userLine = turn.user.slice(0, IM_MESSAGE_TRUNCATE)
+        const botLine = `[bot] ${turn.botFinal.slice(0, IM_MESSAGE_TRUNCATE)}`
+        const turnText = `${userLine}\n${botLine}`
+        totalChars += turnText.length
+        if (totalChars > IM_HISTORY_MAX_CHARS) break
+        lines.push(turnText)
+      }
+
+      if (lines.length > 0) {
+        const header = session.displayName || session.chatId
+        sections.push(
+          `#### ${header} (recent ${lines.length} exchanges)\n\n${lines.join('\n\n')}`
+        )
+      }
+    }
+
+    if (sections.length === 0) return null
+
+    return (
+      `### IM Conversation History\n\n` +
+      `Recent exchanges from IM channels where this App is active.\n` +
+      `Each entry: a user message followed by the bot's final reply.\n` +
+      `Use this to understand what users have been asking about and tailor your output accordingly.\n\n` +
+      sections.join('\n\n')
+    )
+  }
+
+  function forwardResultToIm(
+    sessions: ImSessionRecord[],
+    runId: string
+  ): void {
+    const entries = store.getEntriesForRun(runId)
+    const reportEntry = entries.find(e =>
+      e.type === 'run_complete' || e.type === 'output' || e.type === 'milestone'
+    )
+
+    if (!reportEntry) return
+
+    const data = reportEntry.content.data
+    const pushText = typeof data === 'string' && data.length > 0
+      ? data
+      : reportEntry.content.summary
+
+    if (!pushText) return
+
+    const text = pushText.slice(0, MAX_PUSH_LENGTH)
+
+    for (const session of sessions) {
+      const adapterKey = session.instanceId || session.channel
+      const adapter = getChannelAdapter(adapterKey)
+      if (!adapter?.isConnected()) {
+        console.warn(`[Runtime] IM forward skipped: adapter "${adapterKey}" not connected`)
+        continue
+      }
+
+      const sent = adapter.pushToChat(session.chatId, text, session.chatType)
+      if (sent) {
+        console.log(`[Runtime] IM forward: channel=${session.channel}, instanceId=${session.instanceId || '(legacy)'}, chat=${session.chatId}, len=${text.length}`)
+      } else {
+        console.error(`[Runtime] IM forward failed: channel=${session.channel}, instanceId=${session.instanceId || '(legacy)'}, chat=${session.chatId}`)
+      }
+    }
+  }
 
   // ── Helper: Build trigger context ───────────────────
   function buildScheduleTriggerContext(job: SchedulerJob, app: InstalledApp): TriggerContext {
@@ -765,7 +897,28 @@ export function createAppRuntimeService(deps: AppRuntimeDeps): AppRuntimeService
       }
 
       const trigger = buildManualTriggerContext(app)
-      return executeWithConcurrency(app, trigger)
+
+      // ── Inject IM conversation history into trigger ─────
+      const proactiveSessions = imSessionRegistry?.getProactiveSessions(appId)
+      if (proactiveSessions && proactiveSessions.length > 0) {
+        const imContext = buildImContextForTrigger(app, proactiveSessions)
+        if (imContext) {
+          trigger.description += '\n\n' + imContext
+        }
+      }
+
+      const result = await executeWithConcurrency(app, trigger)
+
+      // ── Forward result to proactive IM sessions ─────────
+      if (proactiveSessions && proactiveSessions.length > 0 && result.outcome !== 'error') {
+        try {
+          forwardResultToIm(proactiveSessions, result.runId)
+        } catch (fwdErr) {
+          console.error(`[Runtime] IM forward error: app=${appId}:`, fwdErr)
+        }
+      }
+
+      return result
     },
 
     // ── State Queries ───────────────────────────────

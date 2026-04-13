@@ -194,6 +194,8 @@ export interface AppRuntimeDeps {
   memory: import('../../platform/memory').MemoryService
   background: import('../../platform/background').BackgroundService
   getSpacePath: (spaceId: string) => string | null
+  imSessionRegistry?: import('./im-session-registry').ImSessionRegistry | null
+  getChannelAdapter?: (channel: string) => import('../../../shared/types/im-channel').ImChannelAdapter | null
 }
 
 // ============================================
