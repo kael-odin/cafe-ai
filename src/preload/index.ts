@@ -428,6 +428,13 @@ export interface CafeAPI {
   appImChatClear: (appId: string, spaceId: string, channel: string, chatType: 'direct' | 'group', chatId: string) => Promise<IpcResponse>
   onImSessionUpdated: (callback: (data: unknown) => void) => () => void
 
+  // IM Channels (multi-instance management)
+  imChannelsStatus: () => Promise<IpcResponse>
+  imChannelsInstanceStatus: (instanceId: string) => Promise<IpcResponse>
+  imChannelsReconnect: (instanceId: string) => Promise<IpcResponse>
+  imChannelsReload: () => Promise<IpcResponse>
+  imChannelsProviders: () => Promise<IpcResponse>
+
   // CLI Config (Skills + MCP migration, config dir mode)
   cliConfigGetPaths: () => Promise<IpcResponse>
   cliConfigScanSkills: () => Promise<IpcResponse>
@@ -782,6 +789,13 @@ const api: CafeAPI = {
   appImChatClear: (appId, spaceId, channel, chatType, chatId) =>
     ipcRenderer.invoke('app:im-chat-clear', { appId, spaceId, channel, chatType, chatId }),
   onImSessionUpdated: (callback) => createEventListener('app:im-session-updated', callback),
+
+  // IM Channels (multi-instance management)
+  imChannelsStatus: () => ipcRenderer.invoke('im-channels:status'),
+  imChannelsInstanceStatus: (instanceId) => ipcRenderer.invoke('im-channels:instance-status', instanceId),
+  imChannelsReconnect: (instanceId) => ipcRenderer.invoke('im-channels:reconnect', instanceId),
+  imChannelsReload: () => ipcRenderer.invoke('im-channels:reload'),
+  imChannelsProviders: () => ipcRenderer.invoke('im-channels:providers'),
 
   // CLI Config
   cliConfigGetPaths: () => ipcRenderer.invoke('cli-config:get-paths'),
