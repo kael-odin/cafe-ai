@@ -170,12 +170,11 @@ export function SpacePage(): JSX.Element {
   }, [isMobile, isCanvasOpen])
 
   // Space isolation: clear canvas tabs when switching to a different space
-  // IMPORTANT: Must run synchronously BEFORE render (not in useEffect) to prevent
-  // the "canvas flash" bug where stale isOpen=true from a previous space causes
-  // isCompact=true on the first render of a new space.
-  if (currentSpace) {
-    canvasLifecycle.enterSpace(currentSpace.id)
-  }
+  useEffect(() => {
+    if (currentSpace) {
+      canvasLifecycle.enterSpace(currentSpace.id)
+    }
+  }, [currentSpace?.id])
 
   // BrowserView visibility: hide when leaving SpacePage, show when returning
   useEffect(() => {

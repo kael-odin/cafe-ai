@@ -36,6 +36,7 @@ import { broadcastToAll } from '../websocket'
 import * as appController from '../../controllers/app.controller'
 import type { AppErrorCode } from '../../controllers/app.controller'
 import * as storeController from '../../controllers/store.controller'
+import { installRequiredSkills } from '../../store/registry.service'
 
 // Helper: get working directory for a space
 function getWorkingDir(spaceId: string): string {
@@ -726,11 +727,16 @@ export function registerApiRoutes(app: Express): void {
         res.status(400).json({ success: false, error: 'Missing required field: spec' })
         return
       }
-      const appId = await manager.install(resolvedSpaceId, spec as import('../../apps/spec').AppSpec, userConfig)
+      const typedSpec = spec as import('../../apps/spec').AppSpec
+      const appId = await manager.install(resolvedSpaceId, typedSpec, userConfig)
+
+      if (typedSpec.type !== 'skill') {
+        await installRequiredSkills(typedSpec, resolvedSpaceId)
+      }
 
       // Auto-activate in runtime if available
       const runtime = getAppRuntime()
-      if (runtime && (spec as { type?: string }).type === 'automation') {
+      if (runtime && typedSpec.type === 'automation') {
         await runtime.activate(appId).catch((err: Error) => {
           console.warn(`[HTTP] POST /api/apps/install -- runtime activate failed (non-fatal): ${err.message}`)
         })

@@ -9,6 +9,7 @@ import { stringify as stringifyYaml } from 'yaml'
 import { getAppManager } from '../apps/manager'
 import { getAppRuntime } from '../apps/runtime'
 import { parseAndValidateAppSpec, AppSpecValidationError } from '../apps/spec'
+import { installRequiredSkills } from '../store/registry.service'
 
 // ============================================================================
 // Error Codes
@@ -127,6 +128,10 @@ export async function importSpec(
     }
 
     const appId = await manager.install(input.spaceId, spec, input.userConfig)
+
+    if (spec.type !== 'skill') {
+      await installRequiredSkills(spec, input.spaceId)
+    }
 
     // Auto-activate in runtime if available
     const runtime = getAppRuntime()

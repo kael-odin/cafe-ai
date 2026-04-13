@@ -8,7 +8,8 @@
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { PanelRight } from 'lucide-react'
+import { PanelRight, Columns2 } from 'lucide-react'
+import { useCanvasStore, useCanvasIsOpen } from '../../stores/canvas.store'
 import { useAppsPageStore } from '../../stores/apps-page.store'
 import { useChatStore } from '../../stores/chat.store'
 import { useTranslation } from '../../i18n'
@@ -25,9 +26,22 @@ interface AppChatContainerProps {
 
 export function AppChatContainer({ appId, spaceId }: AppChatContainerProps) {
   const { t } = useTranslation()
-  const { imPanelOpen, selectedImSession, toggleImPanel, selectImSession } = useAppsPageStore()
+  const currentTab = useAppsPageStore(s => s.currentTab)
+  const setCurrentTab = useAppsPageStore(s => s.setCurrentTab)
+  const imPanelOpen = useAppsPageStore(s => s.imPanelOpen) ?? false
+  const selectedImSession = useAppsPageStore(s => s.selectedImSession) ?? null
+  const toggleImPanel = useAppsPageStore(s => s.toggleImPanel)
+  const selectImSession = useAppsPageStore(s => s.selectImSession)
+  const isCanvasOpen = useCanvasIsOpen()
+  const setCanvasOpen = useCanvasStore(s => s.setOpen)
 
-  useEffect(() => { selectImSession(null) }, [appId, selectImSession])
+  useEffect(() => { selectImSession?.(null) }, [appId, selectImSession])
+
+  useEffect(() => {
+    if (currentTab === 'store') {
+      setCurrentTab('my-digital-humans')
+    }
+  }, [currentTab, setCurrentTab])
 
   const hasActiveImSession = useImActiveIndicator(appId)
   const [imChatClearKey, setImChatClearKey] = useState(0)
@@ -43,7 +57,16 @@ export function AppChatContainer({ appId, spaceId }: AppChatContainerProps) {
       <div className="flex-1 min-w-0 flex flex-col">
         {!imPanelOpen && (
           <div className="flex items-center justify-end px-2 py-1 flex-shrink-0">
-            <button onClick={toggleImPanel} className="relative p-1.5 rounded hover:bg-secondary transition-colors" title={t('Conversations')}>
+            {isCanvasOpen && (
+              <button
+                onClick={() => setCanvasOpen(false)}
+                className="relative p-1.5 rounded hover:bg-secondary transition-colors mr-1"
+                title={t('Hide browser pane')}
+              >
+                <Columns2 className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <button onClick={toggleImPanel} className="relative p-1.5 rounded hover:bg-secondary transition-colors" title={t('IM sessions')}>
               <PanelRight className="w-4 h-4 text-muted-foreground" />
               {hasActiveImSession && (<span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />)}
             </button>
@@ -67,7 +90,7 @@ export function AppChatContainer({ appId, spaceId }: AppChatContainerProps) {
 }
 
 function useImActiveIndicator(appId: string): boolean {
-  const imSessions = useAppsPageStore(s => s.imSessions)
+  const imSessions = useAppsPageStore(s => s.imSessions) ?? []
   const convIds = useMemo(() => imSessions.map(s => buildImSessionKey(appId, s.channel, s.chatType, s.chatId)), [imSessions, appId])
   const selector = useCallback(
     (state: { sessions: Map<string, { isGenerating?: boolean }> }) => {

@@ -603,9 +603,9 @@ export function ArtifactRail({
       ref={railRef}
       className="h-full flex-shrink-0 border-l border-border/70 panel-glass section-frame flex flex-col relative overflow-hidden transition-opacity duration-150"
       style={{
-        width: displayWidth,
-        opacity: 1,
-        pointerEvents: 'auto',
+        width: isTemp && !shellReady ? 0 : displayWidth,
+        opacity: isTemp && !shellReady ? 0 : 1,
+        pointerEvents: isTemp && !shellReady ? 'none' : 'auto',
         // Disable transition when: dragging OR Canvas is open (prevent layout flicker)
         transition: (isDragging || isCanvasOpen)
           ? 'opacity 0.15s ease'

@@ -22,8 +22,8 @@ class ParseDocumentInput(BaseModel):
         description="Language code: ch (Chinese/English), en (English), korean, japan, etc.",
     )
     backend: str = Field(
-        default="hybrid-auto-engine",
-        description="Parsing backend: pipeline, vlm-auto-engine, hybrid-auto-engine, etc.",
+        default="vlm-http-client",
+        description="Parsing backend: pipeline, vlm-auto-engine, hybrid-auto-engine, vlm-http-client, etc.",
     )
     parse_method: str = Field(
         default="auto",
@@ -56,7 +56,7 @@ class ParseDocumentsBatchInput(BaseModel):
 
     file_paths: list[str] = Field(description="List of paths to document files")
     lang: str = Field(default="ch", description="Language code")
-    backend: str = Field(default="hybrid-auto-engine", description="Parsing backend")
+    backend: str = Field(default="vlm-http-client", description="Parsing backend")
     parse_method: str = Field(default="auto", description="Parse method")
     formula_enable: bool = Field(default=True, description="Enable formula parsing")
     table_enable: bool = Field(default=True, description="Enable table parsing")
@@ -70,7 +70,7 @@ class SubmitAsyncTaskInput(BaseModel):
 
     file_paths: list[str] = Field(description="List of paths to document files")
     lang: str = Field(default="ch", description="Language code")
-    backend: str = Field(default="hybrid-auto-engine", description="Parsing backend")
+    backend: str = Field(default="vlm-http-client", description="Parsing backend")
     parse_method: str = Field(default="auto", description="Parse method")
     formula_enable: bool = Field(default=True, description="Enable formula parsing")
     table_enable: bool = Field(default=True, description="Enable table parsing")
@@ -283,7 +283,11 @@ def create_tools(server: Server, mineru_url: str) -> list[Tool]:
 
                 elif name == "health_check":
                     is_healthy = await client.health_check()
-                    status_text = "✅ MinerU service is healthy" if is_healthy else "❌ MinerU service is not responding"
+                    status_text = (
+                        "✅ MinerU service is healthy"
+                        if is_healthy
+                        else "❌ MinerU service is not responding"
+                    )
                     return [TextContent(type="text", text=status_text)]
 
                 else:

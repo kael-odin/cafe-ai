@@ -28,10 +28,7 @@ export function useCanvasLifecycle() {
   // This ensures we have correct state even before useEffect runs
   const [tabs, setTabs] = useState<TabState[]>(() => canvasLifecycle.getTabs())
   const [activeTabId, setActiveTabId] = useState<string | null>(() => canvasLifecycle.getActiveTabId())
-  // CRITICAL: isOpen initializes as false to prevent "canvas flash" bug.
-  // canvasLifecycle.getIsOpen() may return stale true from a previous space.
-  // The onOpenStateChange callback will update this when the actual state changes.
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(() => canvasLifecycle.getIsOpen())
 
   // Subscribe to state changes
   useEffect(() => {
@@ -235,9 +232,7 @@ export function useBrowserState(tabId: string | undefined) {
  * Hook for just the open state (minimal re-renders)
  */
 export function useCanvasIsOpen(): boolean {
-  // CRITICAL: isOpen initializes as false to prevent "canvas flash" bug.
-  // canvasLifecycle.getIsOpen() may return stale true from a previous space.
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(canvasLifecycle.getIsOpen())
 
   useEffect(() => {
     const unsub = canvasLifecycle.onOpenStateChange(setIsOpen)

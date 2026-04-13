@@ -23,7 +23,7 @@
  * BrowserView lifecycle is managed centrally by CanvasLifecycle.
  */
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { X, ChevronLeft, Maximize2, Minimize2 } from 'lucide-react'
 import { useCanvasLifecycle, type TabState, type ContentType } from '../../hooks/useCanvasLifecycle'
 import { CanvasTabBar } from './CanvasTabs'
@@ -37,6 +37,7 @@ import { TextViewer } from './viewers/TextViewer'
 import { BrowserViewer, BrowserViewerFallback } from './viewers/BrowserViewer'
 import { api } from '../../api'
 import { useTranslation } from '../../i18n'
+import { canvasLifecycle } from '../../services/canvas-lifecycle'
 
 // Default URL for new browser tabs
 const DEFAULT_NEW_TAB_URL = 'https://www.bing.com'
@@ -47,6 +48,7 @@ interface ContentCanvasProps {
 
 export function ContentCanvas({ className = '' }: ContentCanvasProps) {
   const { t } = useTranslation()
+  const contentContainerRef = useRef<HTMLDivElement>(null)
   const {
     activeTabId,
     activeTab,

@@ -287,10 +287,8 @@ export function BrowserTaskCard({ browserToolCalls, isActive, showViewButton = t
     const urlToOpen = activeUrl || currentUrl
 
     if (activeViewId && urlToOpen) {
-      // Attach existing AI BrowserView to Canvas - this reuses the view AI is operating
       attachAIBrowserView(activeViewId, urlToOpen, t('🤖 AI Browser'))
     } else if (urlToOpen) {
-      // Fallback: open new browser tab if no activeViewId available
       openUrl(urlToOpen, t('🤖 AI Browser'))
     }
   }

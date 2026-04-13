@@ -108,9 +108,13 @@ export async function startHttpServer(
   expressApp.post('/api/remote/login', (req: Request, res: Response) => {
     const { token } = req.body
 
+    console.log('[HTTP] Login attempt, token length:', token?.length, 'accessToken exists:', !!getAccessToken())
+
     if (validateToken(token)) {
+      console.log('[HTTP] Login successful')
       res.json({ success: true })
     } else {
+      console.log('[HTTP] Login failed - invalid token')
       res.status(401).json({ success: false, error: 'Invalid token' })
     }
   })
@@ -142,19 +146,18 @@ export async function startHttpServer(
   if (is.dev) {
     // In development, proxy to Vite dev server
     expressApp.use('/{*path}', (req, res) => {
-      // Check if authenticated (has valid token in query or localStorage check via cookie)
-      const urlToken = req.query.token as string
-      const authHeader = req.headers.authorization
-      const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader
+      // Only check auth for root path in dev mode
+      if (req.path === '/') {
+        const urlToken = req.query.token as string
+        const authHeader = req.headers.authorization
+        const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader
 
-      // If accessing root without auth, show login page
-      if (req.path === '/' && !urlToken && !headerToken) {
-        // Check cookie for token
-        const cookies = req.headers.cookie || ''
-        const cookieMatch = cookies.match(/Cafe_auth_token=([^;]+)/)
-        const hasToken = cookieMatch && validateToken(cookieMatch[1])
-        if (!hasToken) {
-          return res.send(getRemoteLoginPage())
+        if (!urlToken && !headerToken) {
+          const cookies = req.headers.cookie || ''
+          const hasToken = cookies.includes('Cafe_authenticated=true')
+          if (!hasToken) {
+            return res.send(getRemoteLoginPage())
+          }
         }
       }
 
@@ -212,19 +215,22 @@ export async function startHttpServer(
         req.path.endsWith('.png') ||
         req.path.endsWith('.ico') ||
         req.path.endsWith('.woff') ||
-        req.path.endsWith('.woff2')
+        req.path.endsWith('.woff2') ||
+        req.path.endsWith('.map') ||
+        req.path.endsWith('.html')
       ) {
         return next()
       }
 
-      // Check if authenticated via cookie
-      const cookies = req.headers.cookie || ''
-      const cookieMatch = cookies.match(/Cafe_auth_token=([^;]+)/)
-      const hasToken = cookieMatch && validateToken(cookieMatch[1])
+      // Only check auth for the root path (SPA entry point)
+      // All other paths are handled by SPA fallback which serves index.html
+      if (req.path === '/') {
+        const cookies = req.headers.cookie || ''
+        const hasToken = cookies.includes('Cafe_authenticated=true')
 
-      // If not authenticated, show login page
-      if (!hasToken) {
-        return res.send(getRemoteLoginPage())
+        if (!hasToken) {
+          return res.send(getRemoteLoginPage())
+        }
       }
 
       next()
@@ -476,8 +482,8 @@ function getRemoteLoginPage(): string {
 
         if (res.ok) {
           localStorage.setItem('cafe_remote_token', token);
-          // Set cookie with actual token for server-side auth check
-          document.cookie = 'Cafe_auth_token=' + encodeURIComponent(token) + '; path=/; SameSite=Strict';
+          // Set cookie for server-side auth check
+          document.cookie = 'Cafe_authenticated=true; path=/';
           error.textContent = '';
           error.classList.remove('error');
           error.classList.add('success');

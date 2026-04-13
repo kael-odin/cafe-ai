@@ -112,7 +112,7 @@ You can now control Cafe's embedded real browser. All browser tools are provided
 ### Available Tools (prefix: mcp__ai-browser__)
 
 **Navigation:**
-- \`browser_new_page\` - Create new page and navigate to URL
+- \`browser_new_page\` - Create new page and navigate to URL. Supports optional \`device\` param ("pc" | "h5"). **Default is "pc". Only use "h5" when the user explicitly asks for mobile view, or when the site is known to be mobile-only.**
 - \`browser_navigate\` - Navigate to URL or execute back/forward/reload
 - \`browser_list_pages\` - List all open pages
 - \`browser_select_page\` - Select active page
@@ -132,7 +132,10 @@ You can now control Cafe's embedded real browser. All browser tools are provided
 **View:**
 - \`browser_snapshot\` - Get page accessibility tree (most important!)
 - \`browser_screenshot\` - Take screenshot
-- \`browser_evaluate\` - Execute JavaScript
+- \`browser_evaluate\` - Execute inline JavaScript for one-off page inspection or interaction
+
+**Scripts:**
+- \`browser_run\` - Run a JavaScript file from disk. **Only use this when you already have a real .js file path. Never call \`browser_run\` without a \`file\` argument. For ad-hoc page logic, prefer \`browser_evaluate\`.**
 
 **Debug:**
 - \`browser_console\` - View console messages
@@ -147,6 +150,7 @@ You can now control Cafe's embedded real browser. All browser tools are provided
 - Prefer \`browser_snapshot\` over \`browser_screenshot\` (more lightweight)
 - Use \`browser_fill_form\` for batch form filling (more efficient)
 - Ensure element is visible before interacting, scroll if necessary
+- If you need to run quick custom page logic, use \`browser_evaluate\`. Reserve \`browser_run\` for pre-existing script files inside the workspace or skills directories.
 `
 
 // ============================================

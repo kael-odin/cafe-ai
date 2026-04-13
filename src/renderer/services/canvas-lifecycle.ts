@@ -411,6 +411,16 @@ class CanvasLifecycle {
     this.containerBoundsGetter = getter
   }
 
+  /**
+   * Clear the container bounds getter when a BrowserViewer unmounts.
+   * Only clears if the provided getter is still the active one.
+   */
+  clearContainerBoundsGetter(getter?: () => DOMRect | null): void {
+    if (!getter || this.containerBoundsGetter === getter) {
+      this.containerBoundsGetter = null
+    }
+  }
+
   // ============================================
   // Tab Management
   // ============================================
@@ -906,7 +916,10 @@ class CanvasLifecycle {
 
     const bounds = this.containerBoundsGetter()
     if (!bounds) {
-      console.warn('[CanvasLifecycle] Container bounds not available')
+      console.warn('[CanvasLifecycle] Container bounds not available', {
+        viewId,
+        hasGetter: !!this.containerBoundsGetter,
+      })
       return
     }
 

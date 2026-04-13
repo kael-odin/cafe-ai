@@ -48,7 +48,7 @@ const browser_run = tool(
   'browser_run',
   `Execute a JavaScript file in the current browser page context. The file must contain a single async arrow function: \`async (params) => { ... return result }\`. The tool reads the file from disk, injects it into the page, and returns the JSON result. The page must already be navigated to the target URL (use browser_navigate first). Use this for pre-built, deterministic browser scripts instead of writing inline code with browser_evaluate.`,
   {
-    file: z.string().describe(
+    file: z.string().optional().describe(
       'Absolute path to the .js file to execute. The file must contain a single async arrow function: `async (params) => { ... return result }`'
     ),
     params: z.record(z.unknown()).optional().describe(
@@ -59,6 +59,13 @@ const browser_run = tool(
     ),
   },
   async (args) => {
+    if (!args.file) {
+      return textResult(
+        'browser_run requires a file path. Use browser_evaluate for one-off inline JavaScript, or provide a real .js file path in the file argument.',
+        true
+      )
+    }
+
     // 1. Validate active page
     if (!ctx.getActiveViewId()) {
       return textResult('No active browser page. Use browser_navigate first.', true)

@@ -56,6 +56,7 @@ import { readSessionMessages } from '../apps/runtime/session-store'
 import { getSpace } from '../services/space.service'
 import { broadcastToAll } from '../http/websocket'
 import * as appController from '../controllers/app.controller'
+import { installRequiredSkills } from '../store/registry.service'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,6 +98,10 @@ export function registerAppHandlers(): void {
         const r = requireManager()
         if (!r.success) return r
         const appId = await r.manager.install(input.spaceId, input.spec, input.userConfig)
+
+        if (input.spec.type !== 'skill') {
+          await installRequiredSkills(input.spec, input.spaceId)
+        }
 
         // Auto-activate in the runtime if runtime is ready
         const runtime = getAppRuntime()

@@ -24,7 +24,8 @@ interface ImSessionPanelProps {
 export function ImSessionPanel({ appId, spaceId, onSessionCleared }: ImSessionPanelProps) {
   const { t } = useTranslation()
   const isMobile = useIsMobile()
-  const { selectedImSession, selectImSession, toggleImPanel, imSessions, fetchImSessions } = useAppsPageStore()
+  const { selectedImSession, selectImSession, toggleImPanel, fetchImSessions } = useAppsPageStore()
+  const imSessions = useAppsPageStore(s => s.imSessions) ?? []
   const resetSession = useChatStore(s => s.resetSession)
 
   useEffect(() => {

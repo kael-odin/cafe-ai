@@ -93,7 +93,7 @@ class MinerUClient:
         self,
         file_path: str,
         lang: str = "ch",
-        backend: str = "hybrid-auto-engine",
+        backend: str = "vlm-http-client",
         parse_method: str = "auto",
         formula_enable: bool = True,
         table_enable: bool = True,
@@ -185,7 +185,7 @@ class MinerUClient:
         self,
         file_paths: list[str],
         lang: str = "ch",
-        backend: str = "hybrid-auto-engine",
+        backend: str = "vlm-http-client",
         parse_method: str = "auto",
         formula_enable: bool = True,
         table_enable: bool = True,
@@ -230,8 +230,7 @@ class MinerUClient:
 
         if not files:
             return [
-                ParseResult(file_name=Path(fp).name, error="File not found")
-                for fp in file_paths
+                ParseResult(file_name=Path(fp).name, error="File not found") for fp in file_paths
             ]
 
         data = {
@@ -285,16 +284,13 @@ class MinerUClient:
                 for fp in file_paths
             ]
         except Exception as e:
-            return [
-                ParseResult(file_name=Path(fp).name, error=str(e))
-                for fp in file_paths
-            ]
+            return [ParseResult(file_name=Path(fp).name, error=str(e)) for fp in file_paths]
 
     async def submit_async_task(
         self,
         file_paths: list[str],
         lang: str = "ch",
-        backend: str = "hybrid-auto-engine",
+        backend: str = "vlm-http-client",
         parse_method: str = "auto",
         formula_enable: bool = True,
         table_enable: bool = True,

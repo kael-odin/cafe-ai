@@ -833,4 +833,3 @@ export function AppChatView({ appId, spaceId }: AppChatViewProps): JSX.Element {
   )
 
 }
-

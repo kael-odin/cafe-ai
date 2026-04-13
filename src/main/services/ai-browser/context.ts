@@ -1044,8 +1044,10 @@ export class BrowserContext implements BrowserContextInterface {
               const host = browserViewManager.getOffscreenWindow?.()
               if (host && !host.isDestroyed()) {
                 if (host.isMinimized()) host.restore()
-                // Temporarily make it capturable.
-                try { host.setOpacity(1) } catch {}
+                // Keep the host effectively invisible; showing it at full opacity
+                // causes a noticeable Windows flash. A tiny non-zero opacity still
+                // allows Chromium to paint on most systems without surfacing a real UI.
+                try { host.setOpacity(0.01) } catch {}
                 try { host.showInactive() } catch {}
                 try { host.focusable = false } catch {}
                 await sleep(200)
